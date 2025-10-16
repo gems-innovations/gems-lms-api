@@ -1,24 +1,4 @@
-plugins {
-    id 'java'
-}
-
-group = 'gems.com'
-version = '1.0.0'
-
-repositories {
-    mavenCentral()
-}
-
 dependencies {
-    // Dependencia del módulo shared
-    implementation project(':shared')
-    
-    // Spring Boot dependencies (ya aplicadas desde el build.gradle principal)
-    // testImplementation platform('org.junit:junit-bom:5.10.0')
-    // testImplementation 'org.junit.jupiter:junit-jupiter'
-    // testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+      implementation 'org.springframework.boot:spring-boot-starter-data-r2dbc'
+      implementation 'org.postgresql:r2dbc-postgresql'
 }
-
-// test {
-//     useJUnitPlatform()
-// }
