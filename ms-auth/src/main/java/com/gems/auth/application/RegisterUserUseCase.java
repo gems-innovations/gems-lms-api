@@ -1,0 +1,47 @@
+package com.gems.auth.application;
+
+import com.gems.auth.application.command.RegisterUserCommand;
+import com.gems.auth.application.gateway.PasswordEncoderGateway;
+import com.gems.auth.application.gateway.UserGateway;
+import com.gems.auth.application.response.UserResponse;
+import com.gems.auth.domain.entities.User;
+import com.gems.auth.domain.constants.UserConstants;
+import com.gems.auth.domain.exceptions.UserAlreadyExistsException;
+import com.gems.auth.domain.values.UserId;
+import reactor.core.publisher.Mono;
+
+public class RegisterUserUseCase {
+  private final UserGateway userGateway;
+  private final PasswordEncoderGateway passwordEncoderGateway;
+
+  public RegisterUserUseCase(UserGateway userGateway, PasswordEncoderGateway passwordEncoderGateway) {
+    this.userGateway = userGateway;
+    this.passwordEncoderGateway = passwordEncoderGateway;
+  }
+
+  public Mono<UserResponse> execute(RegisterUserCommand command) {
+    return userGateway.existsByEmail(command.getEmail())
+      .flatMap(exists -> {
+        if (exists) {
+          return Mono.error(new UserAlreadyExistsException(
+            String.format(UserConstants.USER_ALREADY_EXISTS_MESSAGE, command.getEmail().getValue())
+          ));
+        }
+
+        String userId = UserId.generate().getValue();
+        String encodedPassword = passwordEncoderGateway.encode(command.getPassword());
+
+        User user = new User(userId, command.getName().getValue(), command.getEmail().getValue(), encodedPassword);
+
+        return userGateway.save(user)
+          .map(savedUser -> new UserResponse(
+            savedUser.getId(),
+            savedUser.getName(),
+            savedUser.getEmail(),
+            savedUser.getCreatedAt(),
+            savedUser.getUpdatedAt(),
+            savedUser.isActive()
+          ));
+      });
+  }
+}
