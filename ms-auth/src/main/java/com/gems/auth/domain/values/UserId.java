@@ -3,23 +3,23 @@ package com.gems.auth.domain.values;
 import com.gems.auth.domain.constants.UserConstants;
 
 import java.util.Objects;
-import java.util.UUID;
 
 public class UserId {
-  private final String value;
+  private final Long value;
 
-  public UserId(String value) {
-    if (value == null || value.trim().isEmpty()) {
+  public UserId(Long value) {
+    if (value == null) {
       throw new IllegalArgumentException(UserConstants.USER_ID_CANNOT_BE_NULL_OR_EMPTY);
     }
     this.value = value;
   }
 
   public static UserId generate() {
-    return new UserId(UUID.randomUUID().toString());
+    // For auto-increment, we don't need to generate IDs
+    return null;
   }
 
-  public String getValue() {
+  public Long getValue() {
     return value;
   }
 
@@ -38,6 +38,6 @@ public class UserId {
 
   @Override
   public String toString() {
-    return value;
+    return value.toString();
   }
 }

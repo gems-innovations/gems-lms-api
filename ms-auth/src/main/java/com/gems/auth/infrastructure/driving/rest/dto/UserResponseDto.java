@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 
 @Schema(description = "User information response")
 public class UserResponseDto {
-  @Schema(description = "Unique user identifier", example = "123e4567-e89b-12d3-a456-426614174000")
-  private final String id;
+  @Schema(description = "Unique user identifier", example = "1")
+  private final Long id;
 
   @Schema(description = "User's full name", example = "John Doe")
   private final String name;
@@ -24,7 +24,7 @@ public class UserResponseDto {
   @Schema(description = "User account status", example = "true")
   private final boolean active;
 
-  public UserResponseDto(String id, String name, String email, LocalDateTime createdAt, LocalDateTime updatedAt, boolean active) {
+  public UserResponseDto(Long id, String name, String email, LocalDateTime createdAt, LocalDateTime updatedAt, boolean active) {
     this.id = id;
     this.name = name;
     this.email = email;
@@ -33,7 +33,7 @@ public class UserResponseDto {
     this.active = active;
   }
 
-  public String getId() {
+  public Long getId() {
     return id;
   }
 

@@ -7,15 +7,15 @@ import com.gems.auth.domain.values.Email;
 import java.time.LocalDateTime;
 
 public class UserResponse {
-  private final String id;
+  private final Long id;
   private final String name;
   private final String email;
   private final LocalDateTime createdAt;
   private final LocalDateTime updatedAt;
   private final boolean active;
 
-  public UserResponse(UserId id, UserName name, Email email, LocalDateTime createdAt, LocalDateTime updatedAt, boolean active) {
-    this.id = id.getValue();
+  public UserResponse(Long id, UserName name, Email email, LocalDateTime createdAt, LocalDateTime updatedAt, boolean active) {
+    this.id = id;
     this.name = name.getValue();
     this.email = email.getValue();
     this.createdAt = createdAt;
@@ -23,7 +23,7 @@ public class UserResponse {
     this.active = active;
   }
 
-  public String getId() {
+  public Long getId() {
     return id;
   }
 

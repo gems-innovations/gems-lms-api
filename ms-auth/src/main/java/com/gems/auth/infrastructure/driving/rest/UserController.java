@@ -49,9 +49,6 @@ public class UserController {
       })
       .onErrorResume(UserAlreadyExistsException.class, ex ->
         Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build())
-      )
-      .onErrorResume(IllegalArgumentException.class, ex ->
-        Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).build())
       );
   }
 }

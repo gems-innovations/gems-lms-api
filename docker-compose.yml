@@ -1,104 +1,6 @@
 version: '3.8'
 
 services:
-  api-gateway:
-    build:
-      context: .
-      dockerfile: api-gateway/Dockerfile
-    container_name: gems-api-gateway
-    ports:
-      - "${API_GATEWAY_PORT}:8080"
-    environment:
-      - API_GATEWAY_PORT=${API_GATEWAY_PORT}
-    networks:
-      - gems-network
-    depends_on:
-      - ms-education
-      - ms-auth
-      - ms-admin
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  ms-education:
-    build:
-      context: .
-      dockerfile: ms-education/Dockerfile
-    container_name: gems-ms-education
-    ports:
-      - "${EDUCATION_PORT}:8081"
-    environment:
-      - EDUCATION_PORT=${EDUCATION_PORT}
-      - EDUCATION_R2DBC_URL=r2dbc:postgresql://postgres-education:${EDUCATION_DB_PORT}/${EDUCATION_DB_NAME}
-      - EDUCATION_R2DBC_USERNAME=${EDUCATION_DB_USER}
-      - EDUCATION_R2DBC_PASSWORD=${EDUCATION_DB_PASSWORD}
-    networks:
-      - gems-network
-    depends_on:
-      postgres-education:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  ms-auth:
-    build:
-      context: .
-      dockerfile: ms-auth/Dockerfile
-    container_name: gems-ms-auth
-    ports:
-      - "${AUTH_PORT}:8082"
-    environment:
-      - AUTH_PORT=${AUTH_PORT}
-      - AUTH_R2DBC_URL=r2dbc:postgresql://postgres-auth:${AUTH_DB_PORT}/${AUTH_DB_NAME}
-      - AUTH_R2DBC_USERNAME=${AUTH_DB_USER}
-      - AUTH_R2DBC_PASSWORD=${AUTH_DB_PASSWORD}
-    networks:
-      - gems-network
-    depends_on:
-      postgres-auth:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  ms-admin:
-    build:
-      context: .
-      dockerfile: ms-admin/Dockerfile
-    container_name: gems-ms-admin
-    ports:
-      - "${ADMIN_PORT}:8083"
-    environment:
-      - ADMIN_PORT=${ADMIN_PORT}
-      - ADMIN_R2DBC_URL=r2dbc:postgresql://postgres-admin:${ADMIN_DB_PORT}/${ADMIN_DB_NAME}
-      - ADMIN_R2DBC_USERNAME=${ADMIN_DB_USER}
-      - ADMIN_R2DBC_PASSWORD=${ADMIN_DB_PASSWORD}
-    networks:
-      - gems-network
-    depends_on:
-      postgres-admin:
-        condition: service_healthy
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
   # Databases
   postgres-admin:
     image: postgres:16
@@ -108,7 +10,7 @@ services:
       - POSTGRES_USER=${ADMIN_DB_USER:-admin_user}
       - POSTGRES_PASSWORD=${ADMIN_DB_PASSWORD:-admin_password}
     ports:
-      - "${ADMIN_DB_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - postgres_admin_data:/var/lib/postgresql/data
     networks:
@@ -128,7 +30,7 @@ services:
       - POSTGRES_USER=${AUTH_DB_USER:-auth_user}
       - POSTGRES_PASSWORD=${AUTH_DB_PASSWORD:-auth_password}
     ports:
-      - "${AUTH_DB_PORT:-5433}:5432"
+      - "5433:5432"
     volumes:
       - postgres_auth_data:/var/lib/postgresql/data
     networks:
@@ -148,7 +50,7 @@ services:
       - POSTGRES_USER=${EDUCATION_DB_USER:-education_user}
       - POSTGRES_PASSWORD=${EDUCATION_DB_PASSWORD:-education_password}
     ports:
-      - "${EDUCATION_DB_PORT:-5434}:5432"
+      - "5434:5432"
     volumes:
       - postgres_education_data:/var/lib/postgresql/data
     networks:

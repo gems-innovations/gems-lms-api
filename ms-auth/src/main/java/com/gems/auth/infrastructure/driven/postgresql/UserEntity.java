@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 public class UserEntity {
   @Id
   @Column("user_id")
-  private String userId;
+  private Long userId;
   private String name;
   private String email;
   private String password;
@@ -21,7 +21,7 @@ public class UserEntity {
   public UserEntity() {
   }
 
-  public UserEntity(String userId, String name, String email, String password,
+  public UserEntity(Long userId, String name, String email, String password,
                     Boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
     this.userId = userId;
     this.name = name;
@@ -32,11 +32,11 @@ public class UserEntity {
     this.updatedAt = updatedAt;
   }
 
-  public String getUserId() {
+  public Long getUserId() {
     return userId;
   }
 
-  public void setUserId(String userId) {
+  public void setUserId(Long userId) {
     this.userId = userId;
   }
 

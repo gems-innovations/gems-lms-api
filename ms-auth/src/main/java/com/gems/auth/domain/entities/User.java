@@ -26,7 +26,7 @@ public class User {
     this.active = true;
   }
 
-  public User(String id, String name, String email, String password) {
+  public User(Long id, String name, String email, String password) {
     this.id = new UserId(id);
     this.name = new UserName(name);
     this.email = new Email(email);
@@ -36,7 +36,15 @@ public class User {
     this.active = true;
   }
 
-  // Getters
+  public User(String name, String email, String password) {
+    this.name = new UserName(name);
+    this.email = new Email(email);
+    this.password = new Password(password);
+    this.createdAt = LocalDateTime.now();
+    this.updatedAt = LocalDateTime.now();
+    this.active = true;
+  }
+
   public UserId getId() {
     return id;
   }
@@ -65,7 +73,6 @@ public class User {
     return active;
   }
 
-  // Business methods
   public void updatePassword(Password newPassword) {
     this.password = newPassword;
     this.updatedAt = LocalDateTime.now();

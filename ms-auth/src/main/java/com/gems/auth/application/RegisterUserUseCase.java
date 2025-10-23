@@ -28,14 +28,13 @@ public class RegisterUserUseCase {
           ));
         }
 
-        String userId = UserId.generate().getValue();
         String encodedPassword = passwordEncoderGateway.encode(command.getPassword());
 
-        User user = new User(userId, command.getName().getValue(), command.getEmail().getValue(), encodedPassword);
+        User user = new User(command.getName().getValue(), command.getEmail().getValue(), encodedPassword);
 
         return userGateway.save(user)
           .map(savedUser -> new UserResponse(
-            savedUser.getId(),
+            savedUser.getId().getValue(),
             savedUser.getName(),
             savedUser.getEmail(),
             savedUser.getCreatedAt(),

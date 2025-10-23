@@ -57,7 +57,7 @@ public class UserRepositoryAdapter implements UserGateway {
 
   private UserEntity mapToEntity(User user) {
     return new UserEntity(
-      user.getId().getValue(),
+      user.getId() != null ? user.getId().getValue() : null,
       user.getName().getValue(),
       user.getEmail().getValue(),
       user.getPassword().getValue(),
