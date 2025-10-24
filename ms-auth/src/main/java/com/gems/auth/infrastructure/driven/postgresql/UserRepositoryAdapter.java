@@ -6,6 +6,7 @@ import com.gems.auth.domain.values.Email;
 import com.gems.auth.domain.values.Password;
 import com.gems.auth.domain.values.UserId;
 import com.gems.auth.domain.values.UserName;
+import com.gems.auth.domain.values.UserRole;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
 
@@ -51,7 +52,8 @@ public class UserRepositoryAdapter implements UserGateway {
       userEntity.getUserId(),
       userEntity.getName(),
       userEntity.getEmail(),
-      userEntity.getPassword()
+      userEntity.getPassword(),
+      UserRole.valueOf(userEntity.getRole())
     );
   }
 
@@ -61,6 +63,7 @@ public class UserRepositoryAdapter implements UserGateway {
       user.getName().getValue(),
       user.getEmail().getValue(),
       user.getPassword().getValue(),
+      user.getRole().name(),
       user.isActive(),
       user.getCreatedAt(),
       user.getUpdatedAt()

@@ -1,6 +1,8 @@
 package com.gems.auth.infrastructure.config;
 
+import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
+import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
 import com.gems.auth.application.gateway.UserGateway;
 import com.gems.auth.infrastructure.driven.encoder.PasswordEncoderAdapter;
@@ -25,5 +27,12 @@ public class ApplicationConfig {
   @Bean
   public RegisterUserUseCase registerUserUseCase(UserGateway userGateway, PasswordEncoderGateway passwordEncoderGateway) {
     return new RegisterUserUseCase(userGateway, passwordEncoderGateway);
+  }
+
+  @Bean
+  public LoginUseCase loginUseCase(UserGateway userGateway,
+                                   PasswordEncoderGateway passwordEncoderGateway,
+                                   JwtGateway jwtGateway) {
+    return new LoginUseCase(userGateway, passwordEncoderGateway, jwtGateway);
   }
 }

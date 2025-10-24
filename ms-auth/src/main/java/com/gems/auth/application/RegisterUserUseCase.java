@@ -7,7 +7,7 @@ import com.gems.auth.application.response.UserResponse;
 import com.gems.auth.domain.entities.User;
 import com.gems.auth.domain.constants.UserConstants;
 import com.gems.auth.domain.exceptions.UserAlreadyExistsException;
-import com.gems.auth.domain.values.UserId;
+import com.gems.auth.domain.values.UserRole;
 import reactor.core.publisher.Mono;
 
 public class RegisterUserUseCase {
@@ -28,9 +28,9 @@ public class RegisterUserUseCase {
           ));
         }
 
-        String encodedPassword = passwordEncoderGateway.encode(command.getPassword());
+        String encodedPassword = passwordEncoderGateway.encode(command.getPassword().getValue());
 
-        User user = new User(command.getName().getValue(), command.getEmail().getValue(), encodedPassword);
+        User user = new User(command.getName().getValue(), command.getEmail().getValue(), encodedPassword, UserRole.STUDENT);
 
         return userGateway.save(user)
           .map(savedUser -> new UserResponse(

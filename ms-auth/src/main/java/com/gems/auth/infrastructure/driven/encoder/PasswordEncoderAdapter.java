@@ -14,12 +14,12 @@ public class PasswordEncoderAdapter implements PasswordEncoderGateway {
   }
 
   @Override
-  public String encode(Password password) {
-    return bCryptPasswordEncoder.encode(password.getValue());
+  public String encode(String rawPassword) {
+    return bCryptPasswordEncoder.encode(rawPassword);
   }
 
   @Override
-  public boolean matches(Password rawPassword, String encodedPassword) {
-    return bCryptPasswordEncoder.matches(rawPassword.getValue(), encodedPassword);
+  public Boolean matches(String rawPassword, String encodedPassword) {
+    return bCryptPasswordEncoder.matches(rawPassword, encodedPassword);
   }
 }

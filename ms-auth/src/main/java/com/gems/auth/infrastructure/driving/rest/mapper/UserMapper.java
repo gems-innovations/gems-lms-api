@@ -1,7 +1,7 @@
 package com.gems.auth.infrastructure.driving.rest.mapper;
 
-import com.gems.auth.application.response.UserResponse;
-import com.gems.auth.infrastructure.driving.rest.dto.UserResponseDto;
+import com.gems.auth.application.command.RegisterUserCommand;
+import com.gems.auth.infrastructure.driving.rest.request.RegisterUserRequest;
 
 public class UserMapper {
 
@@ -9,14 +9,11 @@ public class UserMapper {
     throw new UnsupportedOperationException("Utility class");
   }
 
-  public static UserResponseDto toDto(UserResponse userResponse) {
-    return new UserResponseDto(
-      userResponse.getId(),
-      userResponse.getName(),
-      userResponse.getEmail(),
-      userResponse.getCreatedAt(),
-      userResponse.getUpdatedAt(),
-      userResponse.isActive()
+  public static RegisterUserCommand toDomain(RegisterUserRequest request) {
+    return new RegisterUserCommand(
+      request.getName(),
+      request.getEmail(),
+      request.getPassword()
     );
   }
 }
