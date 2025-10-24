@@ -1,0 +1,166 @@
+---
+alwaysApply: true
+---
+
+# GEMS LMS API - Arquitectura y Reglas del Proyecto
+
+## 🏗️ ARQUITECTURA GENERAL
+
+### Estructura del Proyecto
+- **API Gateway**: Punto de entrada único
+- **Microservicios**: ms-auth, ms-admin, ms-education (puertos internos)
+- **Shared Module**: Componentes compartidos entre microservicios
+- **Docker Compose**: SOLO para bases de datos (NO modificar)
+- **Scripts PowerShell**: NO modificar (start-microservices.ps1, stop-microservices.ps1)
+
+## 🎯 PATRÓN DE ARQUITECTURA: CLEAN ARCHITECTURE + DDD
+
+### Estructura de Microservicios (OBLIGATORIA)
+```
+ms-[nombre]/
+├── src/main/java/com/gems/[nombre]/
+│   ├── [Nombre]Application.java          # Clase principal
+│   ├── domain/                           # Capa de dominio
+│   │   ├── entities/                     # Entidades de negocio
+│   │   ├── values/                       # Value Objects
+│   │   ├── exceptions/                   # Excepciones de dominio
+│   │   └── constants/                    # Constantes de dominio
+│   ├── application/                      # Capa de aplicación
+│   │   ├── gateway/                      # Interfaces de puertos
+│   │   ├── command/                      # Commands (CQRS)
+│   │   ├── query/                        # Queries (CQRS)
+│   │   ├── response/                     # Response objects
+│   │   └── ExampleUseCase.java               # Casos de uso
+│   └── infrastructure/                   # Capa de infraestructura
+│       ├── config/                       # Configuraciones
+│       ├── driven/                       # Adaptadores de salida
+│       │   ├── postgresql/              # Repositorios
+│       │   └── [external-service]/      # Servicios externos
+│       └── driving/                      # Adaptadores de entrada
+│           └── rest/                     # Controladores REST
+│               ├── request/              # Request objects
+│               ├── response/             # Response objects
+│               ├── mapper/               # Mappers
+│               └── [Controller].java     # Controladores
+```
+
+## 🔒 REGLAS DE SEGURIDAD
+
+### API Gateway
+- **Único punto de entrada**: Solo puerto del api gateway expuesto
+- **Filtro de autenticación interna**: `InternalAuthFilter` obligatorio
+- **Configuración centralizada**: `MicroserviceConfig` con `@ConfigurationProperties`
+- **Rutas dinámicas**: Usar `RouteConfig` con inyección de dependencias
+
+### Microservicios
+- **NO expuestos directamente**: Solo accesibles a través del API Gateway
+- **Comunicación interna**: Usar nombres de contenedores Docker
+- **Autenticación interna**: Header `X-Internal-Token` requerido
+
+## 📦 REGLAS DE DESARROLLO
+
+### 1. NAMING CONVENTIONS
+- **Microservicios**: `ms-[nombre]` (ej: ms-auth, ms-admin)
+- **Paquetes**: `com.gems.[nombre]`
+- **Entidades**: PascalCase (ej: User, Course)
+- **Value Objects**: PascalCase (ej: UserId, Email)
+- **Use Cases**: `[Accion][Entidad]UseCase` (ej: RegisterUserUseCase)
+- **Commands**: `[Accion][Entidad]Command` (ej: RegisterUserCommand)
+- **Controllers**: `[Entidad]Controller` (ej: UserController)
+
+### 2. DEPENDENCIAS ENTRE CAPAS
+- **Domain**: NO depende de ninguna capa
+- **Application**: Solo depende de Domain
+- **Infrastructure**: Puede depender de Application y Domain
+- **Controllers**: Solo pueden usar Use Cases, NO repositorios directamente
+
+### 3. INYECCIÓN DE DEPENDENCIAS
+- **Use Cases**: Inyectar en `ApplicationConfig`
+- **Gateways**: Implementar interfaces en Infrastructure
+- **Repositorios**: Usar `@Repository` en adaptadores
+- **Configuraciones**: Usar `@Configuration` y `@Bean`
+
+### 4. REACTIVE PROGRAMMING
+- **Obligatorio**: Usar `Mono<T>` y `Flux<T>` en toda la aplicación
+- **Controllers**: Retornar `Mono<ResponseEntity<T>>`
+- **Use Cases**: Retornar `Mono<Response>`
+- **Repositorios**: Usar R2DBC con `ReactiveCrudRepository`
+
+### 5. VALIDACIÓN Y MANEJO DE ERRORES
+- **Validación**: Usar `@Valid` en requests de entrada
+- **Excepciones**: Crear excepciones específicas en domain/exceptions
+- **Global Handler**: Implementar `@ControllerAdvice` para manejo centralizado
+- **Códigos HTTP**: Usar códigos apropiados (201, 400, 404, 409, 500)
+
+## 🚫 ARCHIVOS PROHIBIDOS DE MODIFICAR
+
+### Docker y Scripts
+- `docker-compose.yml` - SOLO para bases de datos
+- `start-microservices.ps1` - Script de inicio
+- `stop-microservices.ps1` - Script de parada
+
+### Configuración de Base
+- `settings.gradle` - Configuración de módulos
+- `build.gradle` (raíz) - Configuración de proyecto
+
+## ✅ REGLAS DE CONFIGURACIÓN
+
+### Application Properties
+- **Variables de entorno**: Usar `${VARIABLE_NAME}` para configuración externa
+- **Valores por defecto**: NO USAR VALORES POR DEFECTO
+- **Configuración de microservicios**: Usar prefijo `microservices.[servicio]`
+
+### Base de Datos
+- **R2DBC**: Usar para acceso reactivo a base de datos
+- **Esquemas**: Crear en `src/main/resources/schema.sql`
+- **Entidades JPA**: Solo para mapeo, NO para lógica de negocio
+
+### CORS y Seguridad
+- **CORS**: Configurar en cada microservicio
+- **Health Checks**: Implementar en todos los microservicios
+
+## 🔄 FLUJO DE DESARROLLO
+
+### 1. Crear Nuevo Microservicio
+1. Crear estructura de carpetas según patrón
+2. Implementar entidades de dominio
+3. Crear value objects
+4. Definir interfaces de gateway
+5. Implementar casos de uso
+6. Crear adaptadores de infraestructura
+7. Implementar controladores REST
+8. Configurar aplicación
+
+### 2. Agregar al API Gateway
+1. Actualizar `MicroserviceConfig`
+2. Agregar ruta en `RouteConfig`
+3. Configurar variables de entorno
+
+## 📋 CHECKLIST DE CUMPLIMIENTO
+
+### Antes de cada commit:
+- [ ] Estructura de carpetas correcta
+- [ ] Dependencias entre capas respetadas
+- [ ] Uso de reactive programming
+- [ ] Validaciones implementadas
+- [ ] Manejo de errores centralizado
+- [ ] Configuración externa con variables de entorno
+- [ ] No modificar archivos prohibidos
+- [ ] Tests unitarios (cuando aplique)
+
+### Archivos que SIEMPRE deben seguir el patrón:
+- `[Nombre]Application.java`
+- `ApplicationConfig.java`
+- `[Entidad]Controller.java`
+- `[Accion][Entidad]UseCase.java`
+- `[Entidad]Gateway.java`
+- `[Entidad]RepositoryAdapter.java`
+
+## 🎯 OBJETIVOS DE ARQUITECTURA
+
+1. **Mantenibilidad**: Código limpio y bien estructurado
+2. **Escalabilidad**: Fácil agregar nuevos microservicios
+3. **Testabilidad**: Componentes desacoplados y testeable
+4. **Seguridad**: Acceso controlado a través del API Gateway
+5. **Performance**: Uso de reactive programming para mejor rendimiento
+6. **Consistencia**: Patrón uniforme en todos los microservicios

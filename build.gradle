@@ -27,6 +27,14 @@ subprojects {
     }
   }
 
+  if (project.name == 'api-gateway') {
+    dependencyManagement {
+      imports {
+        mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2024.0.0'
+      }
+    }
+  }
+
   dependencies {
     if (project.name != 'shared') {
       implementation 'org.springframework.boot:spring-boot-starter'
