@@ -5,6 +5,7 @@ import com.gems.auth.domain.values.UserName;
 import com.gems.auth.domain.values.Email;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class UserResponse {
   private final Long id;
@@ -45,5 +46,23 @@ public class UserResponse {
 
   public boolean isActive() {
     return active;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    UserResponse that = (UserResponse) obj;
+    return active == that.active &&
+           Objects.equals(id, that.id) &&
+           Objects.equals(name, that.name) &&
+           Objects.equals(email, that.email) &&
+           Objects.equals(createdAt, that.createdAt) &&
+           Objects.equals(updatedAt, that.updatedAt);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, name, email, createdAt, updatedAt, active);
   }
 }

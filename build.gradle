@@ -15,6 +15,7 @@ allprojects {
 
 subprojects {
   apply plugin: 'java'
+  apply plugin: 'jacoco'
 
   if (project.name != 'shared') {
     apply plugin: 'org.springframework.boot'
@@ -51,5 +52,59 @@ subprojects {
 
   test {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
   }
+
+  jacocoTestReport {
+    dependsOn test
+    reports {
+      xml.required = true
+      html.required = true
+      csv.required = false
+    }
+  }
+
+  jacocoTestCoverageVerification {
+    dependsOn jacocoTestReport
+    violationRules {
+      rule {
+        limit {
+          minimum = 0.85
+        }
+      }
+    }
+  }
+
+  check.dependsOn jacocoTestCoverageVerification
+
+  task coverageReport {
+    dependsOn jacocoTestReport
+    doLast {
+      def reportFile = file("${project.buildDir}/reports/jacoco/test/html/index.html")
+      if (reportFile.exists()) {
+        println "\n" + "="*60
+        println "COBERTURA DE CÓDIGO - ${project.name.toUpperCase()}"
+        println "="*60
+        
+        def html = reportFile.text
+        def coverageMatch = html =~ /Total.*?(\d+)%/
+        if (coverageMatch) {
+          def coverage = coverageMatch[0][1]
+          println "Cobertura actual: ${coverage}%"
+          println "Cobertura mínima requerida: 85%"
+          
+          if (coverage.toInteger() >= 85) {
+            println "¡Cobertura SUFICIENTE! (${coverage}% >= 85%)"
+          } else {
+            println "Cobertura INSUFICIENTE! (${coverage}% < 85%)"
+            println "Necesitas mejorar la cobertura en ${85 - coverage.toInteger()} puntos porcentuales"
+          }
+        }
+        println "Reporte HTML disponible en: ${reportFile.absolutePath}"
+        println "="*60 + "\n"
+      }
+    }
+  }
+
+  test.finalizedBy coverageReport
 }

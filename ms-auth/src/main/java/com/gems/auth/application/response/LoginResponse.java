@@ -1,6 +1,7 @@
 package com.gems.auth.application.response;
 
 import com.gems.auth.domain.values.UserRole;
+import java.util.Objects;
 
 public class LoginResponse {
   private final Long userId;
@@ -35,5 +36,22 @@ public class LoginResponse {
 
   public String getToken() {
     return token;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) return true;
+    if (obj == null || getClass() != obj.getClass()) return false;
+    LoginResponse that = (LoginResponse) obj;
+    return Objects.equals(userId, that.userId) &&
+           Objects.equals(name, that.name) &&
+           Objects.equals(email, that.email) &&
+           Objects.equals(role, that.role) &&
+           Objects.equals(token, that.token);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(userId, name, email, role, token);
   }
 }
