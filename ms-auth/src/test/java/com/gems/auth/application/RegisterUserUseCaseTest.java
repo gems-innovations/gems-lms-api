@@ -55,7 +55,7 @@ class RegisterUserUseCaseTest {
             LocalDateTime createdAt = LocalDateTime.now();
             LocalDateTime updatedAt = LocalDateTime.now();
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password);
+            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
             User savedUser = new User(
                 new UserId(userId),
                 new UserName(name),
@@ -68,6 +68,7 @@ class RegisterUserUseCaseTest {
                 userId,
                 new UserName(name),
                 new Email(email),
+                UserRole.STUDENT,
                 createdAt,
                 updatedAt,
                 true
@@ -99,7 +100,7 @@ class RegisterUserUseCaseTest {
             String password = "SecurePass123!";
             String encodedPassword = "EncodedPass123!";
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password);
+            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
 
             when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
             when(passwordEncoderGateway.encode(anyString())).thenReturn(encodedPassword);
@@ -132,7 +133,7 @@ class RegisterUserUseCaseTest {
             String email = "john.doe@example.com";
             String password = "SecurePass123!";
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password);
+            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
 
             when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(true));
 
@@ -152,7 +153,7 @@ class RegisterUserUseCaseTest {
             String email = "john.doe@example.com";
             String password = "SecurePass123!";
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password);
+            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
 
             when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(true));
 
@@ -177,7 +178,7 @@ class RegisterUserUseCaseTest {
             String password = "SecurePass123!";
             String encodedPassword = "EncodedPass123!";
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password);
+            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
 
             when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
             when(passwordEncoderGateway.encode(anyString())).thenReturn(encodedPassword);
@@ -212,7 +213,7 @@ class RegisterUserUseCaseTest {
             String password = "SecurePass123!";
             String encodedPassword = "EncodedPass123!";
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password);
+            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
 
             when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
             when(passwordEncoderGateway.encode(anyString())).thenReturn(encodedPassword);
@@ -240,7 +241,7 @@ class RegisterUserUseCaseTest {
             String email = "john.doe@example.com";
             String password = "SecurePass123!";
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password);
+            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
 
             when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(true));
 

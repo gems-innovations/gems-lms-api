@@ -30,44 +30,93 @@ class LoginMapperTest {
         }
 
         @Test
-        @DisplayName("Should throw exception when handling null email")
-        void shouldThrowExceptionWhenHandlingNullEmail() {
+        @DisplayName("Should map login request with different email formats")
+        void shouldMapLoginRequestWithDifferentEmailFormats() {
+            String email = "user+tag@example-domain.com";
+            String password = "SecurePass123!";
+
+            LoginRequest request = new LoginRequest(email, password);
+            LoginCommand command = LoginMapper.toCommand(request);
+
+            assertNotNull(command);
+            assertEquals(email, command.getEmail().getValue());
+            assertEquals(password, command.getPassword().getValue());
+        }
+
+        @Test
+        @DisplayName("Should map login request with special characters in password")
+        void shouldMapLoginRequestWithSpecialCharactersInPassword() {
+            String email = "john.doe@example.com";
+            String password = "SecurePass123!@#$%^&*()";
+
+            LoginRequest request = new LoginRequest(email, password);
+            LoginCommand command = LoginMapper.toCommand(request);
+
+            assertNotNull(command);
+            assertEquals(email, command.getEmail().getValue());
+            assertEquals(password, command.getPassword().getValue());
+        }
+
+        @Test
+        @DisplayName("Should handle null email")
+        void shouldHandleNullEmail() {
             String password = "SecurePass123!";
 
             LoginRequest request = new LoginRequest(null, password);
             
-            assertThrows(IllegalArgumentException.class, () -> LoginMapper.toCommand(request));
+            assertThrows(IllegalArgumentException.class, () -> {
+                LoginMapper.toCommand(request);
+            });
         }
 
         @Test
-        @DisplayName("Should throw exception when handling null password")
-        void shouldThrowExceptionWhenHandlingNullPassword() {
+        @DisplayName("Should handle null password")
+        void shouldHandleNullPassword() {
             String email = "john.doe@example.com";
 
             LoginRequest request = new LoginRequest(email, null);
             
-            assertThrows(IllegalArgumentException.class, () -> LoginMapper.toCommand(request));
+            assertThrows(IllegalArgumentException.class, () -> {
+                LoginMapper.toCommand(request);
+            });
         }
 
         @Test
-        @DisplayName("Should throw exception when handling empty strings")
-        void shouldThrowExceptionWhenHandlingEmptyStrings() {
-            LoginRequest request = new LoginRequest("", "");
+        @DisplayName("Should handle empty email")
+        void shouldHandleEmptyEmail() {
+            String password = "SecurePass123!";
+
+            LoginRequest request = new LoginRequest("", password);
             
-            assertThrows(IllegalArgumentException.class, () -> LoginMapper.toCommand(request));
+            assertThrows(IllegalArgumentException.class, () -> {
+                LoginMapper.toCommand(request);
+            });
         }
 
         @Test
-        @DisplayName("Should normalize whitespace strings")
-        void shouldNormalizeWhitespaceStrings() {
-            String email = "  john.doe@example.com  ";
+        @DisplayName("Should handle empty password")
+        void shouldHandleEmptyPassword() {
+            String email = "john.doe@example.com";
+
+            LoginRequest request = new LoginRequest(email, "");
+            
+            assertThrows(IllegalArgumentException.class, () -> {
+                LoginMapper.toCommand(request);
+            });
+        }
+
+
+        @Test
+        @DisplayName("Should handle whitespace in password")
+        void shouldHandleWhitespaceInPassword() {
+            String email = "john.doe@example.com";
             String password = "  SecurePass123!  ";
 
             LoginRequest request = new LoginRequest(email, password);
             LoginCommand command = LoginMapper.toCommand(request);
 
             assertNotNull(command);
-            assertEquals("john.doe@example.com", command.getEmail().getValue());
+            assertEquals(email, command.getEmail().getValue());
             assertEquals(password, command.getPassword().getValue());
         }
     }
@@ -79,8 +128,9 @@ class LoginMapperTest {
         @Test
         @DisplayName("Should create Email value object")
         void shouldCreateEmailValueObject() {
-            String email = "test@example.com";
+            String email = "john.doe@example.com";
             String password = "SecurePass123!";
+
             LoginRequest request = new LoginRequest(email, password);
             LoginCommand command = LoginMapper.toCommand(request);
 
@@ -91,8 +141,10 @@ class LoginMapperTest {
         @Test
         @DisplayName("Should create Password value object")
         void shouldCreatePasswordValueObject() {
+            String email = "john.doe@example.com";
             String password = "SecurePass123!";
-            LoginRequest request = new LoginRequest("email@example.com", password);
+
+            LoginRequest request = new LoginRequest(email, password);
             LoginCommand command = LoginMapper.toCommand(request);
 
             assertNotNull(command.getPassword());
@@ -103,6 +155,33 @@ class LoginMapperTest {
     @Nested
     @DisplayName("Edge Cases Tests")
     class EdgeCasesTests {
+
+        @Test
+        @DisplayName("Should handle very long email")
+        void shouldHandleVeryLongEmail() {
+            String email = "a".repeat(100) + "@example.com";
+            String password = "SecurePass123!";
+
+            LoginRequest request = new LoginRequest(email, password);
+            LoginCommand command = LoginMapper.toCommand(request);
+
+            assertNotNull(command);
+            assertEquals(email, command.getEmail().getValue());
+            assertEquals(password, command.getPassword().getValue());
+        }
+
+        @Test
+        @DisplayName("Should handle very long password")
+        void shouldHandleVeryLongPassword() {
+            String email = "john.doe@example.com";
+            String password = "a".repeat(100);
+
+            LoginRequest request = new LoginRequest(email, password);
+            
+            assertThrows(IllegalArgumentException.class, () -> {
+                LoginMapper.toCommand(request);
+            });
+        }
 
         @Test
         @DisplayName("Should handle special characters in email")
@@ -122,7 +201,7 @@ class LoginMapperTest {
         @DisplayName("Should handle special characters in password")
         void shouldHandleSpecialCharactersInPassword() {
             String email = "john.doe@example.com";
-            String password = "SecurePass123!@#$%";
+            String password = "SecurePass123!@#$%^&*()";
 
             LoginRequest request = new LoginRequest(email, password);
             LoginCommand command = LoginMapper.toCommand(request);

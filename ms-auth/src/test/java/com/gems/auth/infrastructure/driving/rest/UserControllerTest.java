@@ -60,6 +60,7 @@ class UserControllerTest {
                 userId,
                 new UserName(name),
                 new Email(email),
+                com.gems.auth.domain.values.UserRole.STUDENT,
                 createdAt,
                 updatedAt,
                 true
@@ -71,7 +72,7 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -95,6 +96,7 @@ class UserControllerTest {
                 2L,
                 new UserName(name),
                 new Email(email),
+                com.gems.auth.domain.values.UserRole.STUDENT,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 true
@@ -106,7 +108,7 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON);
@@ -130,7 +132,7 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
                 .exchange()
                 .expectStatus().isEqualTo(409);
 
@@ -150,7 +152,7 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
                 .exchange()
                 .expectStatus().isEqualTo(409);
         }
@@ -172,6 +174,7 @@ class UserControllerTest {
                     1L,
                     new UserName(name),
                     new Email(email),
+                    com.gems.auth.domain.values.UserRole.STUDENT,
                     LocalDateTime.now(),
                     LocalDateTime.now(),
                     true
@@ -180,7 +183,7 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
                 .exchange()
                 .expectStatus().isCreated();
 
@@ -210,6 +213,7 @@ class UserControllerTest {
                 userId,
                 new UserName(name),
                 new Email(email),
+                com.gems.auth.domain.values.UserRole.STUDENT,
                 createdAt,
                 updatedAt,
                 true
@@ -221,7 +225,7 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -250,7 +254,7 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
                 .exchange()
                 .expectStatus().isEqualTo(409);
         }

@@ -22,6 +22,7 @@ class RegisterUserRequestTest {
             assertNull(request.getName());
             assertNull(request.getEmail());
             assertNull(request.getPassword());
+            assertNull(request.getRole());
         }
 
         @Test
@@ -30,24 +31,27 @@ class RegisterUserRequestTest {
             String name = "John Doe";
             String email = "john.doe@example.com";
             String password = "SecurePass123!";
+            String role = "STUDENT";
 
-            RegisterUserRequest request = new RegisterUserRequest(name, email, password);
+            RegisterUserRequest request = new RegisterUserRequest(name, email, password, role);
 
             assertNotNull(request);
             assertEquals(name, request.getName());
             assertEquals(email, request.getEmail());
             assertEquals(password, request.getPassword());
+            assertEquals(role, request.getRole());
         }
 
         @Test
         @DisplayName("Should create register user request with null values")
         void shouldCreateRegisterUserRequestWithNullValues() {
-            RegisterUserRequest request = new RegisterUserRequest(null, null, null);
+            RegisterUserRequest request = new RegisterUserRequest(null, null, null, null);
 
             assertNotNull(request);
             assertNull(request.getName());
             assertNull(request.getEmail());
             assertNull(request.getPassword());
+            assertNull(request.getRole());
         }
     }
 
@@ -89,6 +93,17 @@ class RegisterUserRequestTest {
         }
 
         @Test
+        @DisplayName("Should get and set role correctly")
+        void shouldGetAndSetRoleCorrectly() {
+            RegisterUserRequest request = new RegisterUserRequest();
+            String role = "TEACHER";
+
+            request.setRole(role);
+
+            assertEquals(role, request.getRole());
+        }
+
+        @Test
         @DisplayName("Should handle null name")
         void shouldHandleNullName() {
             RegisterUserRequest request = new RegisterUserRequest();
@@ -126,10 +141,12 @@ class RegisterUserRequestTest {
             request.setName("");
             request.setEmail("");
             request.setPassword("");
+            request.setRole("");
 
             assertEquals("", request.getName());
             assertEquals("", request.getEmail());
             assertEquals("", request.getPassword());
+            assertEquals("", request.getRole());
         }
 
         @Test

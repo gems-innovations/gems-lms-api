@@ -21,14 +21,16 @@ class UserMapperTest {
             String name = "John Doe";
             String email = "john.doe@example.com";
             String password = "SecurePass123!";
+            String role = "STUDENT";
 
-            RegisterUserRequest request = new RegisterUserRequest(name, email, password);
+            RegisterUserRequest request = new RegisterUserRequest(name, email, password, role);
             RegisterUserCommand command = UserMapper.toDomain(request);
 
             assertNotNull(command);
             assertEquals(name, command.getName().getValue());
             assertEquals(email, command.getEmail().getValue());
             assertEquals(password, command.getPassword().getValue());
+            assertEquals(role, command.getRole().name());
         }
 
         @Test
@@ -37,7 +39,7 @@ class UserMapperTest {
             String email = "john.doe@example.com";
             String password = "SecurePass123!";
 
-            RegisterUserRequest request = new RegisterUserRequest(null, email, password);
+            RegisterUserRequest request = new RegisterUserRequest(null, email, password, "STUDENT");
             
             assertThrows(IllegalArgumentException.class, () -> UserMapper.toDomain(request));
         }
@@ -48,7 +50,7 @@ class UserMapperTest {
             String name = "John Doe";
             String password = "SecurePass123!";
 
-            RegisterUserRequest request = new RegisterUserRequest(name, null, password);
+            RegisterUserRequest request = new RegisterUserRequest(name, null, password, "STUDENT");
             
             assertThrows(IllegalArgumentException.class, () -> UserMapper.toDomain(request));
         }
@@ -59,7 +61,7 @@ class UserMapperTest {
             String name = "John Doe";
             String email = "john.doe@example.com";
 
-            RegisterUserRequest request = new RegisterUserRequest(name, email, null);
+            RegisterUserRequest request = new RegisterUserRequest(name, email, null, "STUDENT");
             
             assertThrows(IllegalArgumentException.class, () -> UserMapper.toDomain(request));
         }
@@ -67,7 +69,7 @@ class UserMapperTest {
         @Test
         @DisplayName("Should throw exception when handling empty strings")
         void shouldThrowExceptionWhenHandlingEmptyStrings() {
-            RegisterUserRequest request = new RegisterUserRequest("", "", "");
+            RegisterUserRequest request = new RegisterUserRequest("", "", "", "STUDENT");
             
             assertThrows(IllegalArgumentException.class, () -> UserMapper.toDomain(request));
         }
@@ -79,7 +81,7 @@ class UserMapperTest {
             String email = "  john.doe@example.com  ";
             String password = "  SecurePass123!  ";
 
-            RegisterUserRequest request = new RegisterUserRequest(name, email, password);
+            RegisterUserRequest request = new RegisterUserRequest(name, email, password, "STUDENT");
             RegisterUserCommand command = UserMapper.toDomain(request);
 
             assertNotNull(command);
@@ -99,7 +101,7 @@ class UserMapperTest {
             String name = "John Doe";
             String email = "john.doe@example.com";
             String password = "SecurePass123!";
-            RegisterUserRequest request = new RegisterUserRequest(name, email, password);
+            RegisterUserRequest request = new RegisterUserRequest(name, email, password, "STUDENT");
             RegisterUserCommand command = UserMapper.toDomain(request);
 
             assertNotNull(command.getName());
@@ -112,7 +114,7 @@ class UserMapperTest {
             String name = "John Doe";
             String email = "john.doe@example.com";
             String password = "SecurePass123!";
-            RegisterUserRequest request = new RegisterUserRequest(name, email, password);
+            RegisterUserRequest request = new RegisterUserRequest(name, email, password, "STUDENT");
             RegisterUserCommand command = UserMapper.toDomain(request);
 
             assertNotNull(command.getEmail());
@@ -123,7 +125,7 @@ class UserMapperTest {
         @DisplayName("Should create Password value object")
         void shouldCreatePasswordValueObject() {
             String password = "SecurePass123!";
-            RegisterUserRequest request = new RegisterUserRequest("John Doe", "email@example.com", password);
+            RegisterUserRequest request = new RegisterUserRequest("John Doe", "email@example.com", password, "STUDENT");
             RegisterUserCommand command = UserMapper.toDomain(request);
 
             assertNotNull(command.getPassword());
@@ -142,7 +144,7 @@ class UserMapperTest {
             String email = "jose.maria@example.com";
             String password = "SecurePass123!";
 
-            RegisterUserRequest request = new RegisterUserRequest(name, email, password);
+            RegisterUserRequest request = new RegisterUserRequest(name, email, password, "STUDENT");
             RegisterUserCommand command = UserMapper.toDomain(request);
 
             assertNotNull(command);
@@ -158,7 +160,7 @@ class UserMapperTest {
             String email = "user+tag@example-domain.com";
             String password = "SecurePass123!";
 
-            RegisterUserRequest request = new RegisterUserRequest(name, email, password);
+            RegisterUserRequest request = new RegisterUserRequest(name, email, password, "STUDENT");
             RegisterUserCommand command = UserMapper.toDomain(request);
 
             assertNotNull(command);
@@ -174,7 +176,7 @@ class UserMapperTest {
             String email = "john.doe@example.com";
             String password = "SecurePass123!@#$%^&*()";
 
-            RegisterUserRequest request = new RegisterUserRequest(name, email, password);
+            RegisterUserRequest request = new RegisterUserRequest(name, email, password, "STUDENT");
             RegisterUserCommand command = UserMapper.toDomain(request);
 
             assertNotNull(command);
