@@ -50,6 +50,17 @@ public class User {
     this.active = true;
   }
 
+  public User(UserId id, UserName name, Email email, Password password, UserRole role, LocalDateTime createdAt, LocalDateTime updatedAt, Boolean active) {
+    this.id = id;
+    this.name = name;
+    this.email = email;
+    this.password = password;
+    this.role = role;
+    this.createdAt = createdAt;
+    this.updatedAt = updatedAt;
+    this.active = active;
+  }
+
   public UserId getId() {
     return id;
   }

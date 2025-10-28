@@ -1,5 +1,6 @@
 package com.gems.auth.infrastructure.driving.rest;
 
+import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.command.RegisterUserCommand;
 import com.gems.auth.application.response.UserResponse;
@@ -30,11 +31,14 @@ class UserControllerTest {
     @Mock
     private RegisterUserUseCase registerUserUseCase;
 
+    @Mock
+    private LoginUseCase loginUseCase;
+
     private WebTestClient webTestClient;
 
     @BeforeEach
     void setUp() {
-        UserController userController = new UserController(registerUserUseCase);
+        UserController userController = new UserController(registerUserUseCase, loginUseCase);
         webTestClient = WebTestClient.bindToController(userController).build();
     }
 

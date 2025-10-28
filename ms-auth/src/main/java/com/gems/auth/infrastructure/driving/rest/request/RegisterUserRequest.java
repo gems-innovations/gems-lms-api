@@ -24,13 +24,17 @@ public class RegisterUserRequest {
   )
   private String password;
 
+  @NotBlank(message = "Role is required")
+  private String role;
+
   public RegisterUserRequest() {
   }
 
-  public RegisterUserRequest(String name, String email, String password) {
+  public RegisterUserRequest(String name, String email, String password, String role) {
     this.name = name;
     this.email = email;
     this.password = password;
+    this.role = role;
   }
 
   public String getName() {
@@ -55,5 +59,13 @@ public class RegisterUserRequest {
 
   public void setPassword(String password) {
     this.password = password;
+  }
+
+  public String getRole() {
+    return role;
+  }
+
+  public void setRole(String role) {
+    this.role = role;
   }
 }

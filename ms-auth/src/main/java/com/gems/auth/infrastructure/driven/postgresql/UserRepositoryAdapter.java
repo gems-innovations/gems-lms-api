@@ -49,11 +49,14 @@ public class UserRepositoryAdapter implements UserGateway {
 
   private User mapToDomain(UserEntity userEntity) {
     return new User(
-      userEntity.getUserId(),
-      userEntity.getName(),
-      userEntity.getEmail(),
-      userEntity.getPassword(),
-      UserRole.valueOf(userEntity.getRole())
+      new UserId(userEntity.getUserId()),
+      new UserName(userEntity.getName()),
+      new Email(userEntity.getEmail()),
+      new Password(userEntity.getPassword()),
+      UserRole.valueOf(userEntity.getRole()),
+      userEntity.getCreatedAt(),
+      userEntity.getUpdatedAt(),
+      userEntity.isActive()
     );
   }
 

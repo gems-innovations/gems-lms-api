@@ -5,7 +5,6 @@ import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
 import com.gems.auth.application.gateway.UserGateway;
-import com.gems.auth.infrastructure.driven.encoder.PasswordEncoderAdapter;
 import com.gems.auth.infrastructure.driven.postgresql.IUserRepository;
 import com.gems.auth.infrastructure.driven.postgresql.UserRepositoryAdapter;
 import org.springframework.context.annotation.Bean;
@@ -13,11 +12,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ApplicationConfig {
-
-  @Bean
-  public PasswordEncoderGateway passwordEncoderGateway() {
-    return new PasswordEncoderAdapter();
-  }
 
   @Bean
   public UserGateway userGateway(IUserRepository userRepository) {

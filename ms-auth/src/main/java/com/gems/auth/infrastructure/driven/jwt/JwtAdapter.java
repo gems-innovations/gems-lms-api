@@ -25,7 +25,7 @@ public class JwtAdapter implements JwtGateway {
     Date now = new Date();
     Date expiryDate = new Date(now.getTime() + jwtExpiration * 1000L);
 
-    SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    SecretKey key = getSigningKey();
 
     return Jwts.builder()
       .setSubject(userId.toString())
@@ -36,10 +36,22 @@ public class JwtAdapter implements JwtGateway {
       .compact();
   }
 
+  private SecretKey getSigningKey() {
+    byte[] keyBytes = jwtSecret.getBytes();
+    
+    if (keyBytes.length * 8 < 512) {
+      byte[] paddedKey = new byte[64];
+      System.arraycopy(keyBytes, 0, paddedKey, 0, Math.min(keyBytes.length, 64));
+      return Keys.hmacShaKeyFor(paddedKey);
+    }
+    
+    return Keys.hmacShaKeyFor(keyBytes);
+  }
+
   @Override
   public Boolean validateToken(String token) {
     try {
-      SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+      SecretKey key = getSigningKey();
       Jwts.parserBuilder()
         .setSigningKey(key)
         .build()
@@ -52,7 +64,7 @@ public class JwtAdapter implements JwtGateway {
 
   @Override
   public Long getUserIdFromToken(String token) {
-    SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    SecretKey key = getSigningKey();
     Claims claims = Jwts.parserBuilder()
       .setSigningKey(key)
       .build()
@@ -64,7 +76,7 @@ public class JwtAdapter implements JwtGateway {
 
   @Override
   public String getRoleFromToken(String token) {
-    SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+    SecretKey key = getSigningKey();
     Claims claims = Jwts.parserBuilder()
       .setSigningKey(key)
       .build()

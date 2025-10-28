@@ -1,4 +1,4 @@
-package com.gems.auth.infrastructure.config;
+package com.gems.admin.infrastructure.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

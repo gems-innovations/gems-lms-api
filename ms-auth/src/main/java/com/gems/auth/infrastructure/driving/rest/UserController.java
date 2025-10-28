@@ -1,11 +1,18 @@
 package com.gems.auth.infrastructure.driving.rest;
 
+import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
+import com.gems.auth.application.command.LoginCommand;
 import com.gems.auth.application.command.RegisterUserCommand;
+import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.application.response.UserResponse;
+import com.gems.auth.domain.exceptions.InvalidCredentialsException;
 import com.gems.auth.domain.exceptions.UserAlreadyExistsException;
+import com.gems.auth.domain.exceptions.UserNotFoundException;
 import com.gems.auth.infrastructure.driving.rest.constants.RestConstants;
+import com.gems.auth.infrastructure.driving.rest.mapper.LoginMapper;
 import com.gems.auth.infrastructure.driving.rest.mapper.UserMapper;
+import com.gems.auth.infrastructure.driving.rest.request.LoginRequest;
 import com.gems.auth.infrastructure.driving.rest.request.RegisterUserRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -17,9 +24,11 @@ import reactor.core.publisher.Mono;
 @RequestMapping(RestConstants.USERS_API_BASE_PATH)
 public class UserController {
   private final RegisterUserUseCase registerUserUseCase;
+  private final LoginUseCase loginUseCase;
 
-  public UserController(RegisterUserUseCase registerUserUseCase) {
+  public UserController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase) {
     this.registerUserUseCase = registerUserUseCase;
+    this.loginUseCase = loginUseCase;
   }
 
   @PostMapping(RestConstants.REGISTER_ENDPOINT)
@@ -33,5 +42,19 @@ public class UserController {
       .onErrorResume(UserAlreadyExistsException.class, ex ->
         Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build())
       );
+  }
+
+  @PostMapping("/login")
+  public Mono<ResponseEntity<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+    LoginCommand command = LoginMapper.toCommand(request);
+
+    return loginUseCase.execute(command)
+      .map(ResponseEntity::ok)
+      .onErrorResume(InvalidCredentialsException.class, error ->
+        Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()))
+      .onErrorResume(UserNotFoundException.class, error ->
+        Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))
+      .onErrorResume(Exception.class, error ->
+        Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
   }
 }

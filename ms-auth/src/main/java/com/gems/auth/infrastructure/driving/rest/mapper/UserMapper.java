@@ -13,7 +13,8 @@ public class UserMapper {
     return new RegisterUserCommand(
       request.getName(),
       request.getEmail(),
-      request.getPassword()
+      request.getPassword(),
+      request.getRole()
     );
   }
 }
