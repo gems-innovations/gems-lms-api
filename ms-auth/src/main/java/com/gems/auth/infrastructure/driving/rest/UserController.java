@@ -1,5 +1,6 @@
 package com.gems.auth.infrastructure.driving.rest;
 
+import com.gems.auth.application.DeleteUserUseCase;
 import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.command.LoginCommand;
@@ -9,6 +10,7 @@ import com.gems.auth.application.response.UserResponse;
 import com.gems.auth.domain.exceptions.InvalidCredentialsException;
 import com.gems.auth.domain.exceptions.UserAlreadyExistsException;
 import com.gems.auth.domain.exceptions.UserNotFoundException;
+import com.gems.auth.domain.values.UserId;
 import com.gems.auth.infrastructure.driving.rest.constants.RestConstants;
 import com.gems.auth.infrastructure.driving.rest.mapper.LoginMapper;
 import com.gems.auth.infrastructure.driving.rest.mapper.UserMapper;
@@ -25,10 +27,12 @@ import reactor.core.publisher.Mono;
 public class UserController {
   private final RegisterUserUseCase registerUserUseCase;
   private final LoginUseCase loginUseCase;
+  private final DeleteUserUseCase deleteUserUseCase;
 
-  public UserController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase) {
+  public UserController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase, DeleteUserUseCase deleteUserUseCase) {
     this.registerUserUseCase = registerUserUseCase;
     this.loginUseCase = loginUseCase;
+    this.deleteUserUseCase = deleteUserUseCase;
   }
 
   @PostMapping(RestConstants.REGISTER_ENDPOINT)
@@ -56,5 +60,17 @@ public class UserController {
         Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))
       .onErrorResume(Exception.class, error ->
         Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
+  }
+
+  @DeleteMapping("/{id}")
+  public Mono<ResponseEntity<Void>> deleteUser(@PathVariable("id") Long id) {
+    UserId userId = new UserId(id);
+
+    return deleteUserUseCase.execute(userId)
+            .then(Mono.just(ResponseEntity.noContent().<Void>build()))
+            .onErrorResume(UserNotFoundException.class,
+                    ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))
+            .onErrorResume(Exception.class,
+                    ex -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
   }
 }

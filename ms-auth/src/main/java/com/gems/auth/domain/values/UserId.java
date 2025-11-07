@@ -5,7 +5,7 @@ import com.gems.auth.domain.constants.UserConstants;
 import java.util.Objects;
 
 public class UserId {
-  private final Long value;
+private final Long value;
 
   public UserId(Long value) {
     if (value == null) {
