@@ -1,6 +1,6 @@
 package com.gems.auth.infrastructure.driving.rest;
 
-import com.gems.auth.application.DeleteUserUseCase;
+import com.gems.auth.application.DisableUserUseCase;
 import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.command.RegisterUserCommand;
@@ -32,7 +32,7 @@ class UserControllerTest {
     @Mock
     private RegisterUserUseCase registerUserUseCase;
     @Mock
-    private DeleteUserUseCase deleteUserUseCase;
+    private DisableUserUseCase disableUserUseCase;
 
     @Mock
     private LoginUseCase loginUseCase;
@@ -41,7 +41,7 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        UserController userController = new UserController(registerUserUseCase, loginUseCase, deleteUserUseCase);
+        UserController userController = new UserController(registerUserUseCase, loginUseCase, disableUserUseCase);
         webTestClient = WebTestClient.bindToController(userController).build();
     }
 

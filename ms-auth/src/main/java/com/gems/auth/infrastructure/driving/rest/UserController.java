@@ -1,6 +1,6 @@
 package com.gems.auth.infrastructure.driving.rest;
 
-import com.gems.auth.application.DeleteUserUseCase;
+import com.gems.auth.application.DisableUserUseCase;
 import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.command.LoginCommand;
@@ -27,12 +27,12 @@ import reactor.core.publisher.Mono;
 public class UserController {
   private final RegisterUserUseCase registerUserUseCase;
   private final LoginUseCase loginUseCase;
-  private final DeleteUserUseCase deleteUserUseCase;
+  private final DisableUserUseCase disableUserUseCase;
 
-  public UserController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase, DeleteUserUseCase deleteUserUseCase) {
+  public UserController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase, DisableUserUseCase disableUserUseCase) {
     this.registerUserUseCase = registerUserUseCase;
     this.loginUseCase = loginUseCase;
-    this.deleteUserUseCase = deleteUserUseCase;
+    this.disableUserUseCase = disableUserUseCase;
   }
 
   @PostMapping(RestConstants.REGISTER_ENDPOINT)
@@ -63,10 +63,10 @@ public class UserController {
   }
 
   @DeleteMapping("/{id}")
-  public Mono<ResponseEntity<Void>> deleteUser(@PathVariable("id") Long id) {
+  public Mono<ResponseEntity<Void>> disableUser(@PathVariable("id") Long id) {
     UserId userId = new UserId(id);
 
-    return deleteUserUseCase.execute(userId)
+    return disableUserUseCase.execute(userId)
             .then(Mono.just(ResponseEntity.noContent().<Void>build()))
             .onErrorResume(UserNotFoundException.class,
                     ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))

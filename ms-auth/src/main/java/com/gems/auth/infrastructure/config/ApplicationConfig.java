@@ -1,6 +1,6 @@
 package com.gems.auth.infrastructure.config;
 
-import com.gems.auth.application.DeleteUserUseCase;
+import com.gems.auth.application.DisableUserUseCase;
 import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.gateway.JwtGateway;
@@ -25,8 +25,8 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public DeleteUserUseCase deleteUserUseCase(UserGateway userGateway) {
-    return new DeleteUserUseCase(userGateway);
+  public DisableUserUseCase disableUserUseCase(UserGateway userGateway) {
+    return new DisableUserUseCase(userGateway);
   }
 
   @Bean

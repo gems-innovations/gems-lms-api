@@ -61,3 +61,7 @@ m
 =ms-auth/src/main/java/com/gems/auth/domain/values/UserId.java,a\c\ac12c94b5e397ac8e9c36dc6b0800dea3ca39ad9
 ‡
 Wms-auth/src/test/java/com/gems/auth/infrastructure/driving/rest/UserControllerTest.java,f\d\fd0623c60e541689950ce5d84582e82ca0a2321d
+o
+?ms-auth/src/main/java/com/gems/auth/domain/values/UserRole.java,4\9\49c553cf9c7c97ccf4e8b90cf1ccb803c6c29da7
+w
+Gms-auth/src/main/java/com/gems/auth/application/DisableUserUseCase.java,1\f\1f146daec24c3e019c3a0d2fa7d888348f342f35
