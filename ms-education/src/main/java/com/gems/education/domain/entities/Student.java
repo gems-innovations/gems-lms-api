@@ -9,102 +9,119 @@ import com.gems.education.domain.values.Email;
 import com.gems.education.domain.values.Name;
 import com.gems.education.domain.values.StudentId;
 
+import java.time.LocalDate;
 import java.util.Objects;
 
 public class Student {
-    private final StudentId id;
-    private final Name name;
-    private final Email email;
-    private final BirthDate birthDate;
-    private final Country country;
-    private final City city;
-    private final DocumentType documentType;
-    private final DocumentNumber documentNumber;
+  private final StudentId id;
+  private final Name name;
+  private final Email email;
+  private final BirthDate birthDate;
+  private final Country country;
+  private final City city;
+  private final DocumentType documentType;
+  private final DocumentNumber documentNumber;
 
-    public Student(
-            StudentId id,
-            Name name,
-            Email email,
-            BirthDate birthDate,
-            Country country,
-            City city,
-            DocumentType documentType,
-            DocumentNumber documentNumber
-    ) {
-        this.id = Objects.requireNonNull(id, "Student ID cannot be null");
-        this.name = Objects.requireNonNull(name, "Student name cannot be null");
-        this.email = Objects.requireNonNull(email, "Student email cannot be null");
-        this.birthDate = Objects.requireNonNull(birthDate, "Birth date cannot be null");
-        this.country = Objects.requireNonNull(country, "Country cannot be null");
-        this.city = Objects.requireNonNull(city, "City cannot be null");
-        this.documentType = Objects.requireNonNull(documentType, "Document type cannot be null");
-        this.documentNumber = Objects.requireNonNull(documentNumber, "Document number cannot be null");
-    }
+  public Student(
+    Long id,
+    String name,
+    String email,
+    LocalDate birthDate,
+    String country,
+    String city,
+    String documentType,
+    String documentNumber
+  ) {
+    this.id = id != null ? new StudentId(id) : null;
+    this.name = new Name(name);
+    this.email = new Email(email);
+    this.birthDate = new BirthDate(birthDate);
+    this.country = new Country(country);
+    this.city = new City(city);
+    this.documentType = DocumentType.fromString(documentType);
+    this.documentNumber = new DocumentNumber(documentNumber);
+  }
 
-    public Student(
-            Name name,
-            Email email,
-            BirthDate birthDate,
-            Country country,
-            City city,
-            DocumentType documentType,
-            DocumentNumber documentNumber
-    ) {
-        this.id = null;
-        this.name = Objects.requireNonNull(name, "Student name cannot be null");
-        this.email = Objects.requireNonNull(email, "Student email cannot be null");
-        this.birthDate = Objects.requireNonNull(birthDate, "Birth date cannot be null");
-        this.country = Objects.requireNonNull(country, "Country cannot be null");
-        this.city = Objects.requireNonNull(city, "City cannot be null");
-        this.documentType = Objects.requireNonNull(documentType, "Document type cannot be null");
-        this.documentNumber = Objects.requireNonNull(documentNumber, "Document number cannot be null");
-    }
+  public Student(
+    String name,
+    String email,
+    LocalDate birthDate,
+    String country,
+    String city,
+    String documentType,
+    String documentNumber
+  ) {
+    this(null, name, email, birthDate, country, city, documentType, documentNumber);
+  }
 
-    public StudentId getValue() { return id; }
-    public Name getName() { return name; }
-    public Email getEmail() { return email; }
-    public BirthDate getBirthDate() { return birthDate; }
-    public Country getCountry() { return country; }
-    public City getCity() { return city; }
-    public DocumentType getDocumentType() { return documentType; }
-    public DocumentNumber getDocumentNumber() { return documentNumber; }
+  public StudentId getValue() {
+    return id;
+  }
 
-    public Student updateEmail(Email newEmail) {
-        return new Student(
-                this.id,
-                this.name,
-                newEmail,
-                this.birthDate,
-                this.country,
-                this.city,
-                this.documentType,
-                this.documentNumber
-        );
-    }
+  public Name getName() {
+    return name;
+  }
 
-    public Student updateCity(City newCity) {
-        return new Student(
-                this.id,
-                this.name,
-                this.email,
-                this.birthDate,
-                this.country,
-                newCity,
-                this.documentType,
-                this.documentNumber
-        );
-    }
+  public Email getEmail() {
+    return email;
+  }
 
-    public Student updateCountry(Country newCountry) {
-        return new Student(
-                this.id,
-                this.name,
-                this.email,
-                this.birthDate,
-                newCountry,
-                this.city,
-                this.documentType,
-                this.documentNumber
-        );
-    }
+  public BirthDate getBirthDate() {
+    return birthDate;
+  }
+
+  public Country getCountry() {
+    return country;
+  }
+
+  public City getCity() {
+    return city;
+  }
+
+  public DocumentType getDocumentType() {
+    return documentType;
+  }
+
+  public DocumentNumber getDocumentNumber() {
+    return documentNumber;
+  }
+
+  public Student updateEmail(String newEmail) {
+    return new Student(
+      id != null ? id.getValue() : null,
+      name.getValue(),
+      newEmail,
+      birthDate.getValue(),
+      country.getValue(),
+      city.getValue(),
+      documentType.name(),
+      documentNumber.getValue()
+    );
+  }
+
+  public Student updateCity(String newCity) {
+    return new Student(
+      id != null ? id.getValue() : null,
+      name.getValue(),
+      email.getValue(),
+      birthDate.getValue(),
+      country.getValue(),
+      newCity,
+      documentType.name(),
+      documentNumber.getValue()
+    );
+  }
+
+  public Student updateCountry(String newCountry) {
+    return new Student(
+      id != null ? id.getValue() : null,
+      name.getValue(),
+      email.getValue(),
+      birthDate.getValue(),
+      newCountry,
+      city.getValue(),
+      documentType.name(),
+      documentNumber.getValue()
+    );
+  }
 }

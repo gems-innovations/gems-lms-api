@@ -16,64 +16,70 @@ import reactor.core.publisher.Mono;
 @Repository
 public class StudentRepositoryAdapter implements StudentGateway {
 
-    private final IStudentRepository studentRepository;
+  private final IStudentRepository studentRepository;
 
-    public StudentRepositoryAdapter(IStudentRepository studentRepository) {
-        this.studentRepository = studentRepository;
-    }
+  public StudentRepositoryAdapter(IStudentRepository studentRepository) {
+    this.studentRepository = studentRepository;
+  }
 
-    @Override
-    public Mono<Student> save(Student student) {
-        StudentEntity entity = mapToEntity(student);
-        return studentRepository.save(entity)
-                .map(this::mapToDomain);
-    }
+  @Override
+  public Mono<Student> save(Student student) {
+    StudentEntity entity = mapToEntity(student);
+    return studentRepository.save(entity)
+      .map(this::mapToDomain);
+  }
 
-    @Override
-    public Mono<Student> findById(StudentId id) {
-        return studentRepository.findById(id.getValue())
-                .map(this::mapToDomain);
-    }
+  @Override
+  public Mono<Student> findById(StudentId id) {
+    return studentRepository.findById(id.getValue())
+      .map(this::mapToDomain);
+  }
 
-    @Override
-    public Mono<Student> findByEmail(Email email) {
-        return studentRepository.findByEmail(email.getValue())
-                .map(this::mapToDomain);
-    }
+  @Override
+  public Mono<Student> findByEmail(Email email) {
+    return studentRepository.findByEmail(email.getValue())
+      .map(this::mapToDomain);
+  }
 
-    @Override
-    public Mono<Boolean> existsByEmail(Email email) {
-        return studentRepository.existsByEmail(email.getValue());
-    }
+  @Override
+  public Mono<Boolean> existsByEmail(Email email) {
+    return studentRepository.existsByEmail(email.getValue());
+  }
 
-    @Override
-    public Mono<Void> deleteById(StudentId id) {
-        return studentRepository.deleteById(id.getValue());
-    }
+  @Override
+  public Mono<Boolean> existsByDocumentNumber(DocumentNumber documentNumber) {
+    return studentRepository.existsByDocumentNumber(documentNumber.getValue());
+  }
 
-    private Student mapToDomain(StudentEntity entity) {
-        return new Student(
-                new StudentId(entity.getId()),
-                new Name(entity.getName()),
-                new Email(entity.getEmail()),
-                new BirthDate(entity.getBirthDate()),
-                new Country(entity.getCountry()),
-                new City(entity.getCity()),
-                DocumentType.valueOf(entity.getDocumentType()),
-                new DocumentNumber(entity.getDocumentNumber())
-        );
-    }
+  @Override
+  public Mono<Void> deleteById(StudentId id) {
+    return studentRepository.deleteById(id.getValue());
+  }
 
-    private StudentEntity mapToEntity(Student student) {
-        return new StudentEntity(
-                student.getValue() != null ? student.getValue().getValue() : null,
-                student.getName().getValue(),
-                student.getEmail().getValue(),
-                student.getBirthDate().getValue(),
-                student.getCountry().getValue(),
-                student.getCity().getValue(),
-                student.getDocumentType().name(),
-                student.getDocumentNumber().getValue()
-        );
-    }
+  private Student mapToDomain(StudentEntity entity) {
+    return new Student(
+      entity.getId(),
+      entity.getName(),
+      entity.getEmail(),
+      entity.getBirthDate(),
+      entity.getCountry(),
+      entity.getCity(),
+      entity.getDocumentType(),
+      entity.getDocumentNumber()
+    );
+  }
+
+
+  private StudentEntity mapToEntity(Student student) {
+    return new StudentEntity(
+      student.getValue() != null ? student.getValue().getValue() : null,
+      student.getName().getValue(),
+      student.getEmail().getValue(),
+      student.getBirthDate().getValue(),
+      student.getCountry().getValue(),
+      student.getCity().getValue(),
+      student.getDocumentType().name(),
+      student.getDocumentNumber().getValue()
+    );
+  }
 }

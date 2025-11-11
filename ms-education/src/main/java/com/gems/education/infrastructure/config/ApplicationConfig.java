@@ -10,13 +10,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ApplicationConfig {
 
-    @Bean
-    public StudentGateway studentGateway(IStudentRepository studentRepository) {
-        return new StudentRepositoryAdapter(studentRepository);
-    }
+  @Bean
+  public StudentGateway studentGateway(IStudentRepository studentRepository) {
+    return new StudentRepositoryAdapter(studentRepository);
+  }
 
-    @Bean
-    public RegisterStudentUseCase registerStudentUseCase(StudentGateway studentGateway) {
-        return new RegisterStudentUseCase(studentGateway);
-    }
+  @Bean
+  public RegisterStudentUseCase registerStudentUseCase(StudentGateway studentGateway) {
+    return new RegisterStudentUseCase(studentGateway);
+  }
 }

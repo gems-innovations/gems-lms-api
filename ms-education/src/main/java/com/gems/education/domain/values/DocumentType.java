@@ -6,7 +6,7 @@ public enum DocumentType {
     CC(StudentsConstants.CC),
     TI(StudentsConstants.TI),
     CE(StudentsConstants.CE),
-    PASAPORTE(StudentsConstants.PASAPORTE),
+    PASSPORT(StudentsConstants.PASSPORT),
     DNI(StudentsConstants.DNI);
 
     private final String description;

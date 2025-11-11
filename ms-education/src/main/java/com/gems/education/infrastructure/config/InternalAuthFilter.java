@@ -13,24 +13,24 @@ import reactor.core.publisher.Mono;
 @Component
 public class InternalAuthFilter implements WebFilter {
 
-    @Value("${gateway.internal.secret}")
-    private String internalSecret;
-    
-    @Value("${gateway.internal.header}")
-    private String internalHeader;
+  @Value("${gateway.internal.secret}")
+  private String internalSecret;
 
-    @Override
-    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
-        ServerHttpRequest request = exchange.getRequest();
-        ServerHttpResponse response = exchange.getResponse();
+  @Value("${gateway.internal.header}")
+  private String internalHeader;
 
-        String internalToken = request.getHeaders().getFirst(internalHeader);
-        
-        if (internalToken == null || !internalToken.equals(internalSecret)) {
-            response.setStatusCode(HttpStatus.FORBIDDEN);
-            return response.setComplete();
-        }
+  @Override
+  public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+    ServerHttpRequest request = exchange.getRequest();
+    ServerHttpResponse response = exchange.getResponse();
 
-        return chain.filter(exchange);
+    String internalToken = request.getHeaders().getFirst(internalHeader);
+
+    if (internalToken == null || !internalToken.equals(internalSecret)) {
+      response.setStatusCode(HttpStatus.FORBIDDEN);
+      return response.setComplete();
     }
+
+    return chain.filter(exchange);
+  }
 }
