@@ -1,20 +1,22 @@
-package com.gems.api.config;
+package com.gems.shared.security;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
+import org.springframework.core.annotation.Order;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
 @Component
-public class RateLimitFilter implements GatewayFilter {
+@Order(2)
+public class RateLimitFilter implements WebFilter {
 
     @Value("${rate.limit.requests}")
     private int maxRequests;
@@ -25,14 +27,14 @@ public class RateLimitFilter implements GatewayFilter {
     @Value("${rate.limit.key.prefix}")
     private String keyPrefix;
     
-    private final ReactiveRedisTemplate<String, String> redisTemplate;
+    private final ReactiveStringRedisTemplate redisTemplate;
 
-    public RateLimitFilter(ReactiveRedisTemplate<String, String> redisTemplate) {
+    public RateLimitFilter(ReactiveStringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
     }
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         ServerHttpResponse response = exchange.getResponse();
         
@@ -57,9 +59,12 @@ public class RateLimitFilter implements GatewayFilter {
                 }
                 
                 response.getHeaders().add(RateLimitConstants.RATE_LIMIT_LIMIT_HEADER, String.valueOf(maxRequests));
-                response.getHeaders().add(RateLimitConstants.RATE_LIMIT_REMAINING_HEADER, String.valueOf(maxRequests - count));
+                response.getHeaders().add(RateLimitConstants.RATE_LIMIT_REMAINING_HEADER, String.valueOf(Math.max(0, maxRequests - count)));
                 response.getHeaders().add(RateLimitConstants.RATE_LIMIT_RESET_HEADER, String.valueOf(System.currentTimeMillis() + windowSeconds * RateLimitConstants.MILLISECONDS_PER_SECOND));
                 
+                return chain.filter(exchange);
+            })
+            .onErrorResume(error -> {
                 return chain.filter(exchange);
             });
     }
@@ -79,3 +84,4 @@ public class RateLimitFilter implements GatewayFilter {
             request.getRemoteAddress().getAddress().getHostAddress() : RateLimitConstants.UNKNOWN_CLIENT;
     }
 }
+

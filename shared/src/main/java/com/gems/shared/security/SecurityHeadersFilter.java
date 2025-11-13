@@ -1,17 +1,19 @@
-package com.gems.api.config;
+package com.gems.shared.security;
 
-import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 @Component
-public class SecurityHeadersFilter implements GatewayFilter {
+@Order(1)
+public class SecurityHeadersFilter implements WebFilter {
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         ServerHttpResponse response = exchange.getResponse();
         
         response.getHeaders().add("X-Content-Type-Options", "nosniff");
@@ -26,3 +28,4 @@ public class SecurityHeadersFilter implements GatewayFilter {
         return chain.filter(exchange);
     }
 }
+

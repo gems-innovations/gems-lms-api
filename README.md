@@ -1,6 +1,6 @@
 # GEMS LMS API
 
-Sistema de gestión de aprendizaje (LMS) basado en arquitectura de microservicios con Spring Boot, Spring Cloud Gateway y PostgreSQL.
+Sistema de gestión de aprendizaje (LMS) basado en arquitectura de microservicios con Spring Boot, WebFlux y PostgreSQL.
 
 ## 🏗️ Arquitectura
 
@@ -8,7 +8,6 @@ Sistema de gestión de aprendizaje (LMS) basado en arquitectura de microservicio
 
 El proyecto sigue una **arquitectura de microservicios** basada en **Clean Architecture + DDD (Domain-Driven Design)**:
 
-- **API Gateway**: Punto de entrada único para todas las peticiones
 - **Microservicios**: 
   - `ms-auth`: Gestión de autenticación y usuarios
   - `ms-admin`: Gestión administrativa
@@ -32,65 +31,40 @@ ms-[nombre]/
 
 ### 1. Entrada de Petición
 
-Cuando una petición HTTP llega a la aplicación, el flujo es el siguiente:
+Cuando una petición HTTP llega a un microservicio, el flujo es el siguiente:
 
 ```
-Cliente → API Gateway (Puerto: ${API_GATEWAY_PORT})
+Cliente → Microservicio (Puerto específico)
 ```
 
-### 2. Procesamiento en el API Gateway
+### 2. Procesamiento en el Microservicio
 
-El API Gateway procesa todas las peticiones a través de una cadena de filtros:
+Cada microservicio procesa las peticiones a través de una cadena de filtros:
 
 #### Filtros Aplicados (en orden):
 
 1. **SecurityHeadersFilter**: Agrega headers de seguridad HTTP
 2. **RateLimitFilter**: Controla el límite de peticiones por cliente usando Redis
 3. **JwtAuthenticationFilter**: Valida el token JWT
-   - Si la ruta es `/auth/login`, permite el acceso sin token
+   - Si la ruta es de login o Swagger, permite el acceso sin token
    - Para otras rutas, extrae y valida el token JWT del header `Authorization`
    - Si es válido, agrega headers internos: `X-User-Id` y `X-User-Role`
    - Si no es válido, retorna `401 Unauthorized`
-4. **InternalAuthFilter**: Agrega el token de autenticación interna (`X-Internal-Token`) para comunicación entre el Gateway y los microservicios
 
-### 3. Enrutamiento
+### 3. Procesamiento de la Petición
 
-El API Gateway utiliza `RouteConfig` para enrutar las peticiones según el path:
-
-- **Rutas `/auth/**`** → Microservicio `ms-auth`
-- **Rutas `/admin/**`** → Microservicio `ms-admin`
-- **Rutas `/education/**`** → Microservicio `ms-education`
-
-### 4. Llegada al Microservicio
-
-Cuando la petición llega al microservicio:
-
-1. **InternalAuthFilter** (en el microservicio): Valida que el header `X-Internal-Token` coincida con el secreto configurado
-   - Si no coincide, retorna `403 Forbidden`
-   - Si coincide, permite continuar
-
-2. **JwtValidationFilter**: Valida nuevamente el token JWT y extrae la información del usuario
-
-3. **Controlador REST**: Recibe la petición y utiliza los **Use Cases** para procesar la lógica de negocio
-
-4. **Use Case**: Ejecuta la lógica de negocio utilizando los **Gateways** (interfaces)
-
-5. **Repositorio Adapter**: Implementa los gateways y accede a la base de datos usando R2DBC (programación reactiva)
-
-6. **Respuesta**: El flujo se invierte y retorna la respuesta al cliente a través del API Gateway
-
-### Diagrama de Flujo
-
-![Arquitectura GEMS LMS API](docs/architecture_diagram.svg)
+1. **Controlador REST**: Recibe la petición y utiliza los **Use Cases** para procesar la lógica de negocio
+2. **Use Case**: Ejecuta la lógica de negocio utilizando los **Gateways** (interfaces)
+3. **Repositorio Adapter**: Implementa los gateways y accede a la base de datos usando R2DBC (programación reactiva)
+4. **Respuesta**: Retorna la respuesta al cliente
 
 ## 🚀 Guía de Ejecución
 
 ### Prerrequisitos
 
 - Java 24
-- IntelliJ Idea Community
 - Docker y Docker Compose
-- PowerShell (para ejecutar los scripts en Windows)
+- Bash (para ejecutar los scripts en Linux/Mac) o Git Bash/WSL (para Windows)
 
 ### 1. Clonar el Repositorio
 
@@ -111,9 +85,9 @@ docker-compose up -d
 
 Esto iniciará:
 - `postgres-auth` en el puerto **5432**
-- `postgres-auth` en el puerto **5433**
+- `postgres-admin` en el puerto **5433**
 - `postgres-education` en el puerto **5434**
-- `redis` en el puerto configurado por `${REDIS_PORT}`
+- `redis` en el puerto **6379**
 
 ### 3. Crear las Tablas en PostgreSQL
 
@@ -122,34 +96,16 @@ Conectarse a cada instancia de PostgreSQL y ejecutar los scripts `schema.sql` co
 #### Base de Datos Auth (Puerto 5432)
 
 ```bash
-psql -h localhost -p 5432 -U auth_user -d auth_db
-```
-
-O usando Docker:
-
-```bash
 docker exec -i gems-postgres-auth psql -U auth_user -d auth_db < ms-auth/src/main/resources/schema.sql
 ```
 
 #### Base de Datos Admin (Puerto 5433)
 
 ```bash
-psql -h localhost -p 5433 -U admin_user -d admin_db
-```
-
-O usando Docker:
-
-```bash
 docker exec -i gems-postgres-admin psql -U admin_user -d admin_db < ms-admin/src/main/resources/schema.sql
 ```
 
 #### Base de Datos Education (Puerto 5434)
-
-```bash
-psql -h localhost -p 5434 -U education_user -d education_db
-```
-
-O usando Docker:
 
 ```bash
 docker exec -i gems-postgres-education psql -U education_user -d education_db < ms-education/src/main/resources/schema.sql
@@ -160,30 +116,14 @@ docker exec -i gems-postgres-education psql -U education_user -d education_db < 
 Crear un archivo `.env` en la raíz del proyecto con las siguientes variables de entorno:
 
 ```env
-API_GATEWAY_PORT=8080
 AUTH_PORT=8081
 ADMIN_PORT=8082
 EDUCATION_PORT=8083
 
-GATEWAY_INTERNAL_SECRET=your-internal-secret-key-here
-GATEWAY_INTERNAL_HEADER=X-Internal-Token
-
 JWT_SECRET=your-jwt-secret-key-here-change-in-production
 JWT_EXPIRATION=3600000
 
-AUTH_URL=http://localhost:8081
-AUTH_ID=auth-service
-AUTH_PATH=/auth/**
-
-ADMIN_URL=http://localhost:8082
-ADMIN_ID=admin-service
-ADMIN_PATH=/admin/**
-
-EDUCATION_URL=http://localhost:8083
-EDUCATION_ID=education-service
-EDUCATION_PATH=/education/**
-
-AUTH_LOGIN_PATH=/auth/login
+AUTH_LOGIN_PATH=/api/v1/users/login
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -223,66 +163,96 @@ CORS_MAX_AGE=3600
 
 **Importante**: Cambiar los valores de ejemplo por valores seguros en producción.
 
-### 5. Ejecutar los Microservicios
+### 5. Compilar el Proyecto
+
+Antes de ejecutar los microservicios, compilar el proyecto:
+
+```bash
+./gradlew build -x jacocoTestCoverageVerification
+```
+
+### 6. Ejecutar los Microservicios
 
 #### Iniciar Todos los Microservicios
 
-Ejecutar el script `start-microservices.ps1`:
+Ejecutar el script `start-microservices.sh`:
 
-```powershell
-.\start-microservices.ps1
+```bash
+chmod +x start-microservices.sh
+./start-microservices.sh
 ```
 
 O especificar que se inicien todos:
 
-```powershell
-.\start-microservices.ps1 -Microservice all
+```bash
+./start-microservices.sh all
 ```
 
-Esto abrirá ventanas separadas de PowerShell para cada microservicio:
-- API Gateway
-- ms-auth
-- ms-admin
-- ms-education
+Esto iniciará todos los microservicios en segundo plano:
+- ms-auth (puerto 8081)
+- ms-admin (puerto 8082)
+- ms-education (puerto 8083)
+
+Los logs se guardarán en el directorio `logs/`:
+- `logs/auth.log`
+- `logs/admin.log`
+- `logs/education.log`
 
 #### Iniciar un Microservicio Específico
 
-Para iniciar solo un microservicio, usar la flag `-Microservice`:
+Para iniciar solo un microservicio en primer plano (ver logs en consola):
 
-```powershell
-.\start-microservices.ps1 -Microservice api-gateway
-.\start-microservices.ps1 -Microservice ms-auth
-.\start-microservices.ps1 -Microservice ms-admin
-.\start-microservices.ps1 -Microservice ms-education
+```bash
+./start-microservices.sh ms-auth
+./start-microservices.sh ms-admin
+./start-microservices.sh ms-education
 ```
+
+**Nota**: Cuando se ejecuta un microservicio individual, los logs se muestran en la consola y se puede detener con `Ctrl+C`.
 
 #### Detener los Microservicios
 
 Para detener todos los microservicios:
 
-```powershell
-.\stop-microservices.ps1
+```bash
+chmod +x stop-microservices.sh
+./stop-microservices.sh
 ```
 
 O para detener uno específico:
 
-```powershell
-.\stop-microservices.ps1 -Microservice api-gateway
-.\stop-microservices.ps1 -Microservice ms-auth
-.\stop-microservices.ps1 -Microservice ms-admin
-.\stop-microservices.ps1 -Microservice ms-education
+```bash
+./stop-microservices.sh ms-auth
+./stop-microservices.sh ms-admin
+./stop-microservices.sh ms-education
 ```
 
-**Nota**: Los scripts PowerShell **NO deben modificarse**.
+**Nota**: Los scripts **NO deben modificarse**.
 
-### 6. Verificar que Todo Funciona
+### 7. Acceder a la Documentación Swagger
+
+Cada microservicio tiene documentación Swagger disponible. Para acceder:
+
+#### ms-auth (Puerto 8081)
+
+- **Swagger UI**: `http://localhost:8081/swagger-ui.html`
+- **API Docs JSON**: `http://localhost:8081/v3/api-docs`
+
+#### ms-admin (Puerto 8082)
+
+- **Swagger UI**: `http://localhost:8082/swagger-ui.html`
+- **API Docs JSON**: `http://localhost:8082/v3/api-docs`
+
+#### ms-education (Puerto 8083)
+
+- **Swagger UI**: `http://localhost:8083/swagger-ui.html`
+- **API Docs JSON**: `http://localhost:8083/v3/api-docs`
+
+**Nota**: Las rutas de Swagger están excluidas de la autenticación JWT, por lo que puedes acceder sin token.
+
+### 8. Verificar que Todo Funciona
 
 Probar los endpoints de health de cada microservicio:
-
-#### API Gateway
-```bash
-curl http://localhost:8080/actuator/health
-```
 
 #### ms-auth
 ```bash
@@ -301,7 +271,62 @@ curl http://localhost:8083/actuator/health
 
 Si todos responden con estado `UP`, el sistema está funcionando correctamente.
 
-## 📋 Checklist de Pendientes
+## 📋 Tecnologías Utilizadas
 
-- [ ] **LOAD BALANCER**: Implementar balanceador de carga para distribuir el tráfico entre múltiples instancias de microservicios
+- **Spring Boot 3.4.5**: Framework principal
+- **Spring WebFlux**: Programación reactiva
+- **R2DBC**: Acceso reactivo a base de datos
+- **PostgreSQL**: Base de datos relacional
+- **Redis**: Caché y rate limiting
+- **JWT**: Autenticación y autorización
+- **SpringDoc OpenAPI 2.7.0**: Documentación de API (Swagger)
+- **Gradle**: Gestión de dependencias y construcción
+- **Docker & Docker Compose**: Contenedores y orquestación
 
+## 🔧 Desarrollo
+
+### Estructura del Proyecto
+
+```
+gems-lms-api/
+├── ms-auth/          # Microservicio de autenticación
+├── ms-admin/         # Microservicio administrativo
+├── ms-education/     # Microservicio educativo
+├── shared/           # Módulo compartido (filtros, configuraciones)
+├── docker-compose.yml
+├── build.gradle
+├── settings.gradle
+├── start-microservices.sh
+└── stop-microservices.sh
+```
+
+### Compilar y Ejecutar Tests
+
+```bash
+./gradlew build
+```
+
+Para ejecutar solo los tests sin verificar cobertura:
+
+```bash
+./gradlew test
+```
+
+### Ver Logs en Tiempo Real
+
+Para ver los logs de un microservicio en tiempo real:
+
+```bash
+tail -f logs/auth.log
+tail -f logs/admin.log
+tail -f logs/education.log
+```
+
+## 📝 Notas Importantes
+
+- **NO modificar** el archivo `docker-compose.yml`
+- **NO modificar** los scripts `start-microservices.sh` y `stop-microservices.sh`
+- Las rutas de Swagger (`/swagger-ui/**`, `/api-docs/**`, `/webjars/**`) están excluidas de la autenticación JWT
+- Cada microservicio tiene su propia base de datos PostgreSQL
+- Redis se usa para rate limiting y caché
+- El proyecto usa programación reactiva (WebFlux) en todos los microservicios

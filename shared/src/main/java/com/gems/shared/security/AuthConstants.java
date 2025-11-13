@@ -1,4 +1,4 @@
-package com.gems.api.config;
+package com.gems.shared.security;
 
 public final class AuthConstants {
     
@@ -11,3 +11,4 @@ public final class AuthConstants {
     public static final String X_USER_ID_HEADER = "X-User-Id";
     public static final String X_USER_ROLE_HEADER = "X-User-Role";
 }
+

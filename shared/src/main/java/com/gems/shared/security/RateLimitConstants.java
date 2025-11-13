@@ -1,4 +1,4 @@
-package com.gems.api.config;
+package com.gems.shared.security;
 
 public final class RateLimitConstants {
     
@@ -17,3 +17,4 @@ public final class RateLimitConstants {
     public static final String ZERO_REMAINING = "0";
     public static final long MILLISECONDS_PER_SECOND = 1000L;
 }
+

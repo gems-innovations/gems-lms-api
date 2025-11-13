@@ -1,23 +1,25 @@
-package com.gems.api.config;
+package com.gems.shared.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cloud.gateway.filter.GatewayFilter;
-import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
 import java.util.List;
 
 @Component
-public class JwtAuthenticationFilter implements GatewayFilter {
+@Order(3)
+public class JwtAuthenticationFilter implements WebFilter {
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -29,13 +31,13 @@ public class JwtAuthenticationFilter implements GatewayFilter {
     private String loginPath;
 
     @Override
-    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+    public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         ServerHttpResponse response = exchange.getResponse();
 
         String path = request.getURI().getPath();
         
-        if (isLoginPath(path)) {
+        if (shouldSkipAuthentication(path)) {
             return chain.filter(exchange);
         }
 
@@ -68,8 +70,17 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         }
     }
 
-    private boolean isLoginPath(String path) {
-        return path.equals(loginPath);
+    private boolean shouldSkipAuthentication(String path) {
+        if (path.equals(loginPath)) {
+            return true;
+        }
+        
+        return path.startsWith("/swagger-ui") ||
+               path.startsWith("/api-docs") ||
+               path.startsWith("/v3/api-docs") ||
+               path.startsWith("/webjars") ||
+               path.equals("/swagger-ui.html") ||
+               path.equals("/swagger-ui/index.html");
     }
 
     private String extractToken(ServerHttpRequest request) {
@@ -108,3 +119,4 @@ public class JwtAuthenticationFilter implements GatewayFilter {
             .getBody();
     }
 }
+

@@ -2,7 +2,6 @@ rootProject.name = 'gems-lms-api'
 
 // Microservices
 
-include 'api-gateway'
 include 'ms-auth'
 include 'ms-admin'
 include 'ms-education'
