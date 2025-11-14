@@ -10,7 +10,6 @@ import com.gems.education.domain.values.Name;
 import com.gems.education.domain.values.StudentId;
 
 import java.time.LocalDate;
-import java.util.Objects;
 
 public class Student {
   private final StudentId id;

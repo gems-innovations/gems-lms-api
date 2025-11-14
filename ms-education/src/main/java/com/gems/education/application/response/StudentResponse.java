@@ -1,14 +1,5 @@
 package com.gems.education.application.response;
 
-import com.gems.education.domain.values.BirthDate;
-import com.gems.education.domain.values.City;
-import com.gems.education.domain.values.Country;
-import com.gems.education.domain.values.DocumentNumber;
-import com.gems.education.domain.values.DocumentType;
-import com.gems.education.domain.values.Email;
-import com.gems.education.domain.values.Name;
-import com.gems.education.domain.values.StudentId;
-
 import java.time.LocalDate;
 
 public class StudentResponse {
