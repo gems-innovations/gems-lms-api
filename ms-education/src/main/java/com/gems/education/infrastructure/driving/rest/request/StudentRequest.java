@@ -9,9 +9,7 @@ import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDate;
-
-public class RegisterStudentRequest {
+public class StudentRequest {
 
   @NotBlank(message = RestConstants.NAME_REQUIRED_MESSAGE)
   @Size(min = 2, max = 50, message = RestConstants.NAME_SIZE_MESSAGE)
@@ -41,10 +39,10 @@ public class RegisterStudentRequest {
   )
   private String documentNumber;
 
-  public RegisterStudentRequest() {
+  public StudentRequest() {
   }
 
-  public RegisterStudentRequest(
+  public StudentRequest(
     String name,
     String email,
     LocalDate birthDate,

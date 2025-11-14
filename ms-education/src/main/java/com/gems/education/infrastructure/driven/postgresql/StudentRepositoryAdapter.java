@@ -1,6 +1,7 @@
 package com.gems.education.infrastructure.driven.postgresql;
 
 import com.gems.education.application.gateway.StudentGateway;
+import com.gems.education.application.response.StudentResponse;
 import com.gems.education.domain.entities.Student;
 import com.gems.education.domain.values.BirthDate;
 import com.gems.education.domain.values.City;
@@ -11,6 +12,7 @@ import com.gems.education.domain.values.Email;
 import com.gems.education.domain.values.Name;
 import com.gems.education.domain.values.StudentId;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Repository
@@ -56,6 +58,11 @@ public class StudentRepositoryAdapter implements StudentGateway {
     return studentRepository.deleteById(id.getValue());
   }
 
+  @Override
+  public Flux<Student> findAll() {
+    return studentRepository.findAll().map(this::mapToDomain);
+  }
+
   private Student mapToDomain(StudentEntity entity) {
     return new Student(
       entity.getId(),
@@ -69,10 +76,9 @@ public class StudentRepositoryAdapter implements StudentGateway {
     );
   }
 
-
   private StudentEntity mapToEntity(Student student) {
     return new StudentEntity(
-      student.getValue() != null ? student.getValue().getValue() : null,
+      student.getId() != null ? student.getId().getValue() : null,
       student.getName().getValue(),
       student.getEmail().getValue(),
       student.getBirthDate().getValue(),

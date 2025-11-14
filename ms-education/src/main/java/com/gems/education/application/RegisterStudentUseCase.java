@@ -1,6 +1,6 @@
 package com.gems.education.application;
 
-import com.gems.education.application.command.RegisterStudentCommand;
+import com.gems.education.application.command.StudentCommand;
 import com.gems.education.application.gateway.StudentGateway;
 import com.gems.education.application.response.StudentResponse;
 import com.gems.education.domain.constants.StudentsConstants;
@@ -16,7 +16,7 @@ public class RegisterStudentUseCase {
     this.studentGateway = studentGateway;
   }
 
-  public Mono<StudentResponse> execute(RegisterStudentCommand command) {
+  public Mono<StudentResponse> execute(StudentCommand command) {
     return studentGateway.existsByEmail(new Email(command.getEmail()))
       .flatMap(exists -> {
         if (exists) {
@@ -37,7 +37,7 @@ public class RegisterStudentUseCase {
 
         return studentGateway.save(student)
           .map(savedStudent -> new StudentResponse(
-            savedStudent.getValue().getValue(),
+            savedStudent.getId().getValue(),
             savedStudent.getName().getValue(),
             savedStudent.getEmail().getValue(),
             savedStudent.getBirthDate().getValue(),

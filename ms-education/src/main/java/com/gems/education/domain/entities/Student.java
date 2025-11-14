@@ -54,7 +54,7 @@ public class Student {
     this(null, name, email, birthDate, country, city, documentType, documentNumber);
   }
 
-  public StudentId getValue() {
+  public StudentId getId() {
     return id;
   }
 

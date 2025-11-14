@@ -2,7 +2,7 @@ package com.gems.education.application.command;
 
 import java.time.LocalDate;
 
-public class RegisterStudentCommand {
+public class StudentCommand {
   private final String name;
   private final String email;
   private final LocalDate birthDate;
@@ -11,7 +11,7 @@ public class RegisterStudentCommand {
   private final String documentType;
   private final String documentNumber;
 
-  public RegisterStudentCommand(String name, String email, LocalDate birthDate, String country, String city, String documentType, String documentNumber) {
+  public StudentCommand(String name, String email, LocalDate birthDate, String country, String city, String documentType, String documentNumber) {
     this.name = name;
     this.email = email;
     this.birthDate = birthDate;
