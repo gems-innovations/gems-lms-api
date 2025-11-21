@@ -34,7 +34,6 @@ subprojects {
     }
   }
 
-
   dependencies {
     if (project.name != 'shared') {
       implementation 'org.springframework.boot:spring-boot-starter'
@@ -48,47 +47,41 @@ subprojects {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
   }
 
-
   test {
     useJUnitPlatform()
     finalizedBy jacocoTestReport
   }
 
+  def coverageIncludes = [
+    '**/*UseCase.class',
+    '**/*Adapter.class',
+    '**/*Controller.class',
+    '**/domain/entities/**/*.class'
+  ]
+
   jacocoTestReport {
-    dependsOn test
     reports {
       xml.required = true
       html.required = true
       csv.required = false
     }
-    afterEvaluate {
-      classDirectories.setFrom(
-        files(classDirectories.files.collect {
-          fileTree(it).matching {
-            include '**/*UseCase.class'
-            include '**/*Adapter.class'
-            include '**/*Controller.class'
-            include '**/domain/entities/**/*.class'
-          }
-        })
-      )
-    }
+
+    classDirectories.setFrom(
+      sourceSets.main.output.asFileTree.matching {
+        include coverageIncludes
+      }
+    )
   }
 
   jacocoTestCoverageVerification {
     dependsOn jacocoTestReport
-    afterEvaluate {
-      classDirectories.setFrom(
-        files(classDirectories.files.collect {
-          fileTree(it).matching {
-            include '**/*UseCase.class'
-            include '**/*Adapter.class'
-            include '**/*Controller.class'
-            include '**/domain/entities/**/*.class'
-          }
-        })
-      )
-    }
+
+    classDirectories.setFrom(
+      sourceSets.main.output.asFileTree.matching {
+        include coverageIncludes
+      }
+    )
+
     violationRules {
       rule {
         limit {
