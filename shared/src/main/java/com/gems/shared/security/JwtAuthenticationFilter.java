@@ -36,7 +36,7 @@ public class JwtAuthenticationFilter implements WebFilter {
         ServerHttpResponse response = exchange.getResponse();
 
         String path = request.getURI().getPath();
-        
+
         if (shouldSkipAuthentication(path)) {
             return chain.filter(exchange);
         }
@@ -64,7 +64,7 @@ public class JwtAuthenticationFilter implements WebFilter {
                 .build();
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
-        } catch (Exception e) {
+        } catch (Exception _) {
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             return response.setComplete();
         }
@@ -105,7 +105,7 @@ public class JwtAuthenticationFilter implements WebFilter {
                 .build()
                 .parseClaimsJws(token);
             return true;
-        } catch (Exception e) {
+        } catch (Exception _) {
             return false;
         }
     }

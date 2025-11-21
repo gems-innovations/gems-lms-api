@@ -1,9 +1,10 @@
 package com.gems.auth.infrastructure.driving.rest;
 
-import com.gems.auth.domain.exceptions.InvalidCredentialsException;
-import com.gems.auth.domain.exceptions.UserAlreadyExistsException;
-import com.gems.auth.domain.exceptions.UserNotFoundException;
-import com.gems.auth.infrastructure.driving.rest.constants.RestConstants;
+import com.gems.auth.application.exceptions.InvalidCredentialsException;
+import com.gems.auth.application.exceptions.UserAlreadyExistsException;
+import com.gems.auth.application.exceptions.UserDeactivatedException;
+import com.gems.auth.application.exceptions.UserNotFoundException;
+import com.gems.auth.infrastructure.constants.AuthInfraConstants;
 import com.gems.auth.infrastructure.driving.rest.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,7 @@ public class GlobalExceptionHandler {
   @ApiResponse(responseCode = "409", description = "User already exists with the provided email")
   public Mono<ResponseEntity<ErrorResponse>> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
     ErrorResponse error = new ErrorResponse(
-      RestConstants.USER_ALREADY_EXISTS_CODE,
+      AuthInfraConstants.USER_ALREADY_EXISTS_CODE,
       ex.getMessage(),
       HttpStatus.CONFLICT.value()
     );
@@ -33,7 +34,7 @@ public class GlobalExceptionHandler {
   @ApiResponse(responseCode = "404", description = "User not found with the provided email")
   public Mono<ResponseEntity<ErrorResponse>> handleUserNotFoundException(UserNotFoundException ex) {
     ErrorResponse error = new ErrorResponse(
-      RestConstants.USER_NOT_FOUND_CODE,
+      AuthInfraConstants.USER_NOT_FOUND_CODE,
       ex.getMessage(),
       HttpStatus.NOT_FOUND.value()
     );
@@ -44,11 +45,22 @@ public class GlobalExceptionHandler {
   @ApiResponse(responseCode = "401", description = "Invalid credentials or user account is deactivated")
   public Mono<ResponseEntity<ErrorResponse>> handleInvalidCredentialsException(InvalidCredentialsException ex) {
     ErrorResponse error = new ErrorResponse(
-      "INVALID_CREDENTIALS",
+      AuthInfraConstants.INVALID_CREDENTIALS,
       ex.getMessage(),
       HttpStatus.UNAUTHORIZED.value()
     );
     return Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error));
+  }
+
+  @ExceptionHandler(UserDeactivatedException.class)
+  @ApiResponse(responseCode = "404", description = "Invalid credentials or user account is deactivated")
+  public Mono<ResponseEntity<ErrorResponse>> handleUserDeactivatedException(UserDeactivatedException ex) {
+    ErrorResponse error = new ErrorResponse(
+      AuthInfraConstants.USER_DEACTIVATED_CODE,
+      ex.getMessage(),
+      HttpStatus.BAD_REQUEST.value()
+    );
+    return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error));
   }
 
   @ExceptionHandler(WebExchangeBindException.class)
@@ -59,10 +71,10 @@ public class GlobalExceptionHandler {
         .stream()
         .map(error -> error.getField() + ": " + error.getDefaultMessage())
         .reduce((msg1, msg2) -> msg1 + "; " + msg2)
-        .orElse("Validation failed");
+        .orElse(AuthInfraConstants.VALIDATION_FAILED);
     
     ErrorResponse error = new ErrorResponse(
-      RestConstants.VALIDATION_ERROR_CODE,
+      AuthInfraConstants.VALIDATION_ERROR_CODE,
       errorMessage,
       HttpStatus.BAD_REQUEST.value()
     );
@@ -77,10 +89,10 @@ public class GlobalExceptionHandler {
         .stream()
         .map(error -> error.getField() + ": " + error.getDefaultMessage())
         .reduce((msg1, msg2) -> msg1 + "; " + msg2)
-        .orElse("Validation failed");
+        .orElse(AuthInfraConstants.VALIDATION_FAILED);
     
     ErrorResponse error = new ErrorResponse(
-      RestConstants.VALIDATION_ERROR_CODE,
+      AuthInfraConstants.VALIDATION_ERROR_CODE,
       errorMessage,
       HttpStatus.BAD_REQUEST.value()
     );
@@ -94,10 +106,10 @@ public class GlobalExceptionHandler {
         .stream()
         .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
         .reduce((msg1, msg2) -> msg1 + "; " + msg2)
-        .orElse("Validation failed");
+        .orElse(AuthInfraConstants.VALIDATION_FAILED);
     
     ErrorResponse error = new ErrorResponse(
-      RestConstants.VALIDATION_ERROR_CODE,
+      AuthInfraConstants.VALIDATION_ERROR_CODE,
       errorMessage,
       HttpStatus.BAD_REQUEST.value()
     );
@@ -108,7 +120,7 @@ public class GlobalExceptionHandler {
   @ApiResponse(responseCode = "400", description = "Validation error: illegal argument provided")
   public Mono<ResponseEntity<ErrorResponse>> handleIllegalArgumentException(IllegalArgumentException ex) {
     ErrorResponse error = new ErrorResponse(
-      RestConstants.VALIDATION_ERROR_CODE,
+      AuthInfraConstants.VALIDATION_ERROR_CODE,
       ex.getMessage(),
       HttpStatus.BAD_REQUEST.value()
     );
@@ -119,7 +131,7 @@ public class GlobalExceptionHandler {
   @ApiResponse(responseCode = "500", description = "Internal server error: unexpected error occurred")
   public Mono<ResponseEntity<ErrorResponse>> handleGenericException(Exception ex) {
     ErrorResponse error = new ErrorResponse(
-      RestConstants.INTERNAL_SERVER_ERROR_CODE,
+      AuthInfraConstants.INTERNAL_SERVER_ERROR_CODE,
       ex.getMessage(),
       HttpStatus.INTERNAL_SERVER_ERROR.value()
     );

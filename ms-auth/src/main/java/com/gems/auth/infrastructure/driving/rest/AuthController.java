@@ -6,10 +6,7 @@ import com.gems.auth.application.command.LoginCommand;
 import com.gems.auth.application.command.RegisterUserCommand;
 import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.application.response.UserResponse;
-import com.gems.auth.domain.exceptions.InvalidCredentialsException;
-import com.gems.auth.domain.exceptions.UserAlreadyExistsException;
-import com.gems.auth.domain.exceptions.UserNotFoundException;
-import com.gems.auth.infrastructure.driving.rest.constants.RestConstants;
+import com.gems.auth.infrastructure.constants.AuthInfraConstants;
 import com.gems.auth.infrastructure.driving.rest.mapper.LoginMapper;
 import com.gems.auth.infrastructure.driving.rest.mapper.UserMapper;
 import com.gems.auth.infrastructure.driving.rest.request.LoginRequest;
@@ -28,18 +25,18 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping(RestConstants.USERS_API_BASE_PATH)
-@Tag(name = "Users", description = "User management and authentication endpoints")
-public class UserController {
+@RequestMapping(AuthInfraConstants.AUTH_API_BASE_PATH)
+@Tag(name = "Auth", description = "User management and authentication endpoints")
+public class AuthController {
   private final RegisterUserUseCase registerUserUseCase;
   private final LoginUseCase loginUseCase;
 
-  public UserController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase) {
+  public AuthController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase) {
     this.registerUserUseCase = registerUserUseCase;
     this.loginUseCase = loginUseCase;
   }
 
-  @PostMapping(RestConstants.REGISTER_ENDPOINT)
+  @PostMapping(AuthInfraConstants.REGISTER_ENDPOINT)
   @Operation(
       summary = "Register a new user",
       description = "Creates a new user account with the provided information. The user must provide a valid name, email, password, and role."
@@ -70,15 +67,10 @@ public class UserController {
     RegisterUserCommand command = UserMapper.toDomain(request);
 
     return registerUserUseCase.execute(command)
-      .map(userResponse -> {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
-      })
-      .onErrorResume(UserAlreadyExistsException.class, ex ->
-        Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).build())
-      );
+      .map(userResponse -> ResponseEntity.status(HttpStatus.CREATED).body(userResponse));
   }
 
-  @PostMapping("/login")
+  @PostMapping(AuthInfraConstants.LOGIN_ENDPOINT)
   @Operation(
       summary = "User login",
       description = "Authenticates a user with email and password. Returns a JWT token upon successful authentication."
@@ -112,14 +104,6 @@ public class UserController {
   })
   public Mono<ResponseEntity<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
     LoginCommand command = LoginMapper.toCommand(request);
-
-    return loginUseCase.execute(command)
-      .map(ResponseEntity::ok)
-      .onErrorResume(InvalidCredentialsException.class, error ->
-        Mono.just(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()))
-      .onErrorResume(UserNotFoundException.class, error ->
-        Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))
-      .onErrorResume(Exception.class, error ->
-        Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
+    return loginUseCase.execute(command).map(ResponseEntity::ok);
   }
 }

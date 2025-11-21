@@ -1,6 +1,6 @@
 package com.gems.auth.infrastructure.driving.rest.request;
 
-import com.gems.auth.infrastructure.driving.rest.constants.RestConstants;
+import com.gems.auth.infrastructure.constants.AuthInfraConstants;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -11,13 +11,13 @@ import jakarta.validation.constraints.Size;
 public class RegisterUserRequest {
 
   @Schema(description = "User's full name", example = "John Doe", requiredMode = Schema.RequiredMode.REQUIRED, minLength = 2, maxLength = 50)
-  @NotBlank(message = RestConstants.NAME_REQUIRED_MESSAGE)
-  @Size(min = 2, max = 50, message = RestConstants.NAME_SIZE_MESSAGE)
+  @NotBlank(message = AuthInfraConstants.NAME_REQUIRED_MESSAGE)
+  @Size(min = 2, max = 50, message = AuthInfraConstants.NAME_SIZE_MESSAGE)
   private String name;
 
   @Schema(description = "User's email address", example = "john.doe@example.com", requiredMode = Schema.RequiredMode.REQUIRED)
-  @NotBlank(message = RestConstants.EMAIL_REQUIRED_MESSAGE)
-  @Email(message = RestConstants.EMAIL_VALID_MESSAGE)
+  @NotBlank(message = AuthInfraConstants.EMAIL_REQUIRED_MESSAGE)
+  @Email(message = AuthInfraConstants.EMAIL_VALID_MESSAGE)
   private String email;
 
   @Schema(
@@ -26,11 +26,11 @@ public class RegisterUserRequest {
       requiredMode = Schema.RequiredMode.REQUIRED,
       minLength = 8
   )
-  @NotBlank(message = RestConstants.PASSWORD_REQUIRED_MESSAGE)
-  @Size(min = 8, message = RestConstants.PASSWORD_SIZE_MESSAGE)
+  @NotBlank(message = AuthInfraConstants.PASSWORD_REQUIRED_MESSAGE)
+  @Size(min = 8, message = AuthInfraConstants.PASSWORD_SIZE_MESSAGE)
   @Pattern(
-      regexp = RestConstants.PASSWORD_PATTERN_REGEX,
-      message = RestConstants.PASSWORD_PATTERN_MESSAGE
+      regexp = AuthInfraConstants.PASSWORD_PATTERN_REGEX,
+      message = AuthInfraConstants.PASSWORD_PATTERN_MESSAGE
   )
   private String password;
 
