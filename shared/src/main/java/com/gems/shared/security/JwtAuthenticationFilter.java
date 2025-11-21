@@ -89,7 +89,7 @@ public class JwtAuthenticationFilter implements WebFilter {
             return null;
         }
 
-        String authHeader = authHeaders.get(0);
+        String authHeader = authHeaders.getFirst();
         if (authHeader.startsWith(AuthConstants.BEARER_PREFIX)) {
             return authHeader.substring(AuthConstants.BEARER_PREFIX.length());
         }

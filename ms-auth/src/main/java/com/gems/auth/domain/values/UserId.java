@@ -14,11 +14,6 @@ public class UserId {
     this.value = value;
   }
 
-  public static UserId generate() {
-    // For auto-increment, we don't need to generate IDs
-    return null;
-  }
-
   public Long getValue() {
     return value;
   }

@@ -16,8 +16,6 @@ public class LoginRequest {
   @NotBlank(message = AuthInfraConstants.PASSWORD_REQUIRED_MESSAGE)
   private String password;
 
-  public LoginRequest() {}
-
   public LoginRequest(String email, String password) {
     this.email = email;
     this.password = password;

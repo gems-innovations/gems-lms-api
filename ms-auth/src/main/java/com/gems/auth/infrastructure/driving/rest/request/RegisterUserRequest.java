@@ -38,9 +38,6 @@ public class RegisterUserRequest {
   @NotBlank(message = "Role is required")
   private String role;
 
-  public RegisterUserRequest() {
-  }
-
   public RegisterUserRequest(String name, String email, String password, String role) {
     this.name = name;
     this.email = email;
