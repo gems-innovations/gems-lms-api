@@ -84,6 +84,8 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'pdn' || github.ref == 'refs/heads/qa' && 'qa' || 'dev' }}
     steps:
+    - uses: actions/checkout@v4
+
     - name: Copy docker-compose.yml to server
       uses: appleboy/scp-action@v0.1.7
       with:
