@@ -84,10 +84,72 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.ref == 'refs/heads/main' && 'pdn' || github.ref == 'refs/heads/qa' && 'qa' || 'dev' }}
     steps:
+    - name: Copy docker-compose.yml to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "docker-compose.yml"
+        target: "/home/${{ secrets.EC2_USER }}/app"
+
     - name: Deploy to ${{ env.DEPLOY_ENV }}
-      run: |
-        echo "Deploying to environment: ${{ env.DEPLOY_ENV }}"
-        echo "Pulling images tagged with: ${{ env.DEPLOY_ENV }}-latest"
-        # Add actual deployment commands here (e.g., SSH to server, kubectl apply, etc.)
-        # Example:
-        # ssh user@server "docker-compose pull && docker-compose up -d"
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd /home/${{ secrets.EC2_USER }}/app
+          
+          # Create .env file with configuration
+          cat <<EOF > .env
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          TAG=${{ env.DEPLOY_ENV }}-latest
+          
+          # Auth
+          AUTH_PORT=8081
+          AUTH_R2DBC_URL=r2dbc:postgresql://postgres-auth:5432/auth_db
+          AUTH_R2DBC_USERNAME=auth_user
+          AUTH_R2DBC_PASSWORD=${{ secrets.DB_PASSWORD }}
+          AUTH_LOGIN_PATH=/api/v1/auth/login
+          
+          # Admin
+          ADMIN_PORT=8082
+          ADMIN_R2DBC_URL=r2dbc:postgresql://postgres-admin:5432/admin_db
+          ADMIN_R2DBC_USERNAME=admin_user
+          ADMIN_R2DBC_PASSWORD=${{ secrets.DB_PASSWORD }}
+          
+          # Education
+          EDUCATION_PORT=8083
+          EDUCATION_R2DBC_URL=r2dbc:postgresql://postgres-education:5432/education_db
+          EDUCATION_R2DBC_USERNAME=education_user
+          EDUCATION_R2DBC_PASSWORD=${{ secrets.DB_PASSWORD }}
+          
+          # Redis
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+          
+          # Rate Limiting
+          RATE_LIMIT_REQUESTS=50
+          RATE_LIMIT_WINDOW=60
+          RATE_LIMIT_KEY_PREFIX=rate_limit:
+          
+          # JWT
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRATION=3600
+          
+          # CORS
+          CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080,http://localhost:8081,http://localhost:8082,http://localhost:8083
+          CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+          CORS_ALLOWED_HEADERS=*
+          CORS_ALLOW_CREDENTIALS=true
+          CORS_MAX_AGE=3600
+          EOF
+          
+          # Pull latest images
+          docker compose pull
+          
+          # Restart services
+          docker compose up -d
