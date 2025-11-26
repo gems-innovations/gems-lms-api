@@ -9,10 +9,10 @@ import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 @Configuration
 public class RedisConfig {
 
-    @Bean
-    @Primary
-    public ReactiveStringRedisTemplate reactiveRedisTemplate(ReactiveRedisConnectionFactory connectionFactory) {
-        return new ReactiveStringRedisTemplate(connectionFactory);
-    }
+  @Bean
+  @Primary
+  public ReactiveStringRedisTemplate reactiveRedisTemplate(ReactiveRedisConnectionFactory connectionFactory) {
+    return new ReactiveStringRedisTemplate(connectionFactory);
+  }
 }
 

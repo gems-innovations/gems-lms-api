@@ -1,4 +1,4 @@
-package com.gems.auth.infrastructure.config;
+package com.gems.admin.infrastructure.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -17,9 +17,9 @@ public class OpenApiConfig {
   public OpenAPI customOpenAPI() {
     return new OpenAPI()
       .info(new Info()
-        .title("GEMS LMS API - Authentication Microservice")
+        .title("GEMS LMS API - Admin Microservice")
         .version("1.0.0")
-        .description("API documentation for the Authentication microservice. This service handles user registration, login, and authentication operations.")
+        .description("API documentation for the Admin microservice. This service handles administrative operations including branding management.")
         .contact(new Contact()
           .name("GEMS LMS Team")
           .email("support@gems.com"))
@@ -28,10 +28,10 @@ public class OpenApiConfig {
           .url("https://www.apache.org/licenses/LICENSE-2.0.html")))
       .servers(List.of(
         new Server()
-          .url("http://localhost:8081")
+          .url("http://localhost:8082")
           .description("Local development server"),
         new Server()
-          .url("https://api.auth.gemsinnovations.com")
+          .url("https://api.admin.gemsinnovations.com")
           .description("Production server")))
       .components(new io.swagger.v3.oas.models.Components()
         .addSecuritySchemes("bearerAuth", new io.swagger.v3.oas.models.security.SecurityScheme()
@@ -40,4 +40,3 @@ public class OpenApiConfig {
           .bearerFormat("JWT")));
   }
 }
-

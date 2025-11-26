@@ -12,11 +12,14 @@ import com.gems.auth.infrastructure.driving.rest.mapper.UserMapper;
 import com.gems.auth.infrastructure.driving.rest.request.LoginRequest;
 import com.gems.auth.infrastructure.driving.rest.request.RegisterUserRequest;
 import com.gems.auth.infrastructure.driving.rest.response.ErrorResponse;
+import com.gems.auth.infrastructure.driving.rest.schemas.LoginResponseSchema;
+import com.gems.auth.infrastructure.driving.rest.schemas.UserResponseSchema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -41,11 +44,12 @@ public class AuthController {
       summary = "Register a new user",
       description = "Creates a new user account with the provided information. The user must provide a valid name, email, password, and role."
   )
+  @SecurityRequirement(name = "bearerAuth")
   @ApiResponses(value = {
       @ApiResponse(
           responseCode = "201",
           description = "User successfully registered",
-          content = @Content(schema = @Schema(implementation = UserResponse.class))
+          content = @Content(schema = @Schema(implementation = UserResponseSchema.class))
       ),
       @ApiResponse(
           responseCode = "400",
@@ -79,7 +83,7 @@ public class AuthController {
       @ApiResponse(
           responseCode = "200",
           description = "Login successful, returns JWT token and user information",
-          content = @Content(schema = @Schema(implementation = LoginResponse.class))
+          content = @Content(schema = @Schema(implementation = LoginResponseSchema.class))
       ),
       @ApiResponse(
           responseCode = "400",
