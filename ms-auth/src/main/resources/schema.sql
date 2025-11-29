@@ -1,4 +1,3 @@
--- Auth Database Schema
 CREATE TABLE IF NOT EXISTS users (
     user_id BIGSERIAL PRIMARY KEY,
     name VARCHAR(50) NOT NULL,
@@ -10,8 +9,5 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP NOT NULL
 );
 
--- Create index for email lookups
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-
--- Create index for active users
 CREATE INDEX IF NOT EXISTS idx_users_active ON users(active);

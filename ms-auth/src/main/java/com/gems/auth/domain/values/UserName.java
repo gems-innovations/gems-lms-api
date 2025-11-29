@@ -1,6 +1,6 @@
 package com.gems.auth.domain.values;
 
-import com.gems.auth.domain.constants.UserConstants;
+import com.gems.auth.domain.constants.AuthDomainConstants;
 
 import java.util.Objects;
 
@@ -9,13 +9,13 @@ public class UserName {
 
   public UserName(String value) {
     if (value == null || value.trim().isEmpty()) {
-      throw new IllegalArgumentException(UserConstants.USER_NAME_CANNOT_BE_NULL_OR_EMPTY);
+      throw new IllegalArgumentException(AuthDomainConstants.USER_NAME_CANNOT_BE_NULL_OR_EMPTY);
     }
-    if (value.length() < UserConstants.USER_NAME_MIN_LENGTH_VALUE) {
-      throw new IllegalArgumentException(UserConstants.USER_NAME_MIN_LENGTH);
+    if (value.length() < AuthDomainConstants.USER_NAME_MIN_LENGTH_VALUE) {
+      throw new IllegalArgumentException(AuthDomainConstants.USER_NAME_MIN_LENGTH);
     }
-    if (value.length() > UserConstants.USER_NAME_MAX_LENGTH_VALUE) {
-      throw new IllegalArgumentException(UserConstants.USER_NAME_MAX_LENGTH);
+    if (value.length() > AuthDomainConstants.USER_NAME_MAX_LENGTH_VALUE) {
+      throw new IllegalArgumentException(AuthDomainConstants.USER_NAME_MAX_LENGTH);
     }
     this.value = value.trim();
   }

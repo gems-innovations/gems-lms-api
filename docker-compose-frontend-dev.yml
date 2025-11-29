@@ -1,0 +1,196 @@
+services:
+  postgres-admin:
+    image: postgres:16
+    container_name: gems-postgres-admin
+    environment:
+      - POSTGRES_DB=${ADMIN_DB_NAME:-admin_db}
+      - POSTGRES_USER=${ADMIN_DB_USER:-admin_user}
+      - POSTGRES_PASSWORD=${ADMIN_DB_PASSWORD:-admin_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_admin_data:/var/lib/postgresql/data
+    networks:
+      - gems-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ADMIN_DB_USER:-admin_user} -d ${ADMIN_DB_NAME:-admin_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-auth:
+    image: postgres:16
+    container_name: gems-postgres-auth
+    environment:
+      - POSTGRES_DB=${AUTH_DB_NAME:-auth_db}
+      - POSTGRES_USER=${AUTH_DB_USER:-auth_user}
+      - POSTGRES_PASSWORD=${AUTH_DB_PASSWORD:-auth_password}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    networks:
+      - gems-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_DB_USER:-auth_user} -d ${AUTH_DB_NAME:-auth_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-education:
+    image: postgres:16
+    container_name: gems-postgres-education
+    environment:
+      - POSTGRES_DB=${EDUCATION_DB_NAME:-education_db}
+      - POSTGRES_USER=${EDUCATION_DB_USER:-education_user}
+      - POSTGRES_PASSWORD=${EDUCATION_DB_PASSWORD:-education_password}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_education_data:/var/lib/postgresql/data
+    networks:
+      - gems-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${EDUCATION_DB_USER:-education_user} -d ${EDUCATION_DB_NAME:-education_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: gems-redis
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - gems-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+
+  ms-auth:
+    build:
+      context: .
+      dockerfile: ms-auth/Dockerfile
+    container_name: gems-ms-auth
+    ports:
+      - "${AUTH_PORT:-8081}:8081"
+    environment:
+      - AUTH_PORT=8081
+      - AUTH_R2DBC_URL=r2dbc:postgresql://postgres-auth:5432/${AUTH_DB_NAME:-auth_db}
+      - AUTH_R2DBC_USERNAME=${AUTH_DB_USER:-auth_user}
+      - AUTH_R2DBC_PASSWORD=${AUTH_DB_PASSWORD:-auth_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600000}
+      - AUTH_LOGIN_PATH=${AUTH_LOGIN_PATH:-/api/v1/users/login}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-100}
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60}
+      - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX:-rate_limit:}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:4200}
+      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS}
+      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS:-*}
+      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-true}
+      - CORS_MAX_AGE=${CORS_MAX_AGE:-3600}
+    networks:
+      - gems-network
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ms-admin:
+    build:
+      context: .
+      dockerfile: ms-admin/Dockerfile
+    container_name: gems-ms-admin
+    ports:
+      - "${ADMIN_PORT:-8082}:8082"
+    environment:
+      - ADMIN_PORT=8082
+      - ADMIN_R2DBC_URL=r2dbc:postgresql://postgres-admin:5432/${ADMIN_DB_NAME:-admin_db}
+      - ADMIN_R2DBC_USERNAME=${ADMIN_DB_USER:-admin_user}
+      - ADMIN_R2DBC_PASSWORD=${ADMIN_DB_PASSWORD:-admin_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600000}
+      - AUTH_LOGIN_PATH=${AUTH_LOGIN_PATH:-/api/v1/users/login}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-100}
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60}
+      - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX:-rate_limit:}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:4200}
+      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS}
+      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS:-*}
+      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-true}
+      - CORS_MAX_AGE=${CORS_MAX_AGE:-3600}
+    networks:
+      - gems-network
+    depends_on:
+      postgres-admin:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ms-education:
+    build:
+      context: .
+      dockerfile: ms-education/Dockerfile
+    container_name: gems-ms-education
+    ports:
+      - "${EDUCATION_PORT:-8083}:8083"
+    environment:
+      - EDUCATION_PORT=8083
+      - EDUCATION_R2DBC_URL=r2dbc:postgresql://postgres-education:5432/${EDUCATION_DB_NAME:-education_db}
+      - EDUCATION_R2DBC_USERNAME=${EDUCATION_DB_USER:-education_user}
+      - EDUCATION_R2DBC_PASSWORD=${EDUCATION_DB_PASSWORD:-education_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION:-3600000}
+      - AUTH_LOGIN_PATH=${AUTH_LOGIN_PATH:-/api/v1/users/login}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-100}
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60}
+      - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX:-rate_limit:}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:4200}
+      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS}
+      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS:-*}
+      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-true}
+      - CORS_MAX_AGE=${CORS_MAX_AGE:-3600}
+    networks:
+      - gems-network
+    depends_on:
+      postgres-education:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_admin_data:
+  postgres_auth_data:
+  postgres_education_data:
+  redis_data:
+
+networks:
+  gems-network:
+    driver: bridge
+    name: gems-lms-network
+

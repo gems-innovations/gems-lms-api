@@ -1,6 +1,6 @@
 package com.gems.auth.domain.values;
 
-import com.gems.auth.domain.constants.UserConstants;
+import com.gems.auth.domain.constants.AuthDomainConstants;
 
 import java.util.Objects;
 
@@ -9,14 +9,9 @@ public class UserId {
 
   public UserId(Long value) {
     if (value == null) {
-      throw new IllegalArgumentException(UserConstants.USER_ID_CANNOT_BE_NULL_OR_EMPTY);
+      throw new IllegalArgumentException(AuthDomainConstants.USER_ID_CANNOT_BE_NULL_OR_EMPTY);
     }
     this.value = value;
-  }
-
-  public static UserId generate() {
-    // For auto-increment, we don't need to generate IDs
-    return null;
   }
 
   public Long getValue() {

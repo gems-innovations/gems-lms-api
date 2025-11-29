@@ -82,6 +82,121 @@ services:
       retries: 5
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
 
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: gems-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot
+    depends_on:
+      - ms-auth
+      - ms-admin
+      - ms-education
+    networks:
+      - gems-network
+    restart: unless-stopped
+
+  # Microservices
+  ms-auth:
+    image: ${DOCKER_USERNAME}/ms-auth:${TAG:-latest}
+    container_name: gems-ms-auth
+    expose:
+      - "${AUTH_PORT:-8081}"
+    environment:
+      - AUTH_PORT=${AUTH_PORT:-8081}
+      - AUTH_R2DBC_URL=r2dbc:postgresql://postgres-auth:5432/${AUTH_DB_NAME:-auth_db}
+      - AUTH_R2DBC_USERNAME=${AUTH_DB_USER:-auth_user}
+      - AUTH_R2DBC_PASSWORD=${AUTH_DB_PASSWORD:-auth_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - AUTH_LOGIN_PATH=${AUTH_LOGIN_PATH}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS}
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW}
+      - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS}
+      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS}
+      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS}
+      - CORS_MAX_AGE=${CORS_MAX_AGE}
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - gems-network
+    restart: unless-stopped
+
+  ms-admin:
+    image: ${DOCKER_USERNAME}/ms-admin:${TAG:-latest}
+    container_name: gems-ms-admin
+    expose:
+      - "${ADMIN_PORT:-8082}"
+    environment:
+      - ADMIN_PORT=${ADMIN_PORT:-8082}
+      - ADMIN_R2DBC_URL=r2dbc:postgresql://postgres-admin:5432/${ADMIN_DB_NAME:-admin_db}
+      - ADMIN_R2DBC_USERNAME=${ADMIN_DB_USER:-admin_user}
+      - ADMIN_R2DBC_PASSWORD=${ADMIN_DB_PASSWORD:-admin_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - AUTH_LOGIN_PATH=${AUTH_LOGIN_PATH}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS}
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW}
+      - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS}
+      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS}
+      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS}
+      - CORS_MAX_AGE=${CORS_MAX_AGE}
+    depends_on:
+      postgres-admin:
+        condition: service_healthy
+    networks:
+      - gems-network
+    restart: unless-stopped
+
+  ms-education:
+    image: ${DOCKER_USERNAME}/ms-education:${TAG:-latest}
+    container_name: gems-ms-education
+    expose:
+      - "${EDUCATION_PORT:-8083}"
+    environment:
+      - EDUCATION_PORT=${EDUCATION_PORT:-8083}
+      - EDUCATION_R2DBC_URL=r2dbc:postgresql://postgres-education:5432/${EDUCATION_DB_NAME:-education_db}
+      - EDUCATION_R2DBC_USERNAME=${EDUCATION_DB_USER:-education_user}
+      - EDUCATION_R2DBC_PASSWORD=${EDUCATION_DB_PASSWORD:-education_password}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - AUTH_LOGIN_PATH=${AUTH_LOGIN_PATH}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS}
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW}
+      - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS}
+      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS}
+      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS}
+      - CORS_MAX_AGE=${CORS_MAX_AGE}
+    depends_on:
+      postgres-education:
+        condition: service_healthy
+    networks:
+      - gems-network
+    restart: unless-stopped
+
 volumes:
   postgres_admin_data:
   postgres_auth_data:

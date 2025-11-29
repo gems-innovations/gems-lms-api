@@ -9,7 +9,6 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/api-gateway" />
             <option value="$PROJECT_DIR$/ms-admin" />
             <option value="$PROJECT_DIR$/ms-auth" />
             <option value="$PROJECT_DIR$/ms-education" />

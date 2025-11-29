@@ -1,0 +1,157 @@
+name: Java CI/CD with Gradle & Docker
+
+on:
+  push:
+    branches: [ "develop", "qa", "main" ]
+  pull_request:
+    branches: [ "develop", "qa", "main" ]
+
+env:
+  # Define environment based on branch
+  DEPLOY_ENV: ${{ github.ref == 'refs/heads/main' && 'pdn' || github.ref == 'refs/heads/qa' && 'qa' || 'dev' }}
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 24
+      uses: actions/setup-java@v4
+      with:
+        java-version: '24'
+        distribution: 'temurin'
+        
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew build
+      
+    - name: Upload Test Reports
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-reports
+        path: '**/build/reports/tests/'
+
+  docker-build-push:
+    needs: build-and-test
+    if: github.event_name == 'push' # Only build/push docker images on push, not PR
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [ms-auth, ms-admin, ms-education]
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK 24
+      uses: actions/setup-java@v4
+      with:
+        java-version: '24'
+        distribution: 'temurin'
+
+    # Build JAR first (could be optimized by downloading artifact from previous job, but rebuilding is often faster/simpler)
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Build JAR for ${{ matrix.service }}
+      run: ./gradlew :${{ matrix.service }}:bootJar
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+        
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./${{ matrix.service }}/Dockerfile
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:latest
+          ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
+          ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ env.DEPLOY_ENV }}-latest
+
+  deploy:
+    needs: docker-build-push
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref == 'refs/heads/main' && 'pdn' || github.ref == 'refs/heads/qa' && 'qa' || 'dev' }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Copy docker-compose.yml to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "docker-compose.yml,nginx"
+        target: "/home/${{ secrets.EC2_USER }}/app"
+
+    - name: Deploy to ${{ env.DEPLOY_ENV }}
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd /home/${{ secrets.EC2_USER }}/app
+          
+          # Create .env file with configuration
+          cat <<EOF > .env
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          TAG=${{ env.DEPLOY_ENV }}-latest
+          
+          # Auth
+          AUTH_PORT=8081
+          AUTH_R2DBC_URL=r2dbc:postgresql://postgres-auth:5432/auth_db
+          AUTH_R2DBC_USERNAME=auth_user
+          AUTH_R2DBC_PASSWORD=${{ secrets.DB_PASSWORD }}
+          AUTH_LOGIN_PATH=/api/v1/auth/login
+          
+          # Admin
+          ADMIN_PORT=8082
+          ADMIN_R2DBC_URL=r2dbc:postgresql://postgres-admin:5432/admin_db
+          ADMIN_R2DBC_USERNAME=admin_user
+          ADMIN_R2DBC_PASSWORD=${{ secrets.DB_PASSWORD }}
+          
+          # Education
+          EDUCATION_PORT=8083
+          EDUCATION_R2DBC_URL=r2dbc:postgresql://postgres-education:5432/education_db
+          EDUCATION_R2DBC_USERNAME=education_user
+          EDUCATION_R2DBC_PASSWORD=${{ secrets.DB_PASSWORD }}
+          
+          # Redis
+          REDIS_HOST=redis
+          REDIS_PORT=6379
+          REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}
+          
+          # Rate Limiting
+          RATE_LIMIT_REQUESTS=50
+          RATE_LIMIT_WINDOW=60
+          RATE_LIMIT_KEY_PREFIX=rate_limit:
+          
+          # JWT
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          JWT_EXPIRATION=3600
+          
+          # CORS
+          CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080,http://localhost:8081,http://localhost:8082,http://localhost:8083
+          CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+          CORS_ALLOWED_HEADERS=*
+          CORS_ALLOW_CREDENTIALS=true
+          CORS_MAX_AGE=3600
+          EOF
+          
+          # Pull latest images
+          docker compose pull
+          
+          # Restart services
+          docker compose up -d

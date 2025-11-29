@@ -10,24 +10,13 @@ import java.time.LocalDateTime;
 
 public class User {
   private UserId id;
-  private UserName name;
-  private Email email;
-  private Password password;
-  private UserRole role;
-  private LocalDateTime createdAt;
-  private LocalDateTime updatedAt;
-  private Boolean active;
-
-  public User(UserId id, UserName name, Email email, Password password, UserRole role) {
-    this.id = id;
-    this.name = name;
-    this.email = email;
-    this.password = password;
-    this.role = role;
-    this.createdAt = LocalDateTime.now();
-    this.updatedAt = LocalDateTime.now();
-    this.active = true;
-  }
+  private final UserName name;
+  private final Email email;
+  private final Password password;
+  private final UserRole role;
+  private final LocalDateTime createdAt;
+  private final LocalDateTime updatedAt;
+  private final Boolean active;
 
   public User(Long id, String name, String email, String password, UserRole role) {
     this.id = new UserId(id);
@@ -91,25 +80,5 @@ public class User {
 
   public Boolean isActive() {
     return active;
-  }
-
-  public void updatePassword(Password newPassword) {
-    this.password = newPassword;
-    this.updatedAt = LocalDateTime.now();
-  }
-
-  public void deactivate() {
-    this.active = false;
-    this.updatedAt = LocalDateTime.now();
-  }
-
-  public void activate() {
-    this.active = true;
-    this.updatedAt = LocalDateTime.now();
-  }
-
-  public void updateRole(UserRole newRole) {
-    this.role = newRole;
-    this.updatedAt = LocalDateTime.now();
   }
 }

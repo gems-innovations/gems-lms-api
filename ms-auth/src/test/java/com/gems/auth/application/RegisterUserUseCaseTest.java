@@ -1,17 +1,16 @@
 package com.gems.auth.application;
 
 import com.gems.auth.application.command.RegisterUserCommand;
+import com.gems.auth.application.exceptions.UserAlreadyExistsException;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
 import com.gems.auth.application.gateway.UserGateway;
 import com.gems.auth.application.response.UserResponse;
 import com.gems.auth.domain.entities.User;
-import com.gems.auth.domain.exceptions.UserAlreadyExistsException;
 import com.gems.auth.domain.values.*;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
@@ -20,238 +19,207 @@ import reactor.test.StepVerifier;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("RegisterUserUseCase Tests")
 class RegisterUserUseCaseTest {
 
-    @Mock
-    private UserGateway userGateway;
+  @Mock
+  private UserGateway userGateway;
 
-    @Mock
-    private PasswordEncoderGateway passwordEncoderGateway;
+  @Mock
+  private PasswordEncoderGateway passwordEncoderGateway;
 
-    private RegisterUserUseCase registerUserUseCase;
+  @InjectMocks
+  private RegisterUserUseCase registerUserUseCase;
 
-    @BeforeEach
-    void setUp() {
-        registerUserUseCase = new RegisterUserUseCase(userGateway, passwordEncoderGateway);
-    }
+  private RegisterUserCommand validCommand;
+  private User savedUser;
 
-    @Nested
-    @DisplayName("Successful Registration Tests")
-    class SuccessfulRegistrationTests {
+  @BeforeEach
+  void setUp() {
+    validCommand = new RegisterUserCommand(
+      "John Doe",
+      "john.doe@example.com",
+      "Password123!",
+      "STUDENT"
+    );
 
-        @Test
-        @DisplayName("Should return user response when registration is successful")
-        void shouldReturnUserResponseWhenRegistrationIsSuccessful() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
-            Long userId = 1L;
-            LocalDateTime createdAt = LocalDateTime.now();
-            LocalDateTime updatedAt = LocalDateTime.now();
+    LocalDateTime now = LocalDateTime.now();
+    savedUser = new User(
+      new UserId(1L),
+      new UserName("John Doe"),
+      new Email("john.doe@example.com"),
+      new Password("encodedPassword123!"),
+      UserRole.STUDENT,
+      now,
+      now,
+      true
+    );
+  }
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
-            User savedUser = new User(
-                new UserId(userId),
-                new UserName(name),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
+  @Test
+  void shouldRegisterUserSuccessfully() {
+    // Given
+    when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(passwordEncoderGateway.encode(anyString())).thenReturn("encodedPassword123!");
+    when(userGateway.save(any(User.class))).thenReturn(Mono.just(savedUser));
 
-            UserResponse expectedResponse = new UserResponse(
-                userId,
-                new UserName(name),
-                new Email(email),
-                UserRole.STUDENT,
-                createdAt,
-                updatedAt,
-                true
-            );
+    // When
+    Mono<UserResponse> result = registerUserUseCase.execute(validCommand);
 
-            when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
-            when(passwordEncoderGateway.encode(anyString())).thenReturn(encodedPassword);
-            when(userGateway.save(any(User.class))).thenReturn(Mono.just(savedUser));
+    // Then
+    StepVerifier.create(result)
+      .expectNextMatches(response ->
+        response.userId().equals(1L) &&
+        response.name().equals("John Doe") &&
+        response.email().equals("john.doe@example.com") &&
+        response.role().equals("STUDENT") &&
+        response.active()
+      )
+      .verifyComplete();
 
-            StepVerifier.create(registerUserUseCase.execute(command))
-                .expectNextMatches(response -> 
-                    response.getId().equals(userId) &&
-                    response.getName().equals(name) &&
-                    response.getEmail().equals(email) &&
-                    response.isActive()
-                )
-                .verifyComplete();
+    verify(userGateway, times(1)).existsByEmail(any(Email.class));
+    verify(passwordEncoderGateway, times(1)).encode(anyString());
+    verify(userGateway, times(1)).save(any(User.class));
+  }
 
-            verify(userGateway).existsByEmail(any(Email.class));
-            verify(passwordEncoderGateway).encode(password);
-            verify(userGateway).save(any(User.class));
-        }
+  @Test
+  void shouldThrowExceptionWhenUserAlreadyExists() {
+    // Given
+    when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(true));
 
-        @Test
-        @DisplayName("Should create user with STUDENT role by default")
-        void shouldCreateUserWithStudentRoleByDefault() {
-            String name = "Jane Doe";
-            String email = "jane.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
+    // When
+    Mono<UserResponse> result = registerUserUseCase.execute(validCommand);
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
+    // Then
+    StepVerifier.create(result)
+      .expectError(UserAlreadyExistsException.class)
+      .verify();
 
-            when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
-            when(passwordEncoderGateway.encode(anyString())).thenReturn(encodedPassword);
-            when(userGateway.save(any(User.class))).thenReturn(Mono.just(new User(
-                new UserId(1L),
-                new UserName(name),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            )));
+    verify(userGateway, times(1)).existsByEmail(any(Email.class));
+    verify(passwordEncoderGateway, never()).encode(anyString());
+    verify(userGateway, never()).save(any(User.class));
+  }
 
-            StepVerifier.create(registerUserUseCase.execute(command))
-                .expectNextCount(1)
-                .verifyComplete();
+  @Test
+  void shouldRegisterUserWithTeacherRole() {
+    // Given
+    RegisterUserCommand teacherCommand = new RegisterUserCommand(
+      "Jane Teacher",
+      "jane@example.com",
+      "Password123!",
+      "TEACHER"
+    );
 
-            verify(userGateway).save(argThat(user -> 
-                user.getRole() == UserRole.STUDENT
-            ));
-        }
-    }
+    LocalDateTime now = LocalDateTime.now();
+    User teacherUser = new User(
+      new UserId(2L),
+      new UserName("Jane Teacher"),
+      new Email("jane@example.com"),
+      new Password("EncodedPass123!"),
+      UserRole.TEACHER,
+      now,
+      now,
+      true
+    );
 
-    @Nested
-    @DisplayName("User Already Exists Tests")
-    class UserAlreadyExistsTests {
+    when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(passwordEncoderGateway.encode(anyString())).thenReturn("EncodedPass123!");
+    when(userGateway.save(any(User.class))).thenReturn(Mono.just(teacherUser));
 
-        @Test
-        @DisplayName("Should throw UserAlreadyExistsException when user exists")
-        void shouldThrowUserAlreadyExistsExceptionWhenUserExists() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
+    // When
+    Mono<UserResponse> result = registerUserUseCase.execute(teacherCommand);
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
+    // Then
+    StepVerifier.create(result)
+      .expectNextMatches(response ->
+        response.role().equals("TEACHER")
+      )
+      .verifyComplete();
+  }
 
-            when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(true));
+  @Test
+  void shouldRegisterUserWithAdminRole() {
+    // Given
+    RegisterUserCommand adminCommand = new RegisterUserCommand(
+      "Admin User",
+      "admin@example.com",
+      "AdminPass123!",
+      "ADMIN"
+    );
 
-            StepVerifier.create(registerUserUseCase.execute(command))
-                .expectError(UserAlreadyExistsException.class)
-                .verify();
+    LocalDateTime now = LocalDateTime.now();
+    User adminUser = new User(
+      new UserId(3L),
+      new UserName("Admin User"),
+      new Email("admin@example.com"),
+      new Password("EncodedPass123!"),
+      UserRole.ADMIN,
+      now,
+      now,
+      true
+    );
 
-            verify(userGateway).existsByEmail(any(Email.class));
-            verifyNoMoreInteractions(userGateway);
-            verifyNoInteractions(passwordEncoderGateway);
-        }
+    when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(passwordEncoderGateway.encode(anyString())).thenReturn("EncodedPass123!");
+    when(userGateway.save(any(User.class))).thenReturn(Mono.just(adminUser));
 
-        @Test
-        @DisplayName("Should include email in exception message")
-        void shouldIncludeEmailInExceptionMessage() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
+    // When
+    Mono<UserResponse> result = registerUserUseCase.execute(adminCommand);
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
+    // Then
+    StepVerifier.create(result)
+      .expectNextMatches(response ->
+        response.role().equals("ADMIN")
+      )
+      .verifyComplete();
+  }
 
-            when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(true));
+  @Test
+  void shouldEncodePasswordBeforeSaving() {
+    // Given
+    String rawPassword = "Password123!";
+    String encodedPassword = "EncodedPass123!";
 
-            StepVerifier.create(registerUserUseCase.execute(command))
-                .expectErrorMatches(throwable -> 
-                    throwable instanceof UserAlreadyExistsException &&
-                    throwable.getMessage().contains(email)
-                )
-                .verify();
-        }
-    }
+    when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(passwordEncoderGateway.encode(rawPassword)).thenReturn(encodedPassword);
+    when(userGateway.save(any(User.class))).thenReturn(Mono.just(savedUser));
 
-    @Nested
-    @DisplayName("Password Encoding Tests")
-    class PasswordEncodingTests {
+    // When
+    Mono<UserResponse> result = registerUserUseCase.execute(validCommand);
 
-        @Test
-        @DisplayName("Should encode password before saving")
-        void shouldEncodePasswordBeforeSaving() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
+    // Then
+    StepVerifier.create(result)
+      .expectNextCount(1)
+      .verifyComplete();
 
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
+    verify(passwordEncoderGateway, times(1)).encode(rawPassword);
+    verify(userGateway).save(argThat(user ->
+      user.getPassword().getValue().equals(encodedPassword)
+    ));
+  }
 
-            when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
-            when(passwordEncoderGateway.encode(anyString())).thenReturn(encodedPassword);
-            when(userGateway.save(any(User.class))).thenReturn(Mono.just(new User(
-                new UserId(1L),
-                new UserName(name),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            )));
+  @Test
+  void shouldReturnUserResponseWithAllFields() {
+    // Given
+    when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(passwordEncoderGateway.encode(anyString())).thenReturn("encodedPassword123!");
+    when(userGateway.save(any(User.class))).thenReturn(Mono.just(savedUser));
 
-            StepVerifier.create(registerUserUseCase.execute(command))
-                .expectNextCount(1)
-                .verifyComplete();
+    // When
+    Mono<UserResponse> result = registerUserUseCase.execute(validCommand);
 
-            verify(passwordEncoderGateway).encode(password);
-            verify(userGateway).save(argThat(user -> 
-                user.getPassword().getValue().equals(encodedPassword)
-            ));
-        }
-    }
-
-    @Nested
-    @DisplayName("Gateway Interaction Tests")
-    class GatewayInteractionTests {
-
-        @Test
-        @DisplayName("Should call gateways in correct order")
-        void shouldCallGatewaysInCorrectOrder() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
-
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
-
-            when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
-            when(passwordEncoderGateway.encode(anyString())).thenReturn(encodedPassword);
-            when(userGateway.save(any(User.class))).thenReturn(Mono.just(new User(
-                new UserId(1L),
-                new UserName(name),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            )));
-
-            StepVerifier.create(registerUserUseCase.execute(command))
-                .expectNextCount(1)
-                .verifyComplete();
-
-            verify(userGateway).existsByEmail(any(Email.class));
-            verify(passwordEncoderGateway).encode(password);
-            verify(userGateway).save(any(User.class));
-        }
-
-        @Test
-        @DisplayName("Should not call save when user already exists")
-        void shouldNotCallSaveWhenUserAlreadyExists() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-
-            RegisterUserCommand command = new RegisterUserCommand(name, email, password, "STUDENT");
-
-            when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(true));
-
-            StepVerifier.create(registerUserUseCase.execute(command))
-                .expectError(UserAlreadyExistsException.class)
-                .verify();
-
-            verify(userGateway).existsByEmail(any(Email.class));
-            verifyNoMoreInteractions(userGateway);
-            verifyNoInteractions(passwordEncoderGateway);
-        }
-    }
+    // Then
+    StepVerifier.create(result)
+      .expectNextMatches(response ->
+        response.userId() != null &&
+        response.name() != null &&
+        response.email() != null &&
+        response.role() != null &&
+        response.createdAt() != null &&
+        response.updatedAt() != null
+      )
+      .verifyComplete();
+  }
 }

@@ -1,521 +1,247 @@
 package com.gems.auth.application;
 
 import com.gems.auth.application.command.LoginCommand;
+import com.gems.auth.application.exceptions.InvalidCredentialsException;
+import com.gems.auth.application.exceptions.UserDeactivatedException;
+import com.gems.auth.application.exceptions.UserNotFoundException;
 import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
 import com.gems.auth.application.gateway.UserGateway;
 import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.domain.entities.User;
-import com.gems.auth.domain.exceptions.InvalidCredentialsException;
-import com.gems.auth.domain.exceptions.UserNotFoundException;
 import com.gems.auth.domain.values.*;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import java.time.LocalDateTime;
+
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("LoginUseCase Tests")
 class LoginUseCaseTest {
 
-    @Mock
-    private UserGateway userGateway;
-
-    @Mock
-    private PasswordEncoderGateway passwordEncoderGateway;
-
-    @Mock
-    private JwtGateway jwtGateway;
-
-    private LoginUseCase loginUseCase;
-
-    @BeforeEach
-    void setUp() {
-        loginUseCase = new LoginUseCase(userGateway, passwordEncoderGateway, jwtGateway);
-    }
-
-    @Nested
-    @DisplayName("Successful Login Tests")
-    class SuccessfulLoginTests {
-
-        @Test
-        @DisplayName("Should return login response when credentials are valid")
-        void shouldReturnLoginResponseWhenCredentialsAreValid() {
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
-            String token = "jwt-token";
-            Long userId = 1L;
-            String name = "John Doe";
-
-            User user = new User(
-                new UserId(userId),
-                new UserName(name),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
-
-            LoginCommand command = new LoginCommand(email, password);
-            LoginResponse expectedResponse = new LoginResponse(
-                userId, name, email, UserRole.STUDENT, token
-            );
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(user));
-            when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-            when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn(token);
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectNext(expectedResponse)
-                .verifyComplete();
-
-            verify(userGateway).findByEmail(any(Email.class));
-            verify(passwordEncoderGateway).matches(password, encodedPassword);
-            verify(jwtGateway).generateToken(userId, UserRole.STUDENT.name());
-        }
-
-        @Test
-        @DisplayName("Should return login response for teacher role")
-        void shouldReturnLoginResponseForTeacherRole() {
-            String email = "teacher@example.com";
-            String password = "TeacherPass123!";
-            String encodedPassword = "EncodedPass123!";
-            String token = "jwt-token";
-            Long userId = 2L;
-            String name = "Jane Teacher";
-
-            User user = new User(
-                new UserId(userId),
-                new UserName(name),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.TEACHER
-            );
-
-            LoginCommand command = new LoginCommand(email, password);
-            LoginResponse expectedResponse = new LoginResponse(
-                userId, name, email, UserRole.TEACHER, token
-            );
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(user));
-            when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-            when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn(token);
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectNext(expectedResponse)
-                .verifyComplete();
-
-            verify(jwtGateway).generateToken(userId, UserRole.TEACHER.name());
-        }
-    }
-
-    @Nested
-    @DisplayName("User Not Found Tests")
-    class UserNotFoundTests {
-
-        @Test
-        @DisplayName("Should throw UserNotFoundException when user does not exist")
-        void shouldThrowUserNotFoundExceptionWhenUserDoesNotExist() {
-            String email = "nonexistent@example.com";
-            String password = "SecurePass123!";
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.empty());
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectError(UserNotFoundException.class)
-                .verify();
-
-            verify(userGateway).findByEmail(any(Email.class));
-            verifyNoInteractions(passwordEncoderGateway);
-            verifyNoInteractions(jwtGateway);
-        }
-    }
-
-    @Nested
-    @DisplayName("Invalid Credentials Tests")
-    class InvalidCredentialsTests {
-
-        @Test
-        @DisplayName("Should throw InvalidCredentialsException when password is wrong")
-        void shouldThrowInvalidCredentialsExceptionWhenPasswordIsWrong() {
-            String email = "john.doe@example.com";
-            String password = "WrongPassword123!";
-            String encodedPassword = "EncodedPass123!";
-
-            User user = new User(
-                new UserId(1L),
-                new UserName("John Doe"),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(user));
-            when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(false);
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectError(InvalidCredentialsException.class)
-                .verify();
-
-            verify(userGateway).findByEmail(any(Email.class));
-            verify(passwordEncoderGateway).matches(password, encodedPassword);
-            verifyNoInteractions(jwtGateway);
-        }
-
-        @Test
-        @DisplayName("Should handle user active status correctly")
-        void shouldHandleUserActiveStatusCorrectly() {
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
-            String token = "jwt-token";
-            Long userId = 1L;
-            String name = "John Doe";
-
-            User user = new User(
-                new UserId(userId),
-                new UserName(name),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
-
-            LoginCommand command = new LoginCommand(email, password);
-            LoginResponse expectedResponse = new LoginResponse(
-                userId, name, email, UserRole.STUDENT, token
-            );
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(user));
-            when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-            when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn(token);
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectNext(expectedResponse)
-                .verifyComplete();
-
-            verify(userGateway).findByEmail(any(Email.class));
-            verify(passwordEncoderGateway).matches(password, encodedPassword);
-            verify(jwtGateway).generateToken(userId, UserRole.STUDENT.name());
-        }
-    }
-
-    @Nested
-    @DisplayName("Inactive User Tests")
-    class InactiveUserTests {
-
-        @Test
-        @DisplayName("Should throw InvalidCredentialsException when user is inactive")
-        void shouldThrowInvalidCredentialsExceptionWhenUserIsInactive() {
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
-
-            User inactiveUser = new User(
-                new UserId(1L),
-                new UserName("John Doe"),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
-            inactiveUser.deactivate();
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(inactiveUser));
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectErrorMatches(throwable -> 
-                    throwable instanceof InvalidCredentialsException &&
-                    throwable.getMessage().contains("User account is deactivated")
-                )
-                .verify();
-
-            verify(userGateway).findByEmail(any(Email.class));
-            verifyNoInteractions(passwordEncoderGateway);
-            verifyNoInteractions(jwtGateway);
-        }
-
-        @Test
-        @DisplayName("Should throw InvalidCredentialsException for inactive teacher")
-        void shouldThrowInvalidCredentialsExceptionForInactiveTeacher() {
-            String email = "teacher@example.com";
-            String password = "TeacherPass123!";
-            String encodedPassword = "EncodedPass123!";
-
-            User inactiveTeacher = new User(
-                new UserId(2L),
-                new UserName("Jane Teacher"),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.TEACHER
-            );
-            inactiveTeacher.deactivate();
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(inactiveTeacher));
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectErrorMatches(throwable -> 
-                    throwable instanceof InvalidCredentialsException &&
-                    throwable.getMessage().contains("User account is deactivated")
-                )
-                .verify();
-
-            verify(userGateway).findByEmail(any(Email.class));
-            verifyNoInteractions(passwordEncoderGateway);
-            verifyNoInteractions(jwtGateway);
-        }
-    }
-
-    @Nested
-    @DisplayName("Gateway Interaction Tests")
-    class GatewayInteractionTests {
-
-        @Test
-        @DisplayName("Should call all gateways in correct order")
-        void shouldCallAllGatewaysInCorrectOrder() {
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
-            String token = "jwt-token";
-
-            User user = new User(
-                new UserId(1L),
-                new UserName("John Doe"),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(user));
-            when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-            when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn(token);
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectNextCount(1)
-                .verifyComplete();
-
-            verify(userGateway).findByEmail(any(Email.class));
-            verify(passwordEncoderGateway).matches(password, encodedPassword);
-            verify(jwtGateway).generateToken(1L, UserRole.STUDENT.name());
-        }
-
-        @Test
-        @DisplayName("Should not call password encoder when user not found")
-        void shouldNotCallPasswordEncoderWhenUserNotFound() {
-            String email = "nonexistent@example.com";
-            String password = "SecurePass123!";
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.empty());
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectError(UserNotFoundException.class)
-                .verify();
-
-            verify(userGateway).findByEmail(any(Email.class));
-            verifyNoInteractions(passwordEncoderGateway);
-            verifyNoInteractions(jwtGateway);
-        }
-
-        @Test
-        @DisplayName("Should not call JWT gateway when password is wrong")
-        void shouldNotCallJwtGatewayWhenPasswordIsWrong() {
-            String email = "john.doe@example.com";
-            String password = "WrongPassword123!";
-            String encodedPassword = "EncodedPass123!";
-
-            User user = new User(
-                new UserId(1L),
-                new UserName("John Doe"),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(user));
-            when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(false);
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectError(InvalidCredentialsException.class)
-                .verify();
-
-            verify(userGateway).findByEmail(any(Email.class));
-            verify(passwordEncoderGateway).matches(password, encodedPassword);
-            verifyNoInteractions(jwtGateway);
-        }
-    }
-
-    @Nested
-    @DisplayName("Error Message Tests")
-    class ErrorMessageTests {
-
-        @Test
-        @DisplayName("Should include correct message in UserNotFoundException")
-        void shouldIncludeCorrectMessageInUserNotFoundException() {
-            String email = "nonexistent@example.com";
-            String password = "SecurePass123!";
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.empty());
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectErrorMatches(throwable -> 
-                    throwable instanceof UserNotFoundException &&
-                    throwable.getMessage().equals("User not found")
-                )
-                .verify();
-        }
-
-        @Test
-        @DisplayName("Should include correct message in InvalidCredentialsException for wrong password")
-        void shouldIncludeCorrectMessageInInvalidCredentialsExceptionForWrongPassword() {
-            String email = "john.doe@example.com";
-            String password = "WrongPassword123!";
-            String encodedPassword = "EncodedPass123!";
-
-            User user = new User(
-                new UserId(1L),
-                new UserName("John Doe"),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(user));
-            when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(false);
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectErrorMatches(throwable -> 
-                    throwable instanceof InvalidCredentialsException &&
-                    throwable.getMessage().equals("Invalid credentials")
-                )
-                .verify();
-        }
-
-        @Test
-        @DisplayName("Should include correct message in InvalidCredentialsException for inactive user")
-        void shouldIncludeCorrectMessageInInvalidCredentialsExceptionForInactiveUser() {
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
-
-            User inactiveUser = new User(
-                new UserId(1L),
-                new UserName("John Doe"),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
-            inactiveUser.deactivate();
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(inactiveUser));
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectErrorMatches(throwable -> 
-                    throwable instanceof InvalidCredentialsException &&
-                    throwable.getMessage().equals("User account is deactivated")
-                )
-                .verify();
-        }
-    }
-
-    @Nested
-    @DisplayName("Response Data Tests")
-    class ResponseDataTests {
-
-        @Test
-        @DisplayName("Should return correct login response data")
-        void shouldReturnCorrectLoginResponseData() {
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            String encodedPassword = "EncodedPass123!";
-            String token = "jwt-token";
-            Long userId = 1L;
-            String name = "John Doe";
-
-            User user = new User(
-                new UserId(userId),
-                new UserName(name),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.STUDENT
-            );
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(user));
-            when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-            when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn(token);
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectNextMatches(response -> 
-                    response.getUserId().equals(userId) &&
-                    response.getName().equals(name) &&
-                    response.getEmail().equals(email) &&
-                    response.getRole() == UserRole.STUDENT &&
-                    response.getToken().equals(token)
-                )
-                .verifyComplete();
-        }
-
-        @Test
-        @DisplayName("Should return correct login response for teacher")
-        void shouldReturnCorrectLoginResponseForTeacher() {
-            String email = "teacher@example.com";
-            String password = "TeacherPass123!";
-            String encodedPassword = "EncodedPass123!";
-            String token = "jwt-token";
-            Long userId = 2L;
-            String name = "Jane Teacher";
-
-            User user = new User(
-                new UserId(userId),
-                new UserName(name),
-                new Email(email),
-                new Password(encodedPassword),
-                UserRole.TEACHER
-            );
-
-            LoginCommand command = new LoginCommand(email, password);
-
-            when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(user));
-            when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-            when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn(token);
-
-            StepVerifier.create(loginUseCase.execute(command))
-                .expectNextMatches(response -> 
-                    response.getUserId().equals(userId) &&
-                    response.getName().equals(name) &&
-                    response.getEmail().equals(email) &&
-                    response.getRole() == UserRole.TEACHER &&
-                    response.getToken().equals(token)
-                )
-                .verifyComplete();
-        }
-    }
+  @Mock
+  private UserGateway userGateway;
+
+  @Mock
+  private PasswordEncoderGateway passwordEncoderGateway;
+
+  @Mock
+  private JwtGateway jwtGateway;
+
+  @InjectMocks
+  private LoginUseCase loginUseCase;
+
+  private LoginCommand validLoginCommand;
+  private User activeUser;
+  private User inactiveUser;
+
+  @BeforeEach
+  void setUp() {
+    validLoginCommand = new LoginCommand("john.doe@example.com", "Password123!");
+
+    LocalDateTime now = LocalDateTime.now();
+    activeUser = new User(
+      new UserId(1L),
+      new UserName("John Doe"),
+      new Email("john.doe@example.com"),
+      new Password("encodedPassword123!"),
+      UserRole.STUDENT,
+      now,
+      now,
+      true
+    );
+
+    inactiveUser = new User(
+      new UserId(2L),
+      new UserName("Inactive User"),
+      new Email("inactive@example.com"),
+      new Password("encodedPassword123!"),
+      UserRole.STUDENT,
+      now,
+      now,
+      false
+    );
+  }
+
+  @Test
+  void shouldLoginSuccessfully() {
+    // Given
+    String generatedToken = "jwt.token.value";
+    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(activeUser));
+    when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
+    when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn(generatedToken);
+
+    // When
+    Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
+
+    // Then
+    StepVerifier.create(result)
+      .expectNextMatches(response ->
+        response.userId().equals(1L) &&
+        response.name().equals("John Doe") &&
+        response.email().equals("john.doe@example.com") &&
+        response.role().equals("STUDENT") &&
+        response.token().equals(generatedToken)
+      )
+      .verifyComplete();
+
+    verify(userGateway, times(1)).findByEmail(any(Email.class));
+    verify(passwordEncoderGateway, times(1)).matches(anyString(), anyString());
+    verify(jwtGateway, times(1)).generateToken(1L, "STUDENT");
+  }
+
+  @Test
+  void shouldThrowExceptionWhenUserNotFound() {
+    // Given
+    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.empty());
+
+    // When
+    Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
+
+    // Then
+    StepVerifier.create(result)
+      .expectError(UserNotFoundException.class)
+      .verify();
+
+    verify(userGateway, times(1)).findByEmail(any(Email.class));
+    verify(passwordEncoderGateway, never()).matches(anyString(), anyString());
+    verify(jwtGateway, never()).generateToken(anyLong(), anyString());
+  }
+
+  @Test
+  void shouldThrowExceptionWhenUserIsDeactivated() {
+    // Given
+    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(inactiveUser));
+
+    // When
+    Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
+
+    // Then
+    StepVerifier.create(result)
+      .expectError(UserDeactivatedException.class)
+      .verify();
+
+    verify(userGateway, times(1)).findByEmail(any(Email.class));
+    verify(passwordEncoderGateway, never()).matches(anyString(), anyString());
+    verify(jwtGateway, never()).generateToken(anyLong(), anyString());
+  }
+
+  @Test
+  void shouldThrowExceptionWhenPasswordDoesNotMatch() {
+    // Given
+    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(activeUser));
+    when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(false);
+
+    // When
+    Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
+
+    // Then
+    StepVerifier.create(result)
+      .expectError(InvalidCredentialsException.class)
+      .verify();
+
+    verify(userGateway, times(1)).findByEmail(any(Email.class));
+    verify(passwordEncoderGateway, times(1)).matches(anyString(), anyString());
+    verify(jwtGateway, never()).generateToken(anyLong(), anyString());
+  }
+
+  @Test
+  void shouldValidatePasswordCorrectly() {
+    // Given
+    String rawPassword = "Password123!";
+    String encodedPassword = "encodedPassword123!";
+
+    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(activeUser));
+    when(passwordEncoderGateway.matches(rawPassword, encodedPassword)).thenReturn(true);
+    when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn("token");
+
+    // When
+    Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
+
+    // Then
+    StepVerifier.create(result)
+      .expectNextCount(1)
+      .verifyComplete();
+
+    verify(passwordEncoderGateway, times(1)).matches(rawPassword, encodedPassword);
+  }
+
+  @Test
+  void shouldGenerateTokenWithUserIdAndRole() {
+    // Given
+    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(activeUser));
+    when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
+    when(jwtGateway.generateToken(1L, "STUDENT")).thenReturn("specific.token");
+
+    // When
+    Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
+
+    // Then
+    StepVerifier.create(result)
+      .expectNextMatches(response -> response.token().equals("specific.token"))
+      .verifyComplete();
+
+    verify(jwtGateway, times(1)).generateToken(1L, "STUDENT");
+  }
+
+  @Test
+  void shouldLoginTeacherSuccessfully() {
+    // Given
+    User teacher = new User(
+      new UserId(3L),
+      new UserName("Teacher User"),
+      new Email("teacher@example.com"),
+      new Password("EncodedPass123!"),
+      UserRole.TEACHER,
+      LocalDateTime.now(),
+      LocalDateTime.now(),
+      true
+    );
+    LoginCommand teacherCommand = new LoginCommand("teacher@example.com", "Password123!");
+
+    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(teacher));
+    when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
+    when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn("teacher.token");
+
+    // When
+    Mono<LoginResponse> result = loginUseCase.execute(teacherCommand);
+
+    // Then
+    StepVerifier.create(result)
+      .expectNextMatches(response ->
+        response.role().equals("TEACHER") &&
+        response.userId().equals(3L)
+      )
+      .verifyComplete();
+  }
+
+  @Test
+  void shouldReturnLoginResponseWithAllFields() {
+    // Given
+    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(activeUser));
+    when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
+    when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn("jwt.token");
+
+    // When
+    Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
+
+    // Then
+    StepVerifier.create(result)
+      .expectNextMatches(response ->
+        response.userId() != null &&
+        response.name() != null &&
+        response.email() != null &&
+        response.role() != null &&
+        response.token() != null
+      )
+      .verifyComplete();
+  }
 }
