@@ -6,7 +6,8 @@ public class StudentsConstants {
   }
 
   public static final String STUDENT_NOT_FOUND_MESSAGE = "Student with id %s not found";
-  public static final String STUDENT_ALREADY_EXISTS_MESSAGE = "Student with email %s already exists";
+  public static final String STUDENT_ALREADY_EXISTS_EMAIL_MESSAGE = "Student with email %s already exists";
+  public static final String STUDENT_ALREADY_EXISTS_DOCUMENT_MESSAGE = "Student with document number %s already exists";
   public static final String STUDENT_ID_CANNOT_BE_NULL_OR_EMPTY = "Student ID cannot be null or empty";
   public static final String NAME_MIN_LENGTH = "Name must be at least 2 characters long";
   public static final String NAME_MAX_LENGTH = "Name cannot exceed 50 characters";

@@ -18,34 +18,44 @@ public class RegisterStudentUseCase {
 
   public Mono<StudentResponse> execute(StudentCommand command) {
     return studentGateway.existsByEmail(new Email(command.getEmail()))
-      .flatMap(exists -> {
-        if (exists) {
+      .flatMap(emailExists -> {
+        if (emailExists) {
           return Mono.error(new StudentAlreadyExistsException(
-            String.format(StudentsConstants.STUDENT_ALREADY_EXISTS_MESSAGE, command.getEmail())
+            String.format(StudentsConstants.STUDENT_ALREADY_EXISTS_EMAIL_MESSAGE, command.getEmail())
           ));
         }
 
-        Student student = new Student(
-          command.getName(),
-          command.getEmail(),
-          command.getBirthDate(),
-          command.getCountry(),
-          command.getCity(),
-          command.getDocumentType(),
-          command.getDocumentNumber()
-        );
+        return studentGateway.existsByDocumentNumber(new DocumentNumber(command.getDocumentNumber()))
+          .flatMap(documentExists -> {
+            if (documentExists) {
+              return Mono.error(new StudentAlreadyExistsException(
+                String.format(StudentsConstants.STUDENT_ALREADY_EXISTS_DOCUMENT_MESSAGE, command.getDocumentNumber())
+              ));
+            }
 
-        return studentGateway.save(student)
-          .map(savedStudent -> new StudentResponse(
-            savedStudent.getId().getValue(),
-            savedStudent.getName().getValue(),
-            savedStudent.getEmail().getValue(),
-            savedStudent.getBirthDate().getValue(),
-            savedStudent.getCountry().getValue(),
-            savedStudent.getCity().getValue(),
-            savedStudent.getDocumentType().name(),
-            savedStudent.getDocumentNumber().getValue()
-          ));
+            Student student = new Student(
+              command.getName(),
+              command.getEmail(),
+              command.getBirthDate(),
+              command.getCountry(),
+              command.getCity(),
+              command.getDocumentType(),
+              command.getDocumentNumber()
+            );
+
+            return studentGateway.save(student)
+              .map(savedStudent -> new StudentResponse(
+                savedStudent.getId().getValue(),
+                savedStudent.getName().getValue(),
+                savedStudent.getEmail().getValue(),
+                savedStudent.getBirthDate().getValue(),
+                savedStudent.getCountry().getValue(),
+                savedStudent.getCity().getValue(),
+                savedStudent.getDocumentType().name(),
+                savedStudent.getDocumentNumber().getValue()
+              ));
+          });
       });
   }
+
 }
