@@ -15,8 +15,8 @@ public class User {
   private final Password password;
   private final UserRole role;
   private final LocalDateTime createdAt;
-  private final LocalDateTime updatedAt;
-  private final Boolean active;
+  private LocalDateTime updatedAt;
+  private Boolean active;
 
   public User(Long id, String name, String email, String password, UserRole role) {
     this.id = new UserId(id);
@@ -80,5 +80,10 @@ public class User {
 
   public Boolean isActive() {
     return active;
+  }
+
+  public void deactivate() {
+    this.active = false;
+    this.updatedAt = LocalDateTime.now();
   }
 }
