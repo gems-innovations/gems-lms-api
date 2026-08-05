@@ -4,6 +4,10 @@ public class RestConstants {
 
   public static final String STUDENT_ALREADY_EXISTS_CODE = "STUDENT_ALREADY_EXISTS";
   public static final String STUDENT_NOT_FOUND_CODE = "STUDENT_NOT_FOUND";
+  public static final String COURSE_NOT_FOUND_CODE = "COURSE_NOT_FOUND";
+  public static final String QUIZ_NOT_FOUND_CODE = "QUIZ_NOT_FOUND";
+  public static final String LEARNING_PATH_NOT_FOUND_CODE = "LEARNING_PATH_NOT_FOUND";
+  public static final String ENROLLMENT_NOT_FOUND_CODE = "ENROLLMENT_NOT_FOUND";
   public static final String VALIDATION_ERROR_CODE = "VALIDATION_ERROR";
   public static final String INTERNAL_SERVER_ERROR_CODE = "INTERNAL_SERVER_ERROR";
   public static final String INTERNAL_SERVER_ERROR_MESSAGE = "An unexpected error occurred";

@@ -47,6 +47,12 @@ public class UserRepositoryAdapter implements UserGateway {
     return userRepository.deleteById(id.getValue());
   }
 
+  @Override
+  public reactor.core.publisher.Flux<User> findByInstitutionId(String institutionId) {
+    return userRepository.findByInstitutionId(institutionId)
+      .map(this::mapToDomain);
+  }
+
   private User mapToDomain(UserEntity userEntity) {
     return new User(
       new UserId(userEntity.getUserId()),
@@ -54,6 +60,7 @@ public class UserRepositoryAdapter implements UserGateway {
       new Email(userEntity.getEmail()),
       new Password(userEntity.getPassword()),
       UserRole.valueOf(userEntity.getRole()),
+      userEntity.getInstitutionId(),
       userEntity.getCreatedAt(),
       userEntity.getUpdatedAt(),
       userEntity.isActive()
@@ -67,6 +74,7 @@ public class UserRepositoryAdapter implements UserGateway {
       user.getEmail().getValue(),
       user.getPassword().getValue(),
       user.getRole().name(),
+      user.getInstitutionId(),
       user.isActive(),
       user.getCreatedAt(),
       user.getUpdatedAt()

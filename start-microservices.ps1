@@ -55,7 +55,7 @@ function Start-ServiceProcess {
     if ($Background) {
         Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD'; `$env:JAVA_HOME='$java24Home'; `$env:PATH='$java24Bin;'+`$env:PATH; `$env:${Name}_PORT='$Port'; ./gradlew.bat $GradleTask" -WindowStyle Normal
     } else {
-        $env:("${Name}_PORT") = $Port
+        [Environment]::SetEnvironmentVariable("${Name}_PORT", $Port, "Process")
         ./gradlew.bat $GradleTask
     }
 }

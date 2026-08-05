@@ -38,11 +38,22 @@ public class RegisterUserRequest {
   @NotBlank(message = "Role is required")
   private String role;
 
+  @Schema(description = "User's institution ID", example = "inst-001")
+  private String institutionId;
+
+  public RegisterUserRequest() {
+  }
+
   public RegisterUserRequest(String name, String email, String password, String role) {
+    this(name, email, password, role, null);
+  }
+
+  public RegisterUserRequest(String name, String email, String password, String role, String institutionId) {
     this.name = name;
     this.email = email;
     this.password = password;
     this.role = role;
+    this.institutionId = institutionId;
   }
 
   public String getName() {
@@ -75,5 +86,13 @@ public class RegisterUserRequest {
 
   public void setRole(String role) {
     this.role = role;
+  }
+
+  public String getInstitutionId() {
+    return institutionId;
+  }
+
+  public void setInstitutionId(String institutionId) {
+    this.institutionId = institutionId;
   }
 }

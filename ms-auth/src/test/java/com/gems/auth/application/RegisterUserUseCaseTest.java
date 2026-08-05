@@ -42,7 +42,8 @@ class RegisterUserUseCaseTest {
       "John Doe",
       "john.doe@example.com",
       "Password123!",
-      "STUDENT"
+      "STUDENT",
+      "inst-123"
     );
 
     LocalDateTime now = LocalDateTime.now();
@@ -52,6 +53,7 @@ class RegisterUserUseCaseTest {
       new Email("john.doe@example.com"),
       new Password("encodedPassword123!"),
       UserRole.STUDENT,
+      "inst-123",
       now,
       now,
       true
@@ -75,6 +77,7 @@ class RegisterUserUseCaseTest {
         response.name().equals("John Doe") &&
         response.email().equals("john.doe@example.com") &&
         response.role().equals("STUDENT") &&
+        response.institutionId().equals("inst-123") &&
         response.active()
       )
       .verifyComplete();
@@ -109,7 +112,8 @@ class RegisterUserUseCaseTest {
       "Jane Teacher",
       "jane@example.com",
       "Password123!",
-      "TEACHER"
+      "TEACHER",
+      "inst-123"
     );
 
     LocalDateTime now = LocalDateTime.now();
@@ -119,6 +123,7 @@ class RegisterUserUseCaseTest {
       new Email("jane@example.com"),
       new Password("EncodedPass123!"),
       UserRole.TEACHER,
+      "inst-123",
       now,
       now,
       true
@@ -134,7 +139,8 @@ class RegisterUserUseCaseTest {
     // Then
     StepVerifier.create(result)
       .expectNextMatches(response ->
-        response.role().equals("TEACHER")
+        response.role().equals("TEACHER") &&
+        response.institutionId().equals("inst-123")
       )
       .verifyComplete();
   }
@@ -146,7 +152,8 @@ class RegisterUserUseCaseTest {
       "Admin User",
       "admin@example.com",
       "AdminPass123!",
-      "ADMIN"
+      "ADMIN",
+      "inst-123"
     );
 
     LocalDateTime now = LocalDateTime.now();
@@ -156,6 +163,7 @@ class RegisterUserUseCaseTest {
       new Email("admin@example.com"),
       new Password("EncodedPass123!"),
       UserRole.ADMIN,
+      "inst-123",
       now,
       now,
       true
@@ -171,7 +179,8 @@ class RegisterUserUseCaseTest {
     // Then
     StepVerifier.create(result)
       .expectNextMatches(response ->
-        response.role().equals("ADMIN")
+        response.role().equals("ADMIN") &&
+        response.institutionId().equals("inst-123")
       )
       .verifyComplete();
   }
@@ -217,6 +226,7 @@ class RegisterUserUseCaseTest {
         response.name() != null &&
         response.email() != null &&
         response.role() != null &&
+        response.institutionId() != null &&
         response.createdAt() != null &&
         response.updatedAt() != null
       )

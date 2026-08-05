@@ -14,37 +14,49 @@ public class User {
   private final Email email;
   private final Password password;
   private final UserRole role;
+  private String institutionId;
   private final LocalDateTime createdAt;
   private LocalDateTime updatedAt;
   private Boolean active;
 
-  public User(Long id, String name, String email, String password, UserRole role) {
+  public User(Long id, String name, String email, String password, UserRole role, String institutionId) {
     this.id = new UserId(id);
     this.name = new UserName(name);
     this.email = new Email(email);
     this.password = new Password(password);
     this.role = role;
+    this.institutionId = institutionId;
+    this.createdAt = LocalDateTime.now();
+    this.updatedAt = LocalDateTime.now();
+    this.active = true;
+  }
+
+  public User(Long id, String name, String email, String password, UserRole role) {
+    this(id, name, email, password, role, null);
+  }
+
+  public User(String name, String email, String password, UserRole role, String institutionId) {
+    this.name = new UserName(name);
+    this.email = new Email(email);
+    this.password = new Password(password);
+    this.role = role;
+    this.institutionId = institutionId;
     this.createdAt = LocalDateTime.now();
     this.updatedAt = LocalDateTime.now();
     this.active = true;
   }
 
   public User(String name, String email, String password, UserRole role) {
-    this.name = new UserName(name);
-    this.email = new Email(email);
-    this.password = new Password(password);
-    this.role = role;
-    this.createdAt = LocalDateTime.now();
-    this.updatedAt = LocalDateTime.now();
-    this.active = true;
+    this(name, email, password, role, null);
   }
 
-  public User(UserId id, UserName name, Email email, Password password, UserRole role, LocalDateTime createdAt, LocalDateTime updatedAt, Boolean active) {
+  public User(UserId id, UserName name, Email email, Password password, UserRole role, String institutionId, LocalDateTime createdAt, LocalDateTime updatedAt, Boolean active) {
     this.id = id;
     this.name = name;
     this.email = email;
     this.password = password;
     this.role = role;
+    this.institutionId = institutionId;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
     this.active = active;
@@ -68,6 +80,14 @@ public class User {
 
   public UserRole getRole() {
     return role;
+  }
+
+  public String getInstitutionId() {
+    return institutionId;
+  }
+
+  public void setInstitutionId(String institutionId) {
+    this.institutionId = institutionId;
   }
 
   public LocalDateTime getCreatedAt() {

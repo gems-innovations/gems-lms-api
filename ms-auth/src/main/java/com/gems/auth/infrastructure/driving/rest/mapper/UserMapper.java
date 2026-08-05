@@ -14,7 +14,8 @@ public class UserMapper {
       request.getName(),
       request.getEmail(),
       request.getPassword(),
-      request.getRole()
+      request.getRole(),
+      request.getInstitutionId()
     );
   }
 }

@@ -35,4 +35,9 @@ public class ApplicationConfig {
                                    JwtGateway jwtGateway) {
     return new LoginUseCase(userGateway, passwordEncoderGateway, jwtGateway);
   }
+
+  @Bean
+  public com.gems.auth.application.GetUsersByInstitutionUseCase getUsersByInstitutionUseCase(UserGateway userGateway) {
+    return new com.gems.auth.application.GetUsersByInstitutionUseCase(userGateway);
+  }
 }

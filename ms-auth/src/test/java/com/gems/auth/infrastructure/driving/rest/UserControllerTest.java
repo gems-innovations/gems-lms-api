@@ -3,11 +3,10 @@ package com.gems.auth.infrastructure.driving.rest;
 import com.gems.auth.application.DisableUserUseCase;
 import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
+import com.gems.auth.application.GetUsersByInstitutionUseCase;
 import com.gems.auth.application.command.RegisterUserCommand;
 import com.gems.auth.application.response.UserResponse;
-import com.gems.auth.domain.exceptions.UserAlreadyExistsException;
-import com.gems.auth.domain.values.Email;
-import com.gems.auth.domain.values.UserName;
+import com.gems.auth.application.exceptions.UserAlreadyExistsException;
 import com.gems.auth.infrastructure.driving.rest.request.RegisterUserRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -33,15 +33,16 @@ class UserControllerTest {
     private RegisterUserUseCase registerUserUseCase;
     @Mock
     private DisableUserUseCase disableUserUseCase;
-
     @Mock
     private LoginUseCase loginUseCase;
+    @Mock
+    private GetUsersByInstitutionUseCase getUsersByInstitutionUseCase;
 
     private WebTestClient webTestClient;
 
     @BeforeEach
     void setUp() {
-        UserController userController = new UserController(registerUserUseCase, loginUseCase, disableUserUseCase);
+        UserController userController = new UserController(registerUserUseCase, loginUseCase, disableUserUseCase, getUsersByInstitutionUseCase);
         webTestClient = WebTestClient.bindToController(userController).build();
     }
 
@@ -61,9 +62,10 @@ class UserControllerTest {
 
             UserResponse userResponse = new UserResponse(
                 userId,
-                new UserName(name),
-                new Email(email),
-                com.gems.auth.domain.values.UserRole.STUDENT,
+                name,
+                email,
+                "STUDENT",
+                "inst-123",
                 createdAt,
                 updatedAt,
                 true
@@ -75,14 +77,15 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT", "inst-123"))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
                 .expectBody()
-                .jsonPath("$.id").isEqualTo(userId)
+                .jsonPath("$.userId").isEqualTo(userId)
                 .jsonPath("$.name").isEqualTo(name)
                 .jsonPath("$.email").isEqualTo(email)
+                .jsonPath("$.institutionId").isEqualTo("inst-123")
                 .jsonPath("$.active").isEqualTo(true);
 
             verify(registerUserUseCase).execute(any(RegisterUserCommand.class));
@@ -97,9 +100,10 @@ class UserControllerTest {
 
             UserResponse userResponse = new UserResponse(
                 2L,
-                new UserName(name),
-                new Email(email),
-                com.gems.auth.domain.values.UserRole.STUDENT,
+                name,
+                email,
+                "STUDENT",
+                null,
                 LocalDateTime.now(),
                 LocalDateTime.now(),
                 true
@@ -162,7 +166,7 @@ class UserControllerTest {
     }
 
     @Nested
-    @DisplayName("Request Mapping Tests")
+    @DisplayName("RequestMapping Tests")
     class RequestMappingTests {
 
         @Test
@@ -175,9 +179,10 @@ class UserControllerTest {
             when(registerUserUseCase.execute(any(RegisterUserCommand.class)))
                 .thenReturn(Mono.just(new UserResponse(
                     1L,
-                    new UserName(name),
-                    new Email(email),
-                    com.gems.auth.domain.values.UserRole.STUDENT,
+                    name,
+                    email,
+                    "STUDENT",
+                    "inst-123",
                     LocalDateTime.now(),
                     LocalDateTime.now(),
                     true
@@ -186,14 +191,15 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT", "inst-123"))
                 .exchange()
                 .expectStatus().isCreated();
 
             verify(registerUserUseCase).execute(argThat(command -> 
-                command.getName().getValue().equals(name) &&
-                command.getEmail().getValue().equals(email) &&
-                command.getPassword().getValue().equals(password)
+                command.name().equals(name) &&
+                command.email().equals(email) &&
+                command.password().equals(password) &&
+                "inst-123".equals(command.institutionId())
             ));
         }
     }
@@ -214,9 +220,10 @@ class UserControllerTest {
 
             UserResponse userResponse = new UserResponse(
                 userId,
-                new UserName(name),
-                new Email(email),
-                com.gems.auth.domain.values.UserRole.STUDENT,
+                name,
+                email,
+                "STUDENT",
+                "inst-123",
                 createdAt,
                 updatedAt,
                 true
@@ -228,12 +235,12 @@ class UserControllerTest {
             webTestClient.post()
                 .uri("/api/v1/users/register")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
+                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT", "inst-123"))
                 .exchange()
                 .expectStatus().isCreated()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
                 .expectBody()
-                .jsonPath("$.id").isEqualTo(userId)
+                .jsonPath("$.userId").isEqualTo(userId)
                 .jsonPath("$.name").isEqualTo(name)
                 .jsonPath("$.email").isEqualTo(email)
                 .jsonPath("$.active").isEqualTo(true);
@@ -260,6 +267,31 @@ class UserControllerTest {
                 .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
                 .exchange()
                 .expectStatus().isEqualTo(409);
+        }
+    }
+
+    @Nested
+    @DisplayName("Get Users by Institution Tests")
+    class GetUsersByInstitutionTests {
+
+        @Test
+        @DisplayName("Should return users in institution successfully")
+        void shouldReturnUsersInInstitutionSuccessfully() {
+            String institutionId = "inst-123";
+            UserResponse user1 = new UserResponse(1L, "User One", "one@example.com", "STUDENT", institutionId, LocalDateTime.now(), LocalDateTime.now(), true);
+            UserResponse user2 = new UserResponse(2L, "User Two", "two@example.com", "TEACHER", institutionId, LocalDateTime.now(), LocalDateTime.now(), true);
+
+            when(getUsersByInstitutionUseCase.execute(institutionId)).thenReturn(Flux.just(user1, user2));
+
+            webTestClient.get()
+                .uri("/api/v1/users/institution/" + institutionId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBodyList(UserResponse.class)
+                .hasSize(2);
+
+            verify(getUsersByInstitutionUseCase).execute(institutionId);
         }
     }
 }

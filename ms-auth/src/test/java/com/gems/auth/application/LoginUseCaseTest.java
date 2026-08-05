@@ -54,6 +54,7 @@ class LoginUseCaseTest {
       new Email("john.doe@example.com"),
       new Password("encodedPassword123!"),
       UserRole.STUDENT,
+      "inst-123",
       now,
       now,
       true
@@ -65,6 +66,7 @@ class LoginUseCaseTest {
       new Email("inactive@example.com"),
       new Password("encodedPassword123!"),
       UserRole.STUDENT,
+      "inst-123",
       now,
       now,
       false
@@ -89,7 +91,8 @@ class LoginUseCaseTest {
         response.name().equals("John Doe") &&
         response.email().equals("john.doe@example.com") &&
         response.role().equals("STUDENT") &&
-        response.token().equals(generatedToken)
+        response.token().equals(generatedToken) &&
+        response.institutionId().equals("inst-123")
       )
       .verifyComplete();
 
@@ -201,6 +204,7 @@ class LoginUseCaseTest {
       new Email("teacher@example.com"),
       new Password("EncodedPass123!"),
       UserRole.TEACHER,
+      "inst-123",
       LocalDateTime.now(),
       LocalDateTime.now(),
       true
@@ -218,7 +222,8 @@ class LoginUseCaseTest {
     StepVerifier.create(result)
       .expectNextMatches(response ->
         response.role().equals("TEACHER") &&
-        response.userId().equals(3L)
+        response.userId().equals(3L) &&
+        response.institutionId().equals("inst-123")
       )
       .verifyComplete();
   }
@@ -240,7 +245,8 @@ class LoginUseCaseTest {
         response.name() != null &&
         response.email() != null &&
         response.role() != null &&
-        response.token() != null
+        response.token() != null &&
+        response.institutionId() != null
       )
       .verifyComplete();
   }

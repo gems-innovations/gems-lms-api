@@ -15,6 +15,10 @@ public class UserEntity {
   private String email;
   private String password;
   private String role;
+
+  @Column("institution_id")
+  private String institutionId;
+
   private Boolean active;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
@@ -22,13 +26,14 @@ public class UserEntity {
   public UserEntity() {
   }
 
-  public UserEntity(Long userId, String name, String email, String password, String role,
+  public UserEntity(Long userId, String name, String email, String password, String role, String institutionId,
                     Boolean active, LocalDateTime createdAt, LocalDateTime updatedAt) {
     this.userId = userId;
     this.name = name;
     this.email = email;
     this.password = password;
     this.role = role;
+    this.institutionId = institutionId;
     this.active = active;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
@@ -96,5 +101,13 @@ public class UserEntity {
 
   public void setRole(String role) {
     this.role = role;
+  }
+
+  public String getInstitutionId() {
+    return institutionId;
+  }
+
+  public void setInstitutionId(String institutionId) {
+    this.institutionId = institutionId;
   }
 }

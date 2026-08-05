@@ -37,6 +37,46 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
+  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleCourseNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException ex) {
+    ErrorResponse error = new ErrorResponse(
+      RestConstants.COURSE_NOT_FOUND_CODE,
+      ex.getMessage(),
+      HttpStatus.NOT_FOUND.value()
+    );
+    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
+  }
+
+  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.QuizNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleQuizNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.QuizNotFoundException ex) {
+    ErrorResponse error = new ErrorResponse(
+      RestConstants.QUIZ_NOT_FOUND_CODE,
+      ex.getMessage(),
+      HttpStatus.NOT_FOUND.value()
+    );
+    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
+  }
+
+  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleLearningPathNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException ex) {
+    ErrorResponse error = new ErrorResponse(
+      RestConstants.LEARNING_PATH_NOT_FOUND_CODE,
+      ex.getMessage(),
+      HttpStatus.NOT_FOUND.value()
+    );
+    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
+  }
+
+  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.EnrollmentNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleEnrollmentNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.EnrollmentNotFoundException ex) {
+    ErrorResponse error = new ErrorResponse(
+      RestConstants.ENROLLMENT_NOT_FOUND_CODE,
+      ex.getMessage(),
+      HttpStatus.NOT_FOUND.value()
+    );
+    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
+  }
+
   @ExceptionHandler(WebExchangeBindException.class)
   public Mono<ResponseEntity<ErrorResponse>> handleValidationException(WebExchangeBindException ex) {
     String errorMessage = ex.getBindingResult()

@@ -68,7 +68,7 @@ class UserTest {
     Boolean active = false;
 
     // When
-    User user = new User(id, name, email, password, role, createdAt, updatedAt, active);
+    User user = new User(id, name, email, password, role, null, createdAt, updatedAt, active);
 
     // Then
     assertEquals(id, user.getId());

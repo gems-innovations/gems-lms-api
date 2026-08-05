@@ -27,6 +27,28 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
+  @ExceptionHandler(com.gems.admin.application.exceptions.InstitutionNotFoundException.class)
+  @ApiResponse(responseCode = "404", description = "Institution not found")
+  public Mono<ResponseEntity<ErrorResponse>> handleInstitutionNotFoundException(com.gems.admin.application.exceptions.InstitutionNotFoundException ex) {
+    ErrorResponse error = new ErrorResponse(
+      AdminInfraConstants.INSTITUTION_NOT_FOUND_CODE,
+      ex.getMessage(),
+      HttpStatus.NOT_FOUND.value()
+    );
+    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
+  }
+
+  @ExceptionHandler(com.gems.admin.application.exceptions.InstitutionAlreadyExistsException.class)
+  @ApiResponse(responseCode = "400", description = "Institution already exists")
+  public Mono<ResponseEntity<ErrorResponse>> handleInstitutionAlreadyExistsException(com.gems.admin.application.exceptions.InstitutionAlreadyExistsException ex) {
+    ErrorResponse error = new ErrorResponse(
+      AdminInfraConstants.INSTITUTION_ALREADY_EXISTS_CODE,
+      ex.getMessage(),
+      HttpStatus.BAD_REQUEST.value()
+    );
+    return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error));
+  }
+
   @ExceptionHandler(WebExchangeBindException.class)
   @ApiResponse(responseCode = "400", description = "Validation error: invalid request data")
   public Mono<ResponseEntity<ErrorResponse>> handleValidationException(WebExchangeBindException ex) {

@@ -52,7 +52,8 @@ public class LoginUseCase {
           user.getName().getValue(),
           user.getEmail().getValue(),
           user.getRole().name(),
-          token
+          token,
+          user.getInstitutionId()
         ));
       });
   }

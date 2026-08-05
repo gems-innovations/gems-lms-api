@@ -39,6 +39,7 @@ class UserRepositoryAdapterTest {
       new Email("test@example.com"),
       new Password("Password123!"),
       UserRole.STUDENT,
+      "inst-123",
       now,
       now,
       true
@@ -50,6 +51,7 @@ class UserRepositoryAdapterTest {
       "test@example.com",
       "Password123!",
       "STUDENT",
+      "inst-123",
       true,
       now,
       now
@@ -69,7 +71,8 @@ class UserRepositoryAdapterTest {
       .expectNextMatches(user ->
         user.getId().getValue().equals(1L) &&
         user.getName().getValue().equals("Test User") &&
-        user.getEmail().getValue().equals("test@example.com")
+        user.getEmail().getValue().equals("test@example.com") &&
+        user.getInstitutionId().equals("inst-123")
       )
       .verifyComplete();
 
@@ -81,7 +84,7 @@ class UserRepositoryAdapterTest {
     // Given
     User userWithoutId = new User("New User", "new@example.com", "Password123!", UserRole.TEACHER);
     UserEntity savedEntity = new UserEntity(
-      2L, "New User", "new@example.com", "Password123!", "TEACHER",
+      2L, "New User", "new@example.com", "Password123!", "TEACHER", null,
       true, LocalDateTime.now(), LocalDateTime.now()
     );
     when(userRepository.save(any(UserEntity.class))).thenReturn(Mono.just(savedEntity));
@@ -201,7 +204,8 @@ class UserRepositoryAdapterTest {
         user.getEmail().getValue().equals(testUserEntity.getEmail()) &&
         user.getPassword().getValue().equals(testUserEntity.getPassword()) &&
         user.getRole().name().equals(testUserEntity.getRole()) &&
-        user.isActive().equals(testUserEntity.isActive())
+        user.isActive().equals(testUserEntity.isActive()) &&
+        user.getInstitutionId().equals(testUserEntity.getInstitutionId())
       )
       .verifyComplete();
   }
@@ -228,6 +232,7 @@ class UserRepositoryAdapterTest {
       entity.getEmail().equals(testUser.getEmail().getValue()) &&
       entity.getPassword().equals(testUser.getPassword().getValue()) &&
       entity.getRole().equals(testUser.getRole().name()) &&
+      entity.getInstitutionId().equals(testUser.getInstitutionId()) &&
       entity.isActive() == testUser.isActive()
     ));
   }

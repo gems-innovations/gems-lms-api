@@ -33,7 +33,7 @@ public class RegisterUserUseCase {
         String userPassword = new Password(command.password()).getValue();
         String encodedPassword = passwordEncoderGateway.encode(userPassword);
 
-        User user = new User(command.name(), command.email(), encodedPassword, UserRole.fromString(command.role()));
+        User user = new User(command.name(), command.email(), encodedPassword, UserRole.fromString(command.role()), command.institutionId());
 
         return userGateway.save(user)
           .map(savedUser -> new UserResponse(
@@ -41,6 +41,7 @@ public class RegisterUserUseCase {
             savedUser.getName().getValue(),
             savedUser.getEmail().getValue(),
             savedUser.getRole().name(),
+            savedUser.getInstitutionId(),
             savedUser.getCreatedAt(),
             savedUser.getUpdatedAt(),
             savedUser.isActive()

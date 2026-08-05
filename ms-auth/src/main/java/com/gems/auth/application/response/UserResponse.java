@@ -7,6 +7,7 @@ public record UserResponse(
   String name,
   String email,
   String role,
+  String institutionId,
   LocalDateTime createdAt,
   LocalDateTime updatedAt,
   boolean active) {

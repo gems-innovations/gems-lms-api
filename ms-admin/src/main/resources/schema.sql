@@ -27,3 +27,26 @@ CREATE TABLE IF NOT EXISTS branding (
     custom_css TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS institutions (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    users_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS institution_metadata (
+    institution_id VARCHAR(100) PRIMARY KEY,
+    description TEXT,
+    website VARCHAR(100),
+    contact_email VARCHAR(100),
+    phone_number VARCHAR(20),
+    address VARCHAR(255),
+    subscription_type VARCHAR(20) NOT NULL,
+    max_users INT NOT NULL DEFAULT 100,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_institution FOREIGN KEY(institution_id) REFERENCES institutions(id) ON DELETE CASCADE
+);

@@ -44,6 +44,7 @@ class AuthControllerTest {
       "John Doe",
       "john.doe@example.com",
       "STUDENT",
+      null,
       now,
       now,
       true
@@ -54,7 +55,8 @@ class AuthControllerTest {
       "John Doe",
       "john.doe@example.com",
       "STUDENT",
-      "jwt.token.value"
+      "jwt.token.value",
+      null
     );
   }
 
@@ -99,7 +101,7 @@ class AuthControllerTest {
       "TEACHER"
     );
     UserResponse teacherResponse = new UserResponse(
-      2L, "Jane Teacher", "jane@example.com", "TEACHER",
+      2L, "Jane Teacher", "jane@example.com", "TEACHER", null,
       LocalDateTime.now(), LocalDateTime.now(), true
     );
     when(registerUserUseCase.execute(any(RegisterUserCommand.class))).thenReturn(Mono.just(teacherResponse));
@@ -131,7 +133,7 @@ class AuthControllerTest {
       "ADMIN"
     );
     UserResponse adminResponse = new UserResponse(
-      3L, "Admin User", "admin@example.com", "ADMIN",
+      3L, "Admin User", "admin@example.com", "ADMIN", null,
       LocalDateTime.now(), LocalDateTime.now(), true
     );
     when(registerUserUseCase.execute(any(RegisterUserCommand.class))).thenReturn(Mono.just(adminResponse));
@@ -292,4 +294,3 @@ class AuthControllerTest {
       });
   }
 }
-

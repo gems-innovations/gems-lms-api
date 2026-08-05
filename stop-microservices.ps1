@@ -42,9 +42,9 @@ function Stop-ProcessOnPort {
     $conn = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue
     if ($conn) {
         $pids = $conn.OwningProcess | Select-Object -Unique
-        foreach ($pid in $pids) {
-            Write-Host "Stopping process $pid for $ServiceName on port $Port..." -ForegroundColor Red
-            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+        foreach ($procId in $pids) {
+            Write-Host "Stopping process $procId for $ServiceName on port $Port..." -ForegroundColor Red
+            Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
         }
         Write-Host "$ServiceName stopped successfully." -ForegroundColor Green
     } else {

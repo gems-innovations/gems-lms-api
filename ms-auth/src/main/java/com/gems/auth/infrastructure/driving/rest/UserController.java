@@ -3,6 +3,7 @@ package com.gems.auth.infrastructure.driving.rest;
 import com.gems.auth.application.DisableUserUseCase;
 import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
+import com.gems.auth.application.GetUsersByInstitutionUseCase;
 import com.gems.auth.application.command.LoginCommand;
 import com.gems.auth.application.command.RegisterUserCommand;
 import com.gems.auth.application.response.LoginResponse;
@@ -20,6 +21,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -28,11 +30,16 @@ public class UserController {
   private final RegisterUserUseCase registerUserUseCase;
   private final LoginUseCase loginUseCase;
   private final DisableUserUseCase disableUserUseCase;
+  private final GetUsersByInstitutionUseCase getUsersByInstitutionUseCase;
 
-  public UserController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase, DisableUserUseCase disableUserUseCase) {
+  public UserController(RegisterUserUseCase registerUserUseCase,
+                        LoginUseCase loginUseCase,
+                        DisableUserUseCase disableUserUseCase,
+                        GetUsersByInstitutionUseCase getUsersByInstitutionUseCase) {
     this.registerUserUseCase = registerUserUseCase;
     this.loginUseCase = loginUseCase;
     this.disableUserUseCase = disableUserUseCase;
+    this.getUsersByInstitutionUseCase = getUsersByInstitutionUseCase;
   }
 
   @PostMapping(RestConstants.REGISTER_ENDPOINT)
@@ -72,5 +79,10 @@ public class UserController {
                     ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))
             .onErrorResume(Exception.class,
                     ex -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
+  }
+
+  @GetMapping("/institution/{instId}")
+  public Mono<ResponseEntity<Flux<UserResponse>>> getUsersByInstitution(@PathVariable("instId") String instId) {
+    return Mono.just(ResponseEntity.ok(getUsersByInstitutionUseCase.execute(instId)));
   }
 }
