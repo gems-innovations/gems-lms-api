@@ -1,8 +1,12 @@
 package com.gems.auth.infrastructure.config;
 
 import com.gems.auth.application.DisableUserUseCase;
+import com.gems.auth.application.GetAllUsersUseCase;
+import com.gems.auth.application.GetUserByIdUseCase;
+import com.gems.auth.application.GetUsersByInstitutionUseCase;
 import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
+import com.gems.auth.application.UpdateUserUseCase;
 import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
 import com.gems.auth.application.gateway.UserGateway;
@@ -37,7 +41,22 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public com.gems.auth.application.GetUsersByInstitutionUseCase getUsersByInstitutionUseCase(UserGateway userGateway) {
-    return new com.gems.auth.application.GetUsersByInstitutionUseCase(userGateway);
+  public GetUsersByInstitutionUseCase getUsersByInstitutionUseCase(UserGateway userGateway) {
+    return new GetUsersByInstitutionUseCase(userGateway);
+  }
+
+  @Bean
+  public GetUserByIdUseCase getUserByIdUseCase(UserGateway userGateway) {
+    return new GetUserByIdUseCase(userGateway);
+  }
+
+  @Bean
+  public GetAllUsersUseCase getAllUsersUseCase(UserGateway userGateway) {
+    return new GetAllUsersUseCase(userGateway);
+  }
+
+  @Bean
+  public UpdateUserUseCase updateUserUseCase(UserGateway userGateway) {
+    return new UpdateUserUseCase(userGateway);
   }
 }

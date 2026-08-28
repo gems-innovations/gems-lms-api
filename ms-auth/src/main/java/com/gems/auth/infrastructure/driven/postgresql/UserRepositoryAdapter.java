@@ -53,6 +53,12 @@ public class UserRepositoryAdapter implements UserGateway {
       .map(this::mapToDomain);
   }
 
+  @Override
+  public reactor.core.publisher.Flux<User> findAll() {
+    return userRepository.findAll()
+      .map(this::mapToDomain);
+  }
+
   private User mapToDomain(UserEntity userEntity) {
     return new User(
       new UserId(userEntity.getUserId()),

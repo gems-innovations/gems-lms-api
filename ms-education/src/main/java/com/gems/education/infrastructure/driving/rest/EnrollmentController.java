@@ -1,6 +1,11 @@
 package com.gems.education.infrastructure.driving.rest;
 
-import com.gems.education.application.*;
+import com.gems.education.application.BulkEnrollStudentsUseCase;
+import com.gems.education.application.DeleteEnrollmentUseCase;
+import com.gems.education.application.EnrollStudentUseCase;
+import com.gems.education.application.GetEnrollmentsByCourseUseCase;
+import com.gems.education.application.GetStudentEnrollmentsUseCase;
+import com.gems.education.application.UpdateEnrollmentProgressUseCase;
 import com.gems.education.application.command.BulkEnrollmentCommand;
 import com.gems.education.application.command.EnrollmentCommand;
 import com.gems.education.application.response.EnrollmentResponse;
@@ -20,16 +25,22 @@ public class EnrollmentController {
   private final EnrollStudentUseCase enrollStudentUseCase;
   private final BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase;
   private final GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase;
+  private final GetEnrollmentsByCourseUseCase getEnrollmentsByCourseUseCase;
   private final UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase;
+  private final DeleteEnrollmentUseCase deleteEnrollmentUseCase;
 
   public EnrollmentController(EnrollStudentUseCase enrollStudentUseCase,
-                              BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase,
-                              GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase,
-                              UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase) {
+                               BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase,
+                               GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase,
+                               GetEnrollmentsByCourseUseCase getEnrollmentsByCourseUseCase,
+                               UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase,
+                               DeleteEnrollmentUseCase deleteEnrollmentUseCase) {
     this.enrollStudentUseCase = enrollStudentUseCase;
     this.bulkEnrollStudentsUseCase = bulkEnrollStudentsUseCase;
     this.getStudentEnrollmentsUseCase = getStudentEnrollmentsUseCase;
+    this.getEnrollmentsByCourseUseCase = getEnrollmentsByCourseUseCase;
     this.updateEnrollmentProgressUseCase = updateEnrollmentProgressUseCase;
+    this.deleteEnrollmentUseCase = deleteEnrollmentUseCase;
   }
 
   @PostMapping
@@ -50,12 +61,24 @@ public class EnrollmentController {
     return Mono.just(ResponseEntity.ok(getStudentEnrollmentsUseCase.execute(studentId)));
   }
 
+  @GetMapping("/course/{courseId}")
+  public Mono<ResponseEntity<Flux<EnrollmentResponse>>> getEnrollmentsByCourse(@PathVariable Long courseId) {
+    return Mono.just(ResponseEntity.ok(getEnrollmentsByCourseUseCase.execute(courseId)));
+  }
+
   @PutMapping("/{id}/progress")
   public Mono<ResponseEntity<EnrollmentResponse>> updateEnrollmentProgress(
       @PathVariable Long id,
-      @RequestParam Integer progress
-  ) {
+      @RequestParam Integer progress) {
     return updateEnrollmentProgressUseCase.execute(id, progress)
       .map(ResponseEntity::ok);
+  }
+
+  @DeleteMapping("/{id}")
+  public Mono<ResponseEntity<Void>> deleteEnrollment(@PathVariable Long id) {
+    return deleteEnrollmentUseCase.execute(id)
+      .then(Mono.just(ResponseEntity.noContent().<Void>build()))
+      .onErrorResume(ex -> ex.getMessage() != null && ex.getMessage().contains("not found"),
+        ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
   }
 }

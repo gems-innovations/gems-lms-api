@@ -13,4 +13,5 @@ public interface UserGateway {
   Mono<Boolean> existsByEmail(Email email);
   Mono<Void> deleteById(UserId id);
   Flux<User> findByInstitutionId(String institutionId);
+  Flux<User> findAll();
 }

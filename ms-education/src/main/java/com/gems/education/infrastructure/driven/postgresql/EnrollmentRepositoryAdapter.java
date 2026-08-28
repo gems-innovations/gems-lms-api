@@ -44,6 +44,12 @@ public class EnrollmentRepositoryAdapter implements EnrollmentGateway {
   }
 
   @Override
+  public Flux<Enrollment> findByCourseId(Long courseId) {
+    return enrollmentRepository.findByCourseId(courseId)
+      .map(this::mapToDomain);
+  }
+
+  @Override
   public Mono<Enrollment> findByStudentIdAndCourseId(Long studentId, Long courseId) {
     return enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId)
       .map(this::mapToDomain);

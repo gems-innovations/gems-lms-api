@@ -8,7 +8,9 @@ public interface EnrollmentGateway {
   Mono<Enrollment> save(Enrollment enrollment);
   Mono<Enrollment> findById(Long id);
   Flux<Enrollment> findByStudentId(Long studentId);
+  Flux<Enrollment> findByCourseId(Long courseId);
   Mono<Enrollment> findByStudentIdAndCourseId(Long studentId, Long courseId);
   Mono<Boolean> existsByStudentIdAndCourseId(Long studentId, Long courseId);
   Mono<Void> deleteById(Long id);
 }
+

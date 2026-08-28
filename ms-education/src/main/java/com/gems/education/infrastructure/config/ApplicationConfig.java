@@ -123,6 +123,21 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public GetQuizByIdUseCase getQuizByIdUseCase(QuizGateway quizGateway) {
+    return new GetQuizByIdUseCase(quizGateway);
+  }
+
+  @Bean
+  public UpdateQuizUseCase updateQuizUseCase(QuizGateway quizGateway) {
+    return new UpdateQuizUseCase(quizGateway);
+  }
+
+  @Bean
+  public DeleteQuizUseCase deleteQuizUseCase(QuizGateway quizGateway) {
+    return new DeleteQuizUseCase(quizGateway);
+  }
+
+  @Bean
   public EnrollmentGateway enrollmentGateway(IEnrollmentRepository enrollmentRepository) {
     return new EnrollmentRepositoryAdapter(enrollmentRepository);
   }
@@ -143,7 +158,18 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public GetEnrollmentsByCourseUseCase getEnrollmentsByCourseUseCase(EnrollmentGateway enrollmentGateway) {
+    return new GetEnrollmentsByCourseUseCase(enrollmentGateway);
+  }
+
+  @Bean
   public UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase(EnrollmentGateway enrollmentGateway) {
     return new UpdateEnrollmentProgressUseCase(enrollmentGateway);
   }
+
+  @Bean
+  public DeleteEnrollmentUseCase deleteEnrollmentUseCase(EnrollmentGateway enrollmentGateway) {
+    return new DeleteEnrollmentUseCase(enrollmentGateway);
+  }
 }
+
