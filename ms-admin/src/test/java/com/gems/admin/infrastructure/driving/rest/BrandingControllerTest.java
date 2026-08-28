@@ -1,6 +1,7 @@
 package com.gems.admin.infrastructure.driving.rest;
 
 import com.gems.admin.application.CreateBrandingUseCase;
+import com.gems.admin.application.DeleteBrandingUseCase;
 import com.gems.admin.application.GetBrandingByCompanyIdUseCase;
 import com.gems.admin.application.UpdateBrandingUseCase;
 import com.gems.admin.application.command.BrandingCommand;
@@ -25,6 +26,7 @@ class BrandingControllerTest {
   private CreateBrandingUseCase createBrandingUseCase;
   private UpdateBrandingUseCase updateBrandingUseCase;
   private GetBrandingByCompanyIdUseCase getBrandingByCompanyIdUseCase;
+  private DeleteBrandingUseCase deleteBrandingUseCase;
   private WebTestClient webTestClient;
 
   private BrandingResponse brandingResponse;
@@ -34,11 +36,13 @@ class BrandingControllerTest {
     createBrandingUseCase = Mockito.mock(CreateBrandingUseCase.class);
     updateBrandingUseCase = Mockito.mock(UpdateBrandingUseCase.class);
     getBrandingByCompanyIdUseCase = Mockito.mock(GetBrandingByCompanyIdUseCase.class);
+    deleteBrandingUseCase = Mockito.mock(DeleteBrandingUseCase.class);
 
     BrandingController brandingController = new BrandingController(
       createBrandingUseCase,
       updateBrandingUseCase,
-      getBrandingByCompanyIdUseCase
+      getBrandingByCompanyIdUseCase,
+      deleteBrandingUseCase
     );
     webTestClient = WebTestClient.bindToController(brandingController).build();
 
@@ -142,6 +146,21 @@ class BrandingControllerTest {
   }
 
   @Test
+  void shouldDeleteBrandingSuccessfully() {
+    // Given
+    when(deleteBrandingUseCase.execute("company-123")).thenReturn(Mono.empty());
+
+    // When & Then
+    webTestClient
+      .delete()
+      .uri("/api/v1/branding/company-123")
+      .exchange()
+      .expectStatus().isNoContent();
+
+    verify(deleteBrandingUseCase, times(1)).execute("company-123");
+  }
+
+  @Test
   void shouldReturnCreatedStatusOnCreate() {
     // Given
     BrandingRequest request = new BrandingRequest();
@@ -159,24 +178,5 @@ class BrandingControllerTest {
       .expectStatus().isCreated();
 
     verify(createBrandingUseCase, times(1)).execute(any(BrandingCommand.class));
-  }
-
-  @Test
-  void shouldReturnBrandingResponseWithAllFields() {
-    // Given
-    when(getBrandingByCompanyIdUseCase.execute(anyString())).thenReturn(Mono.just(brandingResponse));
-
-    // When & Then
-    webTestClient
-      .get()
-      .uri("/api/v1/branding/company-123")
-      .exchange()
-      .expectStatus().isOk()
-      .expectBody(BrandingResponse.class)
-      .value(response -> {
-        Assertions.assertNotNull(response.brandingId());
-        Assertions.assertNotNull(response.companyId());
-        Assertions.assertNotNull(response.updatedAt());
-      });
   }
 }

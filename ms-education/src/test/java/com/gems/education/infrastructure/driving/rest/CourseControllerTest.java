@@ -23,6 +23,7 @@ class CourseControllerTest {
   private UpdateCourseUseCase updateCourseUseCase;
   private DeleteCourseUseCase deleteCourseUseCase;
   private GetCoursesByInstitutionUseCase getCoursesByInstitutionUseCase;
+  private GetAllCoursesUseCase getAllCoursesUseCase;
   private CourseController controller;
 
   @BeforeEach
@@ -32,13 +33,15 @@ class CourseControllerTest {
     updateCourseUseCase = mock(UpdateCourseUseCase.class);
     deleteCourseUseCase = mock(DeleteCourseUseCase.class);
     getCoursesByInstitutionUseCase = mock(GetCoursesByInstitutionUseCase.class);
+    getAllCoursesUseCase = mock(GetAllCoursesUseCase.class);
 
     controller = new CourseController(
       createCourseUseCase,
       getCourseByIdUseCase,
       updateCourseUseCase,
       deleteCourseUseCase,
-      getCoursesByInstitutionUseCase
+      getCoursesByInstitutionUseCase,
+      getAllCoursesUseCase
     );
   }
 
@@ -63,6 +66,23 @@ class CourseControllerTest {
       LocalDateTime.now(),
       List.of()
     );
+  }
+
+  @Test
+  void shouldGetAllCourses() {
+    CourseResponse response = buildResponse();
+    when(getAllCoursesUseCase.execute()).thenReturn(Flux.just(response));
+
+    StepVerifier.create(controller.getAllCourses())
+      .assertNext(entity -> {
+        assertEquals(200, entity.getStatusCode().value());
+        StepVerifier.create(entity.getBody())
+          .assertNext(res -> assertEquals("Java Course", res.getTitle()))
+          .verifyComplete();
+      })
+      .verifyComplete();
+
+    verify(getAllCoursesUseCase).execute();
   }
 
   @Test
@@ -116,7 +136,7 @@ class CourseControllerTest {
 
     StepVerifier.create(controller.deleteCourse(1L))
       .assertNext(entity -> {
-        assertEquals(204, entity.getStatusCode().value()); // HTTP 204 No Content
+        assertEquals(204, entity.getStatusCode().value());
       })
       .verifyComplete();
 

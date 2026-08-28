@@ -1,13 +1,15 @@
 package com.gems.auth.infrastructure.driving.rest;
 
 import com.gems.auth.application.DisableUserUseCase;
-import com.gems.auth.application.LoginUseCase;
-import com.gems.auth.application.RegisterUserUseCase;
+import com.gems.auth.application.GetAllUsersUseCase;
+import com.gems.auth.application.GetUserByIdUseCase;
 import com.gems.auth.application.GetUsersByInstitutionUseCase;
-import com.gems.auth.application.command.RegisterUserCommand;
+import com.gems.auth.application.UpdateUserUseCase;
+import com.gems.auth.application.command.UpdateUserCommand;
+import com.gems.auth.application.exceptions.UserNotFoundException;
 import com.gems.auth.application.response.UserResponse;
-import com.gems.auth.application.exceptions.UserAlreadyExistsException;
-import com.gems.auth.infrastructure.driving.rest.request.RegisterUserRequest;
+import com.gems.auth.domain.values.UserId;
+import com.gems.auth.infrastructure.driving.rest.request.UpdateUserRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -30,243 +32,129 @@ import static org.mockito.Mockito.*;
 class UserControllerTest {
 
     @Mock
-    private RegisterUserUseCase registerUserUseCase;
-    @Mock
     private DisableUserUseCase disableUserUseCase;
     @Mock
-    private LoginUseCase loginUseCase;
-    @Mock
     private GetUsersByInstitutionUseCase getUsersByInstitutionUseCase;
+    @Mock
+    private GetUserByIdUseCase getUserByIdUseCase;
+    @Mock
+    private GetAllUsersUseCase getAllUsersUseCase;
+    @Mock
+    private UpdateUserUseCase updateUserUseCase;
 
     private WebTestClient webTestClient;
 
     @BeforeEach
     void setUp() {
-        UserController userController = new UserController(registerUserUseCase, loginUseCase, disableUserUseCase, getUsersByInstitutionUseCase);
+        UserController userController = new UserController(
+            disableUserUseCase,
+            getUsersByInstitutionUseCase,
+            getUserByIdUseCase,
+            getAllUsersUseCase,
+            updateUserUseCase
+        );
         webTestClient = WebTestClient.bindToController(userController).build();
     }
 
     @Nested
-    @DisplayName("Successful Registration Tests")
-    class SuccessfulRegistrationTests {
+    @DisplayName("Get All Users Tests")
+    class GetAllUsersTests {
 
         @Test
-        @DisplayName("Should return 201 Created with user response when registration is successful")
-        void shouldReturn201CreatedWithUserResponseWhenRegistrationIsSuccessful() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            Long userId = 1L;
-            LocalDateTime createdAt = LocalDateTime.now();
-            LocalDateTime updatedAt = LocalDateTime.now();
+        @DisplayName("Should return all users successfully")
+        void shouldReturnAllUsersSuccessfully() {
+            UserResponse user1 = new UserResponse(1L, "User One", "one@example.com", "STUDENT", "inst-123", LocalDateTime.now(), LocalDateTime.now(), true);
+            UserResponse user2 = new UserResponse(2L, "User Two", "two@example.com", "TEACHER", "inst-123", LocalDateTime.now(), LocalDateTime.now(), true);
 
-            UserResponse userResponse = new UserResponse(
-                userId,
-                name,
-                email,
-                "STUDENT",
-                "inst-123",
-                createdAt,
-                updatedAt,
-                true
-            );
+            when(getAllUsersUseCase.execute()).thenReturn(Flux.just(user1, user2));
 
-            when(registerUserUseCase.execute(any(RegisterUserCommand.class)))
-                .thenReturn(Mono.just(userResponse));
-
-            webTestClient.post()
-                .uri("/api/v1/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT", "inst-123"))
+            webTestClient.get()
+                .uri("/api/v1/users")
                 .exchange()
-                .expectStatus().isCreated()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBodyList(UserResponse.class)
+                .hasSize(2);
+
+            verify(getAllUsersUseCase).execute();
+        }
+    }
+
+    @Nested
+    @DisplayName("Get User by ID Tests")
+    class GetUserByIdTests {
+
+        @Test
+        @DisplayName("Should return user when ID exists")
+        void shouldReturnUserWhenIdExists() {
+            UserResponse user = new UserResponse(1L, "John Doe", "john@example.com", "STUDENT", "inst-123", LocalDateTime.now(), LocalDateTime.now(), true);
+
+            when(getUserByIdUseCase.execute(1L)).thenReturn(Mono.just(user));
+
+            webTestClient.get()
+                .uri("/api/v1/users/1")
+                .exchange()
+                .expectStatus().isOk()
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
                 .expectBody()
-                .jsonPath("$.userId").isEqualTo(userId)
-                .jsonPath("$.name").isEqualTo(name)
-                .jsonPath("$.email").isEqualTo(email)
-                .jsonPath("$.institutionId").isEqualTo("inst-123")
-                .jsonPath("$.active").isEqualTo(true);
+                .jsonPath("$.userId").isEqualTo(1)
+                .jsonPath("$.name").isEqualTo("John Doe");
 
-            verify(registerUserUseCase).execute(any(RegisterUserCommand.class));
+            verify(getUserByIdUseCase).execute(1L);
         }
 
         @Test
-        @DisplayName("Should return 201 Created for valid user data")
-        void shouldReturn201CreatedForValidUserData() {
-            String name = "Jane Doe";
-            String email = "jane.doe@example.com";
-            String password = "JanePass123!";
+        @DisplayName("Should return 404 when user not found")
+        void shouldReturn404WhenUserNotFound() {
+            when(getUserByIdUseCase.execute(99L)).thenReturn(Mono.error(new UserNotFoundException("User not found")));
 
-            UserResponse userResponse = new UserResponse(
-                2L,
-                name,
-                email,
-                "STUDENT",
-                null,
-                LocalDateTime.now(),
-                LocalDateTime.now(),
-                true
-            );
-
-            when(registerUserUseCase.execute(any(RegisterUserCommand.class)))
-                .thenReturn(Mono.just(userResponse));
-
-            webTestClient.post()
-                .uri("/api/v1/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
+            webTestClient.get()
+                .uri("/api/v1/users/99")
                 .exchange()
-                .expectStatus().isCreated()
-                .expectHeader().contentType(MediaType.APPLICATION_JSON);
+                .expectStatus().isNotFound();
         }
     }
 
     @Nested
-    @DisplayName("User Already Exists Tests")
-    class UserAlreadyExistsTests {
+    @DisplayName("Update User Tests")
+    class UpdateUserTests {
 
         @Test
-        @DisplayName("Should return 409 Conflict when user already exists")
-        void shouldReturn409ConflictWhenUserAlreadyExists() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
+        @DisplayName("Should update user successfully")
+        void shouldUpdateUserSuccessfully() {
+            UserResponse updatedResponse = new UserResponse(1L, "John Updated", "john@example.com", "ADMIN", "inst-456", LocalDateTime.now(), LocalDateTime.now(), true);
 
-            when(registerUserUseCase.execute(any(RegisterUserCommand.class)))
-                .thenReturn(Mono.error(new UserAlreadyExistsException("User already exists")));
+            when(updateUserUseCase.execute(any(UpdateUserCommand.class))).thenReturn(Mono.just(updatedResponse));
 
-            webTestClient.post()
-                .uri("/api/v1/users/register")
+            webTestClient.put()
+                .uri("/api/v1/users/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
+                .bodyValue(new UpdateUserRequest("John Updated", "ADMIN", "inst-456"))
                 .exchange()
-                .expectStatus().isEqualTo(409);
-
-            verify(registerUserUseCase).execute(any(RegisterUserCommand.class));
-        }
-
-        @Test
-        @DisplayName("Should return 409 Conflict for duplicate email")
-        void shouldReturn409ConflictForDuplicateEmail() {
-            String name = "Jane Doe";
-            String email = "existing@example.com";
-            String password = "JanePass123!";
-
-            when(registerUserUseCase.execute(any(RegisterUserCommand.class)))
-                .thenReturn(Mono.error(new UserAlreadyExistsException("User with email existing@example.com already exists")));
-
-            webTestClient.post()
-                .uri("/api/v1/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
-                .exchange()
-                .expectStatus().isEqualTo(409);
-        }
-    }
-
-    @Nested
-    @DisplayName("RequestMapping Tests")
-    class RequestMappingTests {
-
-        @Test
-        @DisplayName("Should map register user request to command correctly")
-        void shouldMapRegisterUserRequestToCommandCorrectly() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-
-            when(registerUserUseCase.execute(any(RegisterUserCommand.class)))
-                .thenReturn(Mono.just(new UserResponse(
-                    1L,
-                    name,
-                    email,
-                    "STUDENT",
-                    "inst-123",
-                    LocalDateTime.now(),
-                    LocalDateTime.now(),
-                    true
-                )));
-
-            webTestClient.post()
-                .uri("/api/v1/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT", "inst-123"))
-                .exchange()
-                .expectStatus().isCreated();
-
-            verify(registerUserUseCase).execute(argThat(command -> 
-                command.name().equals(name) &&
-                command.email().equals(email) &&
-                command.password().equals(password) &&
-                "inst-123".equals(command.institutionId())
-            ));
-        }
-    }
-
-    @Nested
-    @DisplayName("Response Body Tests")
-    class ResponseBodyTests {
-
-        @Test
-        @DisplayName("Should return user response with correct data")
-        void shouldReturnUserResponseWithCorrectData() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
-            Long userId = 1L;
-            LocalDateTime createdAt = LocalDateTime.now();
-            LocalDateTime updatedAt = LocalDateTime.now();
-
-            UserResponse userResponse = new UserResponse(
-                userId,
-                name,
-                email,
-                "STUDENT",
-                "inst-123",
-                createdAt,
-                updatedAt,
-                true
-            );
-
-            when(registerUserUseCase.execute(any(RegisterUserCommand.class)))
-                .thenReturn(Mono.just(userResponse));
-
-            webTestClient.post()
-                .uri("/api/v1/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT", "inst-123"))
-                .exchange()
-                .expectStatus().isCreated()
-                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.userId").isEqualTo(userId)
-                .jsonPath("$.name").isEqualTo(name)
-                .jsonPath("$.email").isEqualTo(email)
-                .jsonPath("$.active").isEqualTo(true);
+                .jsonPath("$.name").isEqualTo("John Updated")
+                .jsonPath("$.role").isEqualTo("ADMIN");
+
+            verify(updateUserUseCase).execute(any(UpdateUserCommand.class));
         }
     }
 
     @Nested
-    @DisplayName("Error Handling Tests")
-    class ErrorHandlingTests {
+    @DisplayName("Disable User Tests")
+    class DisableUserTests {
 
         @Test
-        @DisplayName("Should handle UserAlreadyExistsException correctly")
-        void shouldHandleUserAlreadyExistsExceptionCorrectly() {
-            String name = "John Doe";
-            String email = "john.doe@example.com";
-            String password = "SecurePass123!";
+        @DisplayName("Should disable user successfully")
+        void shouldDisableUserSuccessfully() {
+            when(disableUserUseCase.execute(any(UserId.class))).thenReturn(Mono.empty());
 
-            when(registerUserUseCase.execute(any(RegisterUserCommand.class)))
-                .thenReturn(Mono.error(new UserAlreadyExistsException("User already exists")));
-
-            webTestClient.post()
-                .uri("/api/v1/users/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new RegisterUserRequest(name, email, password, "STUDENT"))
+            webTestClient.delete()
+                .uri("/api/v1/users/1")
                 .exchange()
-                .expectStatus().isEqualTo(409);
+                .expectStatus().isNoContent();
+
+            verify(disableUserUseCase).execute(any(UserId.class));
         }
     }
 

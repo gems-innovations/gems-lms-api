@@ -1,8 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
-import com.gems.education.application.CreateQuizUseCase;
-import com.gems.education.application.GetQuizByLessonUseCase;
-import com.gems.education.application.SubmitQuizUseCase;
+import com.gems.education.application.*;
 import com.gems.education.application.command.QuizCommand;
 import com.gems.education.application.command.QuizSubmissionCommand;
 import com.gems.education.application.response.QuizGradingResponse;
@@ -23,6 +21,9 @@ class QuizControllerTest {
 
   private CreateQuizUseCase createQuizUseCase;
   private GetQuizByLessonUseCase getQuizByLessonUseCase;
+  private GetQuizByIdUseCase getQuizByIdUseCase;
+  private UpdateQuizUseCase updateQuizUseCase;
+  private DeleteQuizUseCase deleteQuizUseCase;
   private SubmitQuizUseCase submitQuizUseCase;
   private QuizController controller;
 
@@ -30,8 +31,19 @@ class QuizControllerTest {
   void setUp() {
     createQuizUseCase = mock(CreateQuizUseCase.class);
     getQuizByLessonUseCase = mock(GetQuizByLessonUseCase.class);
+    getQuizByIdUseCase = mock(GetQuizByIdUseCase.class);
+    updateQuizUseCase = mock(UpdateQuizUseCase.class);
+    deleteQuizUseCase = mock(DeleteQuizUseCase.class);
     submitQuizUseCase = mock(SubmitQuizUseCase.class);
-    controller = new QuizController(createQuizUseCase, getQuizByLessonUseCase, submitQuizUseCase);
+
+    controller = new QuizController(
+      createQuizUseCase,
+      getQuizByLessonUseCase,
+      getQuizByIdUseCase,
+      updateQuizUseCase,
+      deleteQuizUseCase,
+      submitQuizUseCase
+    );
   }
 
   @Test
@@ -50,6 +62,19 @@ class QuizControllerTest {
   }
 
   @Test
+  void shouldGetQuizById() {
+    QuizResponse response = new QuizResponse(1L, 1L, "Quiz 1", 70, List.of());
+    when(getQuizByIdUseCase.execute(1L)).thenReturn(Mono.just(response));
+
+    StepVerifier.create(controller.getQuizById(1L))
+      .assertNext(entity -> {
+        assertEquals(200, entity.getStatusCode().value());
+        assertEquals("Quiz 1", entity.getBody().getTitle());
+      })
+      .verifyComplete();
+  }
+
+  @Test
   void shouldGetQuizByLesson() {
     QuizResponse response = new QuizResponse(1L, 1L, "Quiz 1", 70, List.of());
     when(getQuizByLessonUseCase.execute(1L)).thenReturn(Mono.just(response));
@@ -58,6 +83,32 @@ class QuizControllerTest {
       .assertNext(entity -> {
         assertEquals(200, entity.getStatusCode().value());
         assertEquals("Quiz 1", entity.getBody().getTitle());
+      })
+      .verifyComplete();
+  }
+
+  @Test
+  void shouldUpdateQuiz() {
+    QuizResponse response = new QuizResponse(1L, 1L, "Updated Quiz", 70, List.of());
+    when(updateQuizUseCase.execute(eq(1L), any(QuizCommand.class))).thenReturn(Mono.just(response));
+
+    QuizRequest request = new QuizRequest(1L, "Updated Quiz", 70, List.of());
+
+    StepVerifier.create(controller.updateQuiz(1L, request))
+      .assertNext(entity -> {
+        assertEquals(200, entity.getStatusCode().value());
+        assertEquals("Updated Quiz", entity.getBody().getTitle());
+      })
+      .verifyComplete();
+  }
+
+  @Test
+  void shouldDeleteQuiz() {
+    when(deleteQuizUseCase.execute(1L)).thenReturn(Mono.empty());
+
+    StepVerifier.create(controller.deleteQuiz(1L))
+      .assertNext(entity -> {
+        assertEquals(204, entity.getStatusCode().value());
       })
       .verifyComplete();
   }

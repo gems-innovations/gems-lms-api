@@ -23,7 +23,10 @@ class EnrollmentControllerTest {
   private EnrollStudentUseCase enrollStudentUseCase;
   private BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase;
   private GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase;
+  private GetEnrollmentsByCourseUseCase getEnrollmentsByCourseUseCase;
   private UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase;
+  private DeleteEnrollmentUseCase deleteEnrollmentUseCase;
+  private GetEnrollmentByIdUseCase getEnrollmentByIdUseCase;
   private EnrollmentController controller;
 
   @BeforeEach
@@ -31,14 +34,33 @@ class EnrollmentControllerTest {
     enrollStudentUseCase = mock(EnrollStudentUseCase.class);
     bulkEnrollStudentsUseCase = mock(BulkEnrollStudentsUseCase.class);
     getStudentEnrollmentsUseCase = mock(GetStudentEnrollmentsUseCase.class);
+    getEnrollmentsByCourseUseCase = mock(GetEnrollmentsByCourseUseCase.class);
     updateEnrollmentProgressUseCase = mock(UpdateEnrollmentProgressUseCase.class);
+    deleteEnrollmentUseCase = mock(DeleteEnrollmentUseCase.class);
+    getEnrollmentByIdUseCase = mock(GetEnrollmentByIdUseCase.class);
 
     controller = new EnrollmentController(
       enrollStudentUseCase,
       bulkEnrollStudentsUseCase,
       getStudentEnrollmentsUseCase,
-      updateEnrollmentProgressUseCase
+      getEnrollmentsByCourseUseCase,
+      updateEnrollmentProgressUseCase,
+      deleteEnrollmentUseCase,
+      getEnrollmentByIdUseCase
     );
+  }
+
+  @Test
+  void shouldGetEnrollmentById() {
+    EnrollmentResponse response = new EnrollmentResponse(1L, 10L, 5L, LocalDateTime.now(), 0, null);
+    when(getEnrollmentByIdUseCase.execute(1L)).thenReturn(Mono.just(response));
+
+    StepVerifier.create(controller.getEnrollmentById(1L))
+      .assertNext(entity -> {
+        assertEquals(200, entity.getStatusCode().value());
+        assertEquals(10L, entity.getBody().getStudentId());
+      })
+      .verifyComplete();
   }
 
   @Test
@@ -89,6 +111,21 @@ class EnrollmentControllerTest {
   }
 
   @Test
+  void shouldGetEnrollmentsByCourse() {
+    EnrollmentResponse response = new EnrollmentResponse(1L, 10L, 5L, LocalDateTime.now(), 0, null);
+    when(getEnrollmentsByCourseUseCase.execute(5L)).thenReturn(Flux.just(response));
+
+    StepVerifier.create(controller.getEnrollmentsByCourse(5L))
+      .assertNext(entity -> {
+        assertEquals(200, entity.getStatusCode().value());
+        StepVerifier.create(entity.getBody())
+          .assertNext(res -> assertEquals(10L, res.getStudentId()))
+          .verifyComplete();
+      })
+      .verifyComplete();
+  }
+
+  @Test
   void shouldUpdateProgress() {
     EnrollmentResponse response = new EnrollmentResponse(1L, 10L, 5L, LocalDateTime.now(), 40, null);
     when(updateEnrollmentProgressUseCase.execute(1L, 40)).thenReturn(Mono.just(response));
@@ -97,6 +134,17 @@ class EnrollmentControllerTest {
       .assertNext(entity -> {
         assertEquals(200, entity.getStatusCode().value());
         assertEquals(40, entity.getBody().getProgress());
+      })
+      .verifyComplete();
+  }
+
+  @Test
+  void shouldDeleteEnrollment() {
+    when(deleteEnrollmentUseCase.execute(1L)).thenReturn(Mono.empty());
+
+    StepVerifier.create(controller.deleteEnrollment(1L))
+      .assertNext(entity -> {
+        assertEquals(204, entity.getStatusCode().value());
       })
       .verifyComplete();
   }

@@ -23,6 +23,7 @@ class LearningPathControllerTest {
   private GetLearningPathsByInstitutionUseCase getLearningPathsByInstitutionUseCase;
   private UpdateLearningPathUseCase updateLearningPathUseCase;
   private DeleteLearningPathUseCase deleteLearningPathUseCase;
+  private GetAllLearningPathsUseCase getAllLearningPathsUseCase;
   private LearningPathController controller;
 
   @BeforeEach
@@ -32,14 +33,31 @@ class LearningPathControllerTest {
     getLearningPathsByInstitutionUseCase = mock(GetLearningPathsByInstitutionUseCase.class);
     updateLearningPathUseCase = mock(UpdateLearningPathUseCase.class);
     deleteLearningPathUseCase = mock(DeleteLearningPathUseCase.class);
+    getAllLearningPathsUseCase = mock(GetAllLearningPathsUseCase.class);
 
     controller = new LearningPathController(
       createLearningPathUseCase,
       getLearningPathByIdUseCase,
       getLearningPathsByInstitutionUseCase,
       updateLearningPathUseCase,
-      deleteLearningPathUseCase
+      deleteLearningPathUseCase,
+      getAllLearningPathsUseCase
     );
+  }
+
+  @Test
+  void shouldGetAllLearningPaths() {
+    LearningPathResponse response = new LearningPathResponse(1L, "LP 1", "Desc", "inst-1", LocalDateTime.now(), List.of());
+    when(getAllLearningPathsUseCase.execute()).thenReturn(Flux.just(response));
+
+    StepVerifier.create(controller.getAllLearningPaths())
+      .assertNext(entity -> {
+        assertEquals(200, entity.getStatusCode().value());
+        StepVerifier.create(entity.getBody())
+          .assertNext(res -> assertEquals("LP 1", res.getTitle()))
+          .verifyComplete();
+      })
+      .verifyComplete();
   }
 
   @Test
