@@ -1,4 +1,4 @@
-package com.gems.education.infrastructure.config;
+package com.gems.gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +15,7 @@ public class SecurityConfig {
     return http
       .csrf(ServerHttpSecurity.CsrfSpec::disable)
       .authorizeExchange(exchanges -> exchanges
+        .pathMatchers("/api/v1/auth/login", "/api/v1/auth/register").permitAll()
         .pathMatchers("/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html").permitAll()
         .anyExchange().authenticated()
       )

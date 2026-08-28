@@ -15,9 +15,9 @@ public class SecurityConfig {
     return http
       .csrf(ServerHttpSecurity.CsrfSpec::disable)
       .authorizeExchange(exchanges -> exchanges
-        .anyExchange().permitAll()
+        .pathMatchers("/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html").permitAll()
+        .anyExchange().authenticated()
       )
       .build();
   }
 }
-

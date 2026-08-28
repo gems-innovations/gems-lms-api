@@ -15,9 +15,10 @@ public class SecurityConfig {
     return http
       .csrf(ServerHttpSecurity.CsrfSpec::disable)
       .authorizeExchange(exchanges -> exchanges
-        .anyExchange().permitAll()
+        .pathMatchers("/api/v1/auth/login", "/api/v1/auth/register").permitAll()
+        .pathMatchers("/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html").permitAll()
+        .anyExchange().authenticated()
       )
       .build();
   }
 }
-

@@ -1,0 +1,61 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: ms-auth-auth
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/auth/**
+
+        - id: ms-auth-users
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/v1/users/**
+
+        - id: ms-admin-institutions
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/institutions/**
+
+        - id: ms-admin-branding
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/v1/branding/**
+
+        - id: ms-education-courses
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/courses/**
+
+        - id: ms-education-students
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/students/**
+
+        - id: ms-education-quizzes
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/quizzes/**
+
+        - id: ms-education-learning-paths
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/learning-paths/**
+
+        - id: ms-education-enrollments
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/v1/enrollments/**
+
+jwt:
+  secret: "${JWT_SECRET:mySecretKey123456789012345678901234567890}"
+  expiration: 86400000
+
+auth:
+  login:
+    path: "/api/v1/auth/login"

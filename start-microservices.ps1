@@ -38,9 +38,10 @@ $env:PATH = "$java24Bin;" + $env:PATH
 Write-Host "Using JAVA_HOME: $env:JAVA_HOME" -ForegroundColor Cyan
 
 # Ports configurations
-$educationPort = if ($env:EDUCATION_PORT) { $env:EDUCATION_PORT } else { "8083" }
-$authPort = if ($env:AUTH_PORT) { $env:AUTH_PORT } else { "8081" }
-$adminPort = if ($env:ADMIN_PORT) { $env:ADMIN_PORT } else { "8082" }
+$gatewayPort = "8080"
+$educationPort = "8081"
+$authPort = "8082"
+$adminPort = "8083"
 
 function Start-ServiceProcess {
     param(
@@ -53,22 +54,28 @@ function Start-ServiceProcess {
     Write-Host "Starting $Name on port: $Port" -ForegroundColor Yellow
     
     if ($Background) {
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD'; `$env:JAVA_HOME='$java24Home'; `$env:PATH='$java24Bin;'+`$env:PATH; `$env:${Name}_PORT='$Port'; ./gradlew.bat $GradleTask" -WindowStyle Normal
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD'; `$env:JAVA_HOME='$java24Home'; `$env:PATH='$java24Bin;'+`$env:PATH; Get-Content .env | ForEach-Object { if (`$_ -match '^\s*([^#][^=]+)=(.*)$') { [System.Environment]::SetEnvironmentVariable(`$matches[1].Trim(), `$matches[2].Trim(), 'Process') } }; ./gradlew.bat $GradleTask" -WindowStyle Normal
     } else {
-        [Environment]::SetEnvironmentVariable("${Name}_PORT", $Port, "Process")
+        Get-Content .env | ForEach-Object { if ($_ -match '^\s*([^#][^=]+)=(.*)$') { [System.Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2].Trim(), 'Process') } }
         ./gradlew.bat $GradleTask
     }
 }
 
 switch ($Microservice.ToLower()) {
     "all" {
-        Write-Host "Starting all microservices..." -ForegroundColor Green
-        Start-ServiceProcess "EDUCATION" $educationPort ":ms-education:bootRun" $true
+        Write-Host "Starting all microservices (Gateway + Auth + Admin + Education)..." -ForegroundColor Green
+        Start-ServiceProcess "GATEWAY" $gatewayPort ":api-gateway:bootRun" $true
         Start-Sleep -Seconds 2
         Start-ServiceProcess "AUTH" $authPort ":ms-auth:bootRun" $true
         Start-Sleep -Seconds 2
         Start-ServiceProcess "ADMIN" $adminPort ":ms-admin:bootRun" $true
+        Start-Sleep -Seconds 2
+        Start-ServiceProcess "EDUCATION" $educationPort ":ms-education:bootRun" $true
         Write-Host "All microservices are starting in separate windows..." -ForegroundColor Green
+    }
+    "api-gateway" {
+        Write-Host "Starting API Gateway microservice in foreground..." -ForegroundColor Green
+        Start-ServiceProcess "GATEWAY" $gatewayPort ":api-gateway:bootRun" $false
     }
     "ms-auth" {
         Write-Host "Starting Auth microservice in foreground..." -ForegroundColor Green
@@ -84,7 +91,7 @@ switch ($Microservice.ToLower()) {
     }
     default {
         Write-Error "Unknown microservice: $Microservice"
-        Write-Host "Available options: all, ms-auth, ms-education, ms-admin" -ForegroundColor Yellow
+        Write-Host "Available options: all, api-gateway, ms-auth, ms-education, ms-admin" -ForegroundColor Yellow
         exit 1
     }
 }
