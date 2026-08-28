@@ -33,6 +33,11 @@ public class BrandingRepositoryAdapter implements BrandingGateway {
       .map(this::mapToDomain);
   }
 
+  @Override
+  public Mono<Void> deleteByCompanyId(String companyId) {
+    return brandingRepository.deleteByCompanyId(companyId);
+  }
+
   private Branding mapToDomain(BrandingEntity entity) {
     return new Branding(
       entity.getBrandingId(),

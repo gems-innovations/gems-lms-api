@@ -20,17 +20,25 @@ public class LearningPathController {
   private final GetLearningPathsByInstitutionUseCase getLearningPathsByInstitutionUseCase;
   private final UpdateLearningPathUseCase updateLearningPathUseCase;
   private final DeleteLearningPathUseCase deleteLearningPathUseCase;
+  private final GetAllLearningPathsUseCase getAllLearningPathsUseCase;
 
   public LearningPathController(CreateLearningPathUseCase createLearningPathUseCase,
                                 GetLearningPathByIdUseCase getLearningPathByIdUseCase,
                                 GetLearningPathsByInstitutionUseCase getLearningPathsByInstitutionUseCase,
                                 UpdateLearningPathUseCase updateLearningPathUseCase,
-                                DeleteLearningPathUseCase deleteLearningPathUseCase) {
+                                DeleteLearningPathUseCase deleteLearningPathUseCase,
+                                GetAllLearningPathsUseCase getAllLearningPathsUseCase) {
     this.createLearningPathUseCase = createLearningPathUseCase;
     this.getLearningPathByIdUseCase = getLearningPathByIdUseCase;
     this.getLearningPathsByInstitutionUseCase = getLearningPathsByInstitutionUseCase;
     this.updateLearningPathUseCase = updateLearningPathUseCase;
     this.deleteLearningPathUseCase = deleteLearningPathUseCase;
+    this.getAllLearningPathsUseCase = getAllLearningPathsUseCase;
+  }
+
+  @GetMapping
+  public Mono<ResponseEntity<Flux<LearningPathResponse>>> getAllLearningPaths() {
+    return Mono.just(ResponseEntity.ok(getAllLearningPathsUseCase.execute()));
   }
 
   @PostMapping

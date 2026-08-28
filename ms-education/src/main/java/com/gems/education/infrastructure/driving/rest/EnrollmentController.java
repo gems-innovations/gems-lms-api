@@ -3,6 +3,7 @@ package com.gems.education.infrastructure.driving.rest;
 import com.gems.education.application.BulkEnrollStudentsUseCase;
 import com.gems.education.application.DeleteEnrollmentUseCase;
 import com.gems.education.application.EnrollStudentUseCase;
+import com.gems.education.application.GetEnrollmentByIdUseCase;
 import com.gems.education.application.GetEnrollmentsByCourseUseCase;
 import com.gems.education.application.GetStudentEnrollmentsUseCase;
 import com.gems.education.application.UpdateEnrollmentProgressUseCase;
@@ -28,19 +29,30 @@ public class EnrollmentController {
   private final GetEnrollmentsByCourseUseCase getEnrollmentsByCourseUseCase;
   private final UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase;
   private final DeleteEnrollmentUseCase deleteEnrollmentUseCase;
+  private final GetEnrollmentByIdUseCase getEnrollmentByIdUseCase;
 
   public EnrollmentController(EnrollStudentUseCase enrollStudentUseCase,
                                BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase,
                                GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase,
                                GetEnrollmentsByCourseUseCase getEnrollmentsByCourseUseCase,
                                UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase,
-                               DeleteEnrollmentUseCase deleteEnrollmentUseCase) {
+                               DeleteEnrollmentUseCase deleteEnrollmentUseCase,
+                               GetEnrollmentByIdUseCase getEnrollmentByIdUseCase) {
     this.enrollStudentUseCase = enrollStudentUseCase;
     this.bulkEnrollStudentsUseCase = bulkEnrollStudentsUseCase;
     this.getStudentEnrollmentsUseCase = getStudentEnrollmentsUseCase;
     this.getEnrollmentsByCourseUseCase = getEnrollmentsByCourseUseCase;
     this.updateEnrollmentProgressUseCase = updateEnrollmentProgressUseCase;
     this.deleteEnrollmentUseCase = deleteEnrollmentUseCase;
+    this.getEnrollmentByIdUseCase = getEnrollmentByIdUseCase;
+  }
+
+  @GetMapping("/{id}")
+  public Mono<ResponseEntity<EnrollmentResponse>> getEnrollmentById(@PathVariable Long id) {
+    return getEnrollmentByIdUseCase.execute(id)
+      .map(ResponseEntity::ok)
+      .onErrorResume(ex -> ex.getMessage() != null && ex.getMessage().contains("not found"),
+        ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
   }
 
   @PostMapping

@@ -9,4 +9,7 @@ public interface BrandingGateway {
   Mono<Branding> findByCompanyId(String companyId);
 
   Mono<Branding> update(Branding branding);
+
+  Mono<Void> deleteByCompanyId(String companyId);
 }
+

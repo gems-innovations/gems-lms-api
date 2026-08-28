@@ -11,5 +11,8 @@ public interface CourseGateway {
 
   Flux<Course> findByInstitutionId(String institutionId);
 
+  Flux<Course> findAll();
+
   Mono<Void> deleteById(Long id);
 }
+

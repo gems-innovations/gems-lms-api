@@ -29,13 +29,16 @@ public class BrandingController {
   private final CreateBrandingUseCase createBrandingUseCase;
   private final UpdateBrandingUseCase updateBrandingUseCase;
   private final GetBrandingByCompanyIdUseCase getBrandingByCompanyIdUseCase;
+  private final com.gems.admin.application.DeleteBrandingUseCase deleteBrandingUseCase;
 
   public BrandingController(CreateBrandingUseCase createBrandingUseCase,
                             UpdateBrandingUseCase updateBrandingUseCase,
-                            GetBrandingByCompanyIdUseCase getBrandingByCompanyIdUseCase) {
+                            GetBrandingByCompanyIdUseCase getBrandingByCompanyIdUseCase,
+                            com.gems.admin.application.DeleteBrandingUseCase deleteBrandingUseCase) {
     this.createBrandingUseCase = createBrandingUseCase;
     this.updateBrandingUseCase = updateBrandingUseCase;
     this.getBrandingByCompanyIdUseCase = getBrandingByCompanyIdUseCase;
+    this.deleteBrandingUseCase = deleteBrandingUseCase;
   }
 
   @PostMapping
@@ -139,5 +142,16 @@ public class BrandingController {
   public Mono<ResponseEntity<BrandingResponse>> getBrandingByCompanyId(@PathVariable String companyId) {
     return getBrandingByCompanyIdUseCase.execute(companyId)
       .map(ResponseEntity::ok);
+  }
+
+  @DeleteMapping("/{companyId}")
+  @Operation(
+    summary = "Delete branding",
+    description = "Deletes the branding configuration for a specific company"
+  )
+  @SecurityRequirement(name = "bearerAuth")
+  public Mono<ResponseEntity<Void>> deleteBranding(@PathVariable String companyId) {
+    return deleteBrandingUseCase.execute(companyId)
+      .then(Mono.just(ResponseEntity.noContent().<Void>build()));
   }
 }

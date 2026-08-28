@@ -73,6 +73,11 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public GetAllCoursesUseCase getAllCoursesUseCase(CourseGateway courseGateway) {
+    return new GetAllCoursesUseCase(courseGateway);
+  }
+
+  @Bean
   public QuizGateway quizGateway(IQuizRepository quizRepository, IQuestionRepository questionRepository) {
     return new QuizRepositoryAdapter(quizRepository, questionRepository);
   }
@@ -85,6 +90,21 @@ public class ApplicationConfig {
   @Bean
   public GetQuizByLessonUseCase getQuizByLessonUseCase(QuizGateway quizGateway) {
     return new GetQuizByLessonUseCase(quizGateway);
+  }
+
+  @Bean
+  public GetQuizByIdUseCase getQuizByIdUseCase(QuizGateway quizGateway) {
+    return new GetQuizByIdUseCase(quizGateway);
+  }
+
+  @Bean
+  public UpdateQuizUseCase updateQuizUseCase(QuizGateway quizGateway) {
+    return new UpdateQuizUseCase(quizGateway);
+  }
+
+  @Bean
+  public DeleteQuizUseCase deleteQuizUseCase(QuizGateway quizGateway) {
+    return new DeleteQuizUseCase(quizGateway);
   }
 
   @Bean
@@ -113,6 +133,11 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public GetAllLearningPathsUseCase getAllLearningPathsUseCase(LearningPathGateway learningPathGateway) {
+    return new GetAllLearningPathsUseCase(learningPathGateway);
+  }
+
+  @Bean
   public UpdateLearningPathUseCase updateLearningPathUseCase(LearningPathGateway learningPathGateway, CourseGateway courseGateway) {
     return new UpdateLearningPathUseCase(learningPathGateway, courseGateway);
   }
@@ -120,21 +145,6 @@ public class ApplicationConfig {
   @Bean
   public DeleteLearningPathUseCase deleteLearningPathUseCase(LearningPathGateway learningPathGateway) {
     return new DeleteLearningPathUseCase(learningPathGateway);
-  }
-
-  @Bean
-  public GetQuizByIdUseCase getQuizByIdUseCase(QuizGateway quizGateway) {
-    return new GetQuizByIdUseCase(quizGateway);
-  }
-
-  @Bean
-  public UpdateQuizUseCase updateQuizUseCase(QuizGateway quizGateway) {
-    return new UpdateQuizUseCase(quizGateway);
-  }
-
-  @Bean
-  public DeleteQuizUseCase deleteQuizUseCase(QuizGateway quizGateway) {
-    return new DeleteQuizUseCase(quizGateway);
   }
 
   @Bean
@@ -155,6 +165,11 @@ public class ApplicationConfig {
   @Bean
   public GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase(EnrollmentGateway enrollmentGateway, StudentGateway studentGateway) {
     return new GetStudentEnrollmentsUseCase(enrollmentGateway, studentGateway);
+  }
+
+  @Bean
+  public GetEnrollmentByIdUseCase getEnrollmentByIdUseCase(EnrollmentGateway enrollmentGateway) {
+    return new GetEnrollmentByIdUseCase(enrollmentGateway);
   }
 
   @Bean

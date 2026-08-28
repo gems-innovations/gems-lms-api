@@ -118,6 +118,12 @@ public class CourseRepositoryAdapter implements CourseGateway {
   }
 
   @Override
+  public Flux<Course> findAll() {
+    return courseRepository.findAll()
+      .flatMap(this::loadFullCourse);
+  }
+
+  @Override
   public Mono<Void> deleteById(Long id) {
     return courseRepository.deleteById(id);
   }

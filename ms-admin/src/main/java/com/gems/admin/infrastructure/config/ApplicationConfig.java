@@ -31,6 +31,11 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public DeleteBrandingUseCase deleteBrandingUseCase(BrandingGateway brandingGateway) {
+    return new DeleteBrandingUseCase(brandingGateway);
+  }
+
+  @Bean
   public InstitutionGateway institutionGateway(IInstitutionRepository institutionRepository,
                                                 IInstitutionMetadataRepository metadataRepository) {
     return new InstitutionRepositoryAdapter(institutionRepository, metadataRepository);

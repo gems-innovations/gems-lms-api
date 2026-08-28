@@ -79,6 +79,12 @@ public class LearningPathRepositoryAdapter implements LearningPathGateway {
   }
 
   @Override
+  public Flux<LearningPath> findAll() {
+    return learningPathRepository.findAll()
+      .flatMap(this::loadFullLearningPath);
+  }
+
+  @Override
   public Mono<Void> deleteById(Long id) {
     return learningPathRepository.deleteById(id);
   }

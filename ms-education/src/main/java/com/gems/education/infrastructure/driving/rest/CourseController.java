@@ -20,17 +20,25 @@ public class CourseController {
   private final UpdateCourseUseCase updateCourseUseCase;
   private final DeleteCourseUseCase deleteCourseUseCase;
   private final GetCoursesByInstitutionUseCase getCoursesByInstitutionUseCase;
+  private final GetAllCoursesUseCase getAllCoursesUseCase;
 
   public CourseController(CreateCourseUseCase createCourseUseCase,
                           GetCourseByIdUseCase getCourseByIdUseCase,
                           UpdateCourseUseCase updateCourseUseCase,
                           DeleteCourseUseCase deleteCourseUseCase,
-                          GetCoursesByInstitutionUseCase getCoursesByInstitutionUseCase) {
+                          GetCoursesByInstitutionUseCase getCoursesByInstitutionUseCase,
+                          GetAllCoursesUseCase getAllCoursesUseCase) {
     this.createCourseUseCase = createCourseUseCase;
     this.getCourseByIdUseCase = getCourseByIdUseCase;
     this.updateCourseUseCase = updateCourseUseCase;
     this.deleteCourseUseCase = deleteCourseUseCase;
     this.getCoursesByInstitutionUseCase = getCoursesByInstitutionUseCase;
+    this.getAllCoursesUseCase = getAllCoursesUseCase;
+  }
+
+  @GetMapping
+  public Mono<ResponseEntity<Flux<CourseResponse>>> getAllCourses() {
+    return Mono.just(ResponseEntity.ok(getAllCoursesUseCase.execute()));
   }
 
   @PostMapping

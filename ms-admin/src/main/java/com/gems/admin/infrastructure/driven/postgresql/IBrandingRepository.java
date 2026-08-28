@@ -5,4 +5,6 @@ import reactor.core.publisher.Mono;
 
 public interface IBrandingRepository extends ReactiveCrudRepository<BrandingEntity, Long> {
   Mono<BrandingEntity> findByCompanyId(String companyId);
+  Mono<Void> deleteByCompanyId(String companyId);
 }
+
