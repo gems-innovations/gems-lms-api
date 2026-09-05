@@ -4,6 +4,11 @@ server:
 spring:
   application:
     name: api-gateway
+  data:
+    redis:
+      host: "${REDIS_HOST:localhost}"
+      port: ${REDIS_PORT:6379}
+      password: "${REDIS_PASSWORD:redis_password}"
   cloud:
     gateway:
       routes:
@@ -59,3 +64,17 @@ jwt:
 auth:
   login:
     path: "/api/v1/auth/login"
+
+rate:
+  limit:
+    requests: ${RATE_LIMIT_REQUESTS:100}
+    window: ${RATE_LIMIT_WINDOW:60}
+    key:
+      prefix: "${RATE_LIMIT_KEY_PREFIX:rate_limit:}"
+
+cors:
+  allowed-origins: "${CORS_ALLOWED_ORIGINS:http://localhost:4200,http://localhost:3000}"
+  allowed-methods: "${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}"
+  allowed-headers: "${CORS_ALLOWED_HEADERS:*}"
+  allow-credentials: true
+  max-age: 3600
