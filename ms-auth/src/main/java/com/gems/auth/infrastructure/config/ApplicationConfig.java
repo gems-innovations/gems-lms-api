@@ -6,6 +6,7 @@ import com.gems.auth.application.GetUserByIdUseCase;
 import com.gems.auth.application.GetUsersByInstitutionUseCase;
 import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
+import com.gems.auth.application.ToggleUserStatusUseCase;
 import com.gems.auth.application.UpdateUserUseCase;
 import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
@@ -58,5 +59,10 @@ public class ApplicationConfig {
   @Bean
   public UpdateUserUseCase updateUserUseCase(UserGateway userGateway) {
     return new UpdateUserUseCase(userGateway);
+  }
+
+  @Bean
+  public ToggleUserStatusUseCase toggleUserStatusUseCase(UserGateway userGateway) {
+    return new ToggleUserStatusUseCase(userGateway);
   }
 }

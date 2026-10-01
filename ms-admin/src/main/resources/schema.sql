@@ -16,17 +16,23 @@ CREATE TABLE IF NOT EXISTS branding (
     branding_id BIGSERIAL PRIMARY KEY,
     company_id VARCHAR(100) NOT NULL,
     domain VARCHAR(100) UNIQUE,
+    type VARCHAR(20),
     logo_url VARCHAR(255),
+    icon_url VARCHAR(255),
     favicon_url VARCHAR(255),
     primary_color VARCHAR(7),
     secondary_color VARCHAR(7),
     accent_color VARCHAR(7),
     text_color VARCHAR(7),
+    background_color VARCHAR(7),
+    dark_mode BOOLEAN DEFAULT false,
     theme VARCHAR(7) DEFAULT 'light',
     login_background_url VARCHAR(255),
     custom_css TEXT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_branding_company_id ON branding(company_id);
 
 CREATE TABLE IF NOT EXISTS institutions (
     id VARCHAR(100) PRIMARY KEY,

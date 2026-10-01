@@ -43,8 +43,9 @@ public class ApplicationConfig {
   public CourseGateway courseGateway(ICourseRepository courseRepository,
                                      IModuleRepository moduleRepository,
                                      ILessonRepository lessonRepository,
-                                     IContentRepository contentRepository) {
-    return new CourseRepositoryAdapter(courseRepository, moduleRepository, lessonRepository, contentRepository);
+                                     IContentRepository contentRepository,
+                                     org.springframework.data.r2dbc.core.R2dbcEntityTemplate template) {
+    return new CourseRepositoryAdapter(courseRepository, moduleRepository, lessonRepository, contentRepository, template);
   }
 
   @Bean
@@ -153,18 +154,18 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public EnrollStudentUseCase enrollStudentUseCase(EnrollmentGateway enrollmentGateway, StudentGateway studentGateway, CourseGateway courseGateway) {
-    return new EnrollStudentUseCase(enrollmentGateway, studentGateway, courseGateway);
+  public EnrollStudentUseCase enrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
+    return new EnrollStudentUseCase(enrollmentGateway, courseGateway);
   }
 
   @Bean
-  public BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase(EnrollmentGateway enrollmentGateway, StudentGateway studentGateway, CourseGateway courseGateway) {
-    return new BulkEnrollStudentsUseCase(enrollmentGateway, studentGateway, courseGateway);
+  public BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
+    return new BulkEnrollStudentsUseCase(enrollmentGateway, courseGateway);
   }
 
   @Bean
-  public GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase(EnrollmentGateway enrollmentGateway, StudentGateway studentGateway) {
-    return new GetStudentEnrollmentsUseCase(enrollmentGateway, studentGateway);
+  public GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase(EnrollmentGateway enrollmentGateway) {
+    return new GetStudentEnrollmentsUseCase(enrollmentGateway);
   }
 
   @Bean

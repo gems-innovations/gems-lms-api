@@ -10,10 +10,18 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "Request object for user registration")
 public class RegisterUserRequest {
 
-  @Schema(description = "User's full name", example = "John Doe", requiredMode = Schema.RequiredMode.REQUIRED, minLength = 2, maxLength = 50)
+  @Schema(description = "User's first name", example = "John", requiredMode = Schema.RequiredMode.REQUIRED, minLength = 2, maxLength = 50)
   @NotBlank(message = AuthInfraConstants.NAME_REQUIRED_MESSAGE)
   @Size(min = 2, max = 50, message = AuthInfraConstants.NAME_SIZE_MESSAGE)
-  private String name;
+  private String firstName;
+
+  @Schema(description = "User's last name", example = "Doe", requiredMode = Schema.RequiredMode.REQUIRED, minLength = 2, maxLength = 50)
+  @NotBlank(message = AuthInfraConstants.NAME_REQUIRED_MESSAGE)
+  @Size(min = 2, max = 50, message = AuthInfraConstants.NAME_SIZE_MESSAGE)
+  private String lastName;
+
+  @Schema(description = "Unique username. Auto-generated from the name when omitted.", example = "john.doe")
+  private String username;
 
   @Schema(description = "User's email address", example = "john.doe@example.com", requiredMode = Schema.RequiredMode.REQUIRED)
   @NotBlank(message = AuthInfraConstants.EMAIL_REQUIRED_MESSAGE)
@@ -21,20 +29,17 @@ public class RegisterUserRequest {
   private String email;
 
   @Schema(
-      description = "User's password. Must contain at least 8 characters, including one lowercase, one uppercase, one digit, and one special character",
+      description = "User's password. Must contain at least 8 characters, including one lowercase, one uppercase, one digit, and one special character. When omitted, a temporary password is generated and returned in the response.",
       example = "SecurePass123!",
-      requiredMode = Schema.RequiredMode.REQUIRED,
       minLength = 8
   )
-  @NotBlank(message = AuthInfraConstants.PASSWORD_REQUIRED_MESSAGE)
-  @Size(min = 8, message = AuthInfraConstants.PASSWORD_SIZE_MESSAGE)
   @Pattern(
       regexp = AuthInfraConstants.PASSWORD_PATTERN_REGEX,
       message = AuthInfraConstants.PASSWORD_PATTERN_MESSAGE
   )
   private String password;
 
-  @Schema(description = "User's role in the system", example = "STUDENT", requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"STUDENT", "TEACHER", "ADMIN"})
+  @Schema(description = "User's role in the system", example = "STUDENT", requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"STUDENT", "INSTRUCTOR", "ADMIN", "SUPER_ADMIN"})
   @NotBlank(message = "Role is required")
   private String role;
 
@@ -44,24 +49,37 @@ public class RegisterUserRequest {
   public RegisterUserRequest() {
   }
 
-  public RegisterUserRequest(String name, String email, String password, String role) {
-    this(name, email, password, role, null);
-  }
-
-  public RegisterUserRequest(String name, String email, String password, String role, String institutionId) {
-    this.name = name;
+  public RegisterUserRequest(String firstName, String lastName, String email, String password, String role, String institutionId) {
+    this.firstName = firstName;
+    this.lastName = lastName;
     this.email = email;
     this.password = password;
     this.role = role;
     this.institutionId = institutionId;
   }
 
-  public String getName() {
-    return name;
+  public String getFirstName() {
+    return firstName;
   }
 
-  public void setName(String name) {
-    this.name = name;
+  public void setFirstName(String firstName) {
+    this.firstName = firstName;
+  }
+
+  public String getLastName() {
+    return lastName;
+  }
+
+  public void setLastName(String lastName) {
+    this.lastName = lastName;
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
   }
 
   public String getEmail() {

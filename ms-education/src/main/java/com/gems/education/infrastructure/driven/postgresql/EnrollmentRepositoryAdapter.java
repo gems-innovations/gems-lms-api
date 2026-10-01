@@ -23,6 +23,7 @@ public class EnrollmentRepositoryAdapter implements EnrollmentGateway {
       enrollment.getId(),
       enrollment.getStudentId(),
       enrollment.getCourseId(),
+      enrollment.getStatus() != null ? enrollment.getStatus() : "active",
       enrolledAt,
       enrollment.getProgress() != null ? enrollment.getProgress() : 0,
       enrollment.getCompletedAt()
@@ -70,6 +71,7 @@ public class EnrollmentRepositoryAdapter implements EnrollmentGateway {
       entity.getId(),
       entity.getStudentId(),
       entity.getCourseId(),
+      entity.getStatus(),
       entity.getEnrolledAt(),
       entity.getProgress(),
       entity.getCompletedAt()

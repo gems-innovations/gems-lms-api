@@ -1,53 +1,20 @@
 package com.gems.shared.security;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.reactive.CorsWebFilter;
-import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
-
-@Configuration
-public class CorsConfig {
-
-  @Value("${cors.allowed-origins}")
-  private String allowedOrigins;
-
-  @Value("${cors.allowed-methods}")
-  private String allowedMethods;
-
-  @Value("${cors.allowed-headers}")
-  private String allowedHeaders;
-
-  @Value("${cors.allow-credentials}")
-  private boolean allowCredentials;
-
-  @Value("${cors.max-age}")
-  private long maxAge;
-
-  @Bean
-  public CorsWebFilter corsWebFilter() {
-    CorsConfiguration corsConfig = new CorsConfiguration();
-
-    List<String> origins = Arrays.asList(allowedOrigins.split(","));
-    corsConfig.setAllowedOrigins(origins);
-
-    List<String> methods = Arrays.asList(allowedMethods.split(","));
-    corsConfig.setAllowedMethods(methods);
-
-    List<String> headers = Arrays.asList(allowedHeaders.split(","));
-    corsConfig.setAllowedHeaders(headers);
-
-    corsConfig.setAllowCredentials(allowCredentials);
-
-    corsConfig.setMaxAge(maxAge);
-
-    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-    source.registerCorsConfiguration("/**", corsConfig);
-
-    return new CorsWebFilter(source);
+/**
+ * CORS is now configured per-service via Spring Security's native {@code .cors(...)} in each
+ * SecurityConfig, registered at {@code SecurityWebFiltersOrder.CORS} — a stage that runs before
+ * AUTHENTICATION, so a preflight OPTIONS request (which never carries an Authorization header)
+ * is answered before the JWT filter ever sees it.
+ *
+ * <p>A generic {@code CorsWebFilter} bean here previously ran alongside that per-service Security
+ * CORS config with no defined ordering between them, which either duplicated the
+ * Access-Control-Allow-Origin header (browsers reject that outright) or — once the per-service
+ * config was removed to fix the duplication — left it running after AUTHENTICATION, causing
+ * every preflight to be rejected with 401 before CORS could respond. Kept as an empty class
+ * (rather than deleted) so any lingering references fail to compile loudly instead of silently
+ * reintroducing one of those two bugs.
+ */
+public final class CorsConfig {
+  private CorsConfig() {
   }
 }

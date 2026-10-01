@@ -55,7 +55,7 @@ public class UpdateLearningPathUseCase {
   private LearningPathResponse mapToResponse(LearningPath lp) {
     List<CourseResponse> courseResponses = new ArrayList<>();
     if (lp.getCourses() != null) {
-      courseResponses = lp.getCourses().stream().map(this::mapCourseToResponse).collect(Collectors.toList());
+      courseResponses = lp.getCourses().stream().map(CourseResponseMapper::toResponse).collect(Collectors.toList());
     }
 
     return new LearningPathResponse(
@@ -65,38 +65,6 @@ public class UpdateLearningPathUseCase {
       lp.getInstitutionId(),
       lp.getCreatedAt(),
       courseResponses
-    );
-  }
-
-  private CourseResponse mapCourseToResponse(Course course) {
-    List<ModuleResponse> moduleResponses = new ArrayList<>();
-    if (course.getModules() != null) {
-      moduleResponses = course.getModules().stream().map(m -> {
-        List<LessonResponse> lessonResponses = new ArrayList<>();
-        if (m.getLessons() != null) {
-          lessonResponses = m.getLessons().stream().map(l -> {
-            List<ContentResponse> contentResponses = new ArrayList<>();
-            if (l.getContents() != null) {
-              contentResponses = l.getContents().stream()
-                .map(c -> new ContentResponse(c.getId(), c.getLessonId(), c.getType(), c.getValue(), c.getOrderIndex()))
-                .collect(Collectors.toList());
-            }
-            return new LessonResponse(l.getId(), l.getModuleId(), l.getTitle(), l.getOrderIndex(), contentResponses);
-          }).collect(Collectors.toList());
-        }
-        return new ModuleResponse(m.getId(), m.getCourseId(), m.getTitle(), m.getOrderIndex(), lessonResponses);
-      }).collect(Collectors.toList());
-    }
-
-    return new CourseResponse(
-      course.getId(),
-      course.getTitle(),
-      course.getDescription(),
-      course.getStatus(),
-      course.getInstitutionId(),
-      course.getCreatedAt(),
-      course.getUpdatedAt(),
-      moduleResponses
     );
   }
 }

@@ -16,6 +16,8 @@ public class EnrollmentEntity {
   @Column("course_id")
   private Long courseId;
 
+  private String status;
+
   @Column("enrolled_at")
   private LocalDateTime enrolledAt;
 
@@ -27,10 +29,12 @@ public class EnrollmentEntity {
   public EnrollmentEntity() {
   }
 
-  public EnrollmentEntity(Long id, Long studentId, Long courseId, LocalDateTime enrolledAt, Integer progress, LocalDateTime completedAt) {
+  public EnrollmentEntity(Long id, Long studentId, Long courseId, String status, LocalDateTime enrolledAt,
+                          Integer progress, LocalDateTime completedAt) {
     this.id = id;
     this.studentId = studentId;
     this.courseId = courseId;
+    this.status = status;
     this.enrolledAt = enrolledAt;
     this.progress = progress;
     this.completedAt = completedAt;
@@ -58,6 +62,14 @@ public class EnrollmentEntity {
 
   public void setCourseId(Long courseId) {
     this.courseId = courseId;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
   }
 
   public LocalDateTime getEnrolledAt() {

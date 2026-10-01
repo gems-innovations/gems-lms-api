@@ -10,53 +10,61 @@ import java.time.LocalDateTime;
 
 public class User {
   private UserId id;
-  private final UserName name;
+  private final UserName firstName;
+  private final UserName lastName;
+  private final String username;
   private final Email email;
   private final Password password;
   private final UserRole role;
   private String institutionId;
+  private String avatarUrl;
   private final LocalDateTime createdAt;
   private LocalDateTime updatedAt;
   private Boolean active;
 
-  public User(Long id, String name, String email, String password, UserRole role, String institutionId) {
+  public User(Long id, String firstName, String lastName, String username, String email, String password,
+              UserRole role, String institutionId, String avatarUrl) {
     this.id = new UserId(id);
-    this.name = new UserName(name);
+    this.firstName = new UserName(firstName);
+    this.lastName = new UserName(lastName);
+    this.username = username;
     this.email = new Email(email);
     this.password = new Password(password);
     this.role = role;
     this.institutionId = institutionId;
+    this.avatarUrl = avatarUrl;
     this.createdAt = LocalDateTime.now();
     this.updatedAt = LocalDateTime.now();
     this.active = true;
   }
 
-  public User(Long id, String name, String email, String password, UserRole role) {
-    this(id, name, email, password, role, null);
-  }
-
-  public User(String name, String email, String password, UserRole role, String institutionId) {
-    this.name = new UserName(name);
+  public User(String firstName, String lastName, String username, String email, String password,
+              UserRole role, String institutionId, String avatarUrl) {
+    this.firstName = new UserName(firstName);
+    this.lastName = new UserName(lastName);
+    this.username = username;
     this.email = new Email(email);
     this.password = new Password(password);
     this.role = role;
     this.institutionId = institutionId;
+    this.avatarUrl = avatarUrl;
     this.createdAt = LocalDateTime.now();
     this.updatedAt = LocalDateTime.now();
     this.active = true;
   }
 
-  public User(String name, String email, String password, UserRole role) {
-    this(name, email, password, role, null);
-  }
-
-  public User(UserId id, UserName name, Email email, Password password, UserRole role, String institutionId, LocalDateTime createdAt, LocalDateTime updatedAt, Boolean active) {
+  public User(UserId id, UserName firstName, UserName lastName, String username, Email email, Password password,
+              UserRole role, String institutionId, String avatarUrl, LocalDateTime createdAt,
+              LocalDateTime updatedAt, Boolean active) {
     this.id = id;
-    this.name = name;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.username = username;
     this.email = email;
     this.password = password;
     this.role = role;
     this.institutionId = institutionId;
+    this.avatarUrl = avatarUrl;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
     this.active = active;
@@ -66,8 +74,16 @@ public class User {
     return id;
   }
 
-  public UserName getName() {
-    return name;
+  public UserName getFirstName() {
+    return firstName;
+  }
+
+  public UserName getLastName() {
+    return lastName;
+  }
+
+  public String getUsername() {
+    return username;
   }
 
   public Email getEmail() {
@@ -90,6 +106,14 @@ public class User {
     this.institutionId = institutionId;
   }
 
+  public String getAvatarUrl() {
+    return avatarUrl;
+  }
+
+  public void setAvatarUrl(String avatarUrl) {
+    this.avatarUrl = avatarUrl;
+  }
+
   public LocalDateTime getCreatedAt() {
     return createdAt;
   }
@@ -104,6 +128,11 @@ public class User {
 
   public void deactivate() {
     this.active = false;
+    this.updatedAt = LocalDateTime.now();
+  }
+
+  public void activate() {
+    this.active = true;
     this.updatedAt = LocalDateTime.now();
   }
 }

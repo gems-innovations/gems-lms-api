@@ -6,29 +6,38 @@ public class Branding {
   private Long brandingId;
   private String companyId;
   private String domain;
+  private String type;
   private String logoUrl;
+  private String iconUrl;
   private String faviconUrl;
   private String primaryColor;
   private String secondaryColor;
   private String accentColor;
   private String textColor;
+  private String backgroundColor;
+  private Boolean darkMode;
   private String theme;
   private String loginBackgroundUrl;
   private String customCss;
   private LocalDateTime updatedAt;
 
-  public Branding(Long brandingId, String companyId, String domain, String logoUrl, String faviconUrl,
-                  String primaryColor, String secondaryColor, String accentColor, String textColor,
-                  String theme, String loginBackgroundUrl, String customCss, LocalDateTime updatedAt) {
+  public Branding(Long brandingId, String companyId, String domain, String type, String logoUrl, String iconUrl,
+                  String faviconUrl, String primaryColor, String secondaryColor, String accentColor,
+                  String textColor, String backgroundColor, Boolean darkMode, String theme,
+                  String loginBackgroundUrl, String customCss, LocalDateTime updatedAt) {
     this.brandingId = brandingId;
     this.companyId = companyId;
     this.domain = domain;
+    this.type = type;
     this.logoUrl = logoUrl;
+    this.iconUrl = iconUrl;
     this.faviconUrl = faviconUrl;
     this.primaryColor = primaryColor;
     this.secondaryColor = secondaryColor;
     this.accentColor = accentColor;
     this.textColor = textColor;
+    this.backgroundColor = backgroundColor;
+    this.darkMode = darkMode;
     this.theme = theme;
     this.loginBackgroundUrl = loginBackgroundUrl;
     this.customCss = customCss;
@@ -76,6 +85,38 @@ public class Branding {
 
   public void setFaviconUrl(String faviconUrl) {
     this.faviconUrl = faviconUrl;
+  }
+
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
+
+  public String getIconUrl() {
+    return iconUrl;
+  }
+
+  public void setIconUrl(String iconUrl) {
+    this.iconUrl = iconUrl;
+  }
+
+  public String getBackgroundColor() {
+    return backgroundColor;
+  }
+
+  public void setBackgroundColor(String backgroundColor) {
+    this.backgroundColor = backgroundColor;
+  }
+
+  public Boolean getDarkMode() {
+    return darkMode;
+  }
+
+  public void setDarkMode(Boolean darkMode) {
+    this.darkMode = darkMode;
   }
 
   public String getPrimaryColor() {

@@ -25,8 +25,12 @@ public class UpdateEnrollmentProgressUseCase {
         enrollment.setProgress(progress);
         if (progress == 100) {
           enrollment.setCompletedAt(LocalDateTime.now());
+          enrollment.setStatus("completed");
         } else {
           enrollment.setCompletedAt(null);
+          if ("completed".equals(enrollment.getStatus())) {
+            enrollment.setStatus("active");
+          }
         }
         return enrollmentGateway.save(enrollment);
       })
@@ -34,6 +38,7 @@ public class UpdateEnrollmentProgressUseCase {
         enrollment.getId(),
         enrollment.getStudentId(),
         enrollment.getCourseId(),
+        enrollment.getStatus(),
         enrollment.getEnrolledAt(),
         enrollment.getProgress(),
         enrollment.getCompletedAt()

@@ -26,10 +26,7 @@ public class GetAllLearningPathsUseCase {
     List<CourseResponse> courseResponses = new ArrayList<>();
     if (learningPath.getCourses() != null) {
       courseResponses = learningPath.getCourses().stream()
-        .map(c -> new CourseResponse(
-          c.getId(), c.getTitle(), c.getDescription(), c.getStatus(),
-          c.getInstitutionId(), c.getCreatedAt(), c.getUpdatedAt(), new ArrayList<>()
-        ))
+        .map(CourseResponseMapper::toResponse)
         .collect(Collectors.toList());
     }
 

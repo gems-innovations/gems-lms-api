@@ -2,10 +2,7 @@ package com.gems.education.application;
 
 import com.gems.education.application.command.CourseCommand;
 import com.gems.education.application.gateway.CourseGateway;
-import com.gems.education.application.response.ContentResponse;
 import com.gems.education.application.response.CourseResponse;
-import com.gems.education.application.response.LessonResponse;
-import com.gems.education.application.response.ModuleResponse;
 import com.gems.education.domain.entities.Content;
 import com.gems.education.domain.entities.Course;
 import com.gems.education.domain.entities.Lesson;
@@ -16,7 +13,6 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class UpdateCourseUseCase {
   private final CourseGateway courseGateway;
@@ -29,65 +25,43 @@ public class UpdateCourseUseCase {
     return courseGateway.findById(id)
       .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + id)))
       .flatMap(existing -> {
-        existing.setTitle(command.getTitle());
-        existing.setDescription(command.getDescription());
-        existing.setStatus(command.getStatus() != null ? command.getStatus() : existing.getStatus());
+        if (command.getTitle() != null) existing.setTitle(command.getTitle());
+        if (command.getDescription() != null) existing.setDescription(command.getDescription());
+        if (command.getDifficulty() != null) existing.setDifficulty(command.getDifficulty());
+        if (command.getTags() != null) existing.setTags(command.getTags());
+        if (command.getThumbnailUrl() != null) existing.setThumbnailUrl(command.getThumbnailUrl());
+        if (command.getInstructorName() != null) existing.setInstructorName(command.getInstructorName());
+
+        boolean isBeingPublished = command.getStatus() != null
+          && "published".equals(command.getStatus())
+          && !"published".equals(existing.getStatus());
+        if (command.getStatus() != null) existing.setStatus(command.getStatus());
+        if (isBeingPublished) existing.setPublishedAt(LocalDateTime.now());
+
         existing.setUpdatedAt(LocalDateTime.now());
 
-        List<Module> modules = new ArrayList<>();
         if (command.getModules() != null) {
+          List<Module> modules = new ArrayList<>();
           command.getModules().forEach(mCmd -> {
             List<Lesson> lessons = new ArrayList<>();
             if (mCmd.getLessons() != null) {
               mCmd.getLessons().forEach(lCmd -> {
                 List<Content> contents = new ArrayList<>();
                 if (lCmd.getContents() != null) {
-                  lCmd.getContents().forEach(cCmd -> {
-                    contents.add(new Content(null, null, cCmd.getType(), cCmd.getValue(), cCmd.getOrderIndex()));
-                  });
+                  lCmd.getContents().forEach(cCmd ->
+                    contents.add(new Content(null, null, cCmd.getType(), cCmd.getValue(), cCmd.getOrderIndex())));
                 }
                 lessons.add(new Lesson(null, null, lCmd.getTitle(), lCmd.getOrderIndex(), contents));
               });
             }
             modules.add(new Module(null, null, mCmd.getTitle(), mCmd.getOrderIndex(), lessons));
           });
+          existing.setModules(modules);
+          existing.setTotalLessons(modules.stream().mapToInt(m -> m.getLessons() == null ? 0 : m.getLessons().size()).sum());
         }
-        existing.setModules(modules);
 
         return courseGateway.save(existing)
-          .map(this::mapToResponse);
+          .map(CourseResponseMapper::toResponse);
       });
-  }
-
-  private CourseResponse mapToResponse(Course course) {
-    List<ModuleResponse> moduleResponses = new ArrayList<>();
-    if (course.getModules() != null) {
-      moduleResponses = course.getModules().stream().map(m -> {
-        List<LessonResponse> lessonResponses = new ArrayList<>();
-        if (m.getLessons() != null) {
-          lessonResponses = m.getLessons().stream().map(l -> {
-            List<ContentResponse> contentResponses = new ArrayList<>();
-            if (l.getContents() != null) {
-              contentResponses = l.getContents().stream()
-                .map(c -> new ContentResponse(c.getId(), c.getLessonId(), c.getType(), c.getValue(), c.getOrderIndex()))
-                .collect(Collectors.toList());
-            }
-            return new LessonResponse(l.getId(), l.getModuleId(), l.getTitle(), l.getOrderIndex(), contentResponses);
-          }).collect(Collectors.toList());
-        }
-        return new ModuleResponse(m.getId(), m.getCourseId(), m.getTitle(), m.getOrderIndex(), lessonResponses);
-      }).collect(Collectors.toList());
-    }
-
-    return new CourseResponse(
-      course.getId(),
-      course.getTitle(),
-      course.getDescription(),
-      course.getStatus(),
-      course.getInstitutionId(),
-      course.getCreatedAt(),
-      course.getUpdatedAt(),
-      moduleResponses
-    );
   }
 }

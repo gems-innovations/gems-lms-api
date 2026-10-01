@@ -16,7 +16,10 @@ public class CourseMapper {
   }
 
   public static CourseCommand toCommand(CourseRequest request) {
-    List<ModuleCommand> modules = new ArrayList<>();
+    // Stays null (rather than defaulting to an empty list) when the request omits modules
+    // entirely, so UpdateCourseUseCase can tell "not sent, leave existing modules alone"
+    // apart from "sent as an empty array, clear all modules" instead of always wiping them.
+    List<ModuleCommand> modules = null;
     if (request.getModules() != null) {
       modules = request.getModules().stream().map(mReq -> {
         List<LessonCommand> lessons = new ArrayList<>();
@@ -39,6 +42,10 @@ public class CourseMapper {
       request.getTitle(),
       request.getDescription(),
       request.getStatus(),
+      request.getDifficulty(),
+      request.getTags(),
+      request.getThumbnailUrl(),
+      request.getInstructorName(),
       request.getInstitutionId(),
       modules
     );

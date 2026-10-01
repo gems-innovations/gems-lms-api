@@ -27,8 +27,8 @@ class GetUsersByInstitutionUseCaseTest {
   void shouldReturnUsersInInstitution() {
     // Given
     String institutionId = "inst-123";
-    User user1 = new User(1L, "User One", "one@example.com", "SecurePass123!", UserRole.STUDENT, institutionId);
-    User user2 = new User(2L, "User Two", "two@example.com", "SecurePass123!", UserRole.TEACHER, institutionId);
+    User user1 = new User(1L, "User", "One", "user.one", "one@example.com", "SecurePass123!", UserRole.STUDENT, institutionId, null);
+    User user2 = new User(2L, "User", "Two", "user.two", "two@example.com", "SecurePass123!", UserRole.INSTRUCTOR, institutionId, null);
 
     when(userGateway.findByInstitutionId(institutionId)).thenReturn(Flux.just(user1, user2));
 
@@ -39,14 +39,16 @@ class GetUsersByInstitutionUseCaseTest {
     StepVerifier.create(result)
       .expectNextMatches(response ->
         response.userId().equals(1L) &&
-          response.name().equals("User One") &&
+          response.firstName().equals("User") &&
+          response.lastName().equals("One") &&
           response.role().equals("STUDENT") &&
           response.institutionId().equals(institutionId)
       )
       .expectNextMatches(response ->
         response.userId().equals(2L) &&
-          response.name().equals("User Two") &&
-          response.role().equals("TEACHER") &&
+          response.firstName().equals("User") &&
+          response.lastName().equals("Two") &&
+          response.role().equals("INSTRUCTOR") &&
           response.institutionId().equals(institutionId)
       )
       .verifyComplete();

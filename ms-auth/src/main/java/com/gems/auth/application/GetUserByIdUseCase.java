@@ -18,10 +18,13 @@ public class GetUserByIdUseCase {
       .switchIfEmpty(Mono.error(new UserNotFoundException("User not found with ID: " + id)))
       .map(user -> new UserResponse(
         user.getId().getValue(),
-        user.getName().getValue(),
+        user.getFirstName().getValue(),
+        user.getLastName().getValue(),
+        user.getUsername(),
         user.getEmail().getValue(),
         user.getRole().name(),
         user.getInstitutionId(),
+        user.getAvatarUrl(),
         user.getCreatedAt(),
         user.getUpdatedAt(),
         user.isActive()

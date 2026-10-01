@@ -4,7 +4,7 @@ import com.gems.auth.domain.constants.AuthDomainConstants;
 
 public enum UserRole {
   STUDENT,
-  TEACHER,
+  INSTRUCTOR,
   ADMIN,
   SUPER_ADMIN;
 

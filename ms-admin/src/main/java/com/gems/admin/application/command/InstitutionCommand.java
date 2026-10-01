@@ -5,6 +5,7 @@ public record InstitutionCommand(
   String name,
   String type,
   String status,
-  InstitutionMetadataCommand metadata
+  InstitutionMetadataCommand metadata,
+  InstitutionBrandingCommand branding
 ) {
 }

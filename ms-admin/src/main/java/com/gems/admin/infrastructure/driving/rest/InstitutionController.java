@@ -2,13 +2,13 @@ package com.gems.admin.infrastructure.driving.rest;
 
 import com.gems.admin.application.*;
 import com.gems.admin.application.command.InstitutionCommand;
+import com.gems.admin.application.response.InstitutionListResponse;
 import com.gems.admin.application.response.InstitutionResponse;
 import com.gems.admin.infrastructure.driving.rest.mapper.InstitutionMapper;
 import com.gems.admin.infrastructure.driving.rest.request.InstitutionRequest;
 import com.gems.admin.infrastructure.driving.rest.response.ErrorResponse;
 import com.gems.admin.infrastructure.driving.rest.schemas.InstitutionResponseSchema;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,7 +19,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -64,19 +63,22 @@ public class InstitutionController {
   }
 
   @GetMapping
-  @Operation(summary = "Get all institutions", description = "Lists all registered institutions. Requires authentication.")
+  @Operation(summary = "Get all institutions", description = "Lists registered institutions with optional search/status filters and pagination. Requires authentication.")
   @SecurityRequirement(name = "bearerAuth")
   @ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Institutions successfully retrieved",
-      content = @Content(array = @ArraySchema(schema = @Schema(implementation = InstitutionResponseSchema.class)))),
+    @ApiResponse(responseCode = "200", description = "Institutions successfully retrieved"),
     @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid or missing JWT token",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
     @ApiResponse(responseCode = "500", description = "Internal server error",
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
-  public Mono<ResponseEntity<Flux<InstitutionResponse>>> getAllInstitutions() {
-    Flux<InstitutionResponse> institutions = getAllInstitutionsUseCase.execute();
-    return Mono.just(ResponseEntity.ok(institutions));
+  public Mono<ResponseEntity<InstitutionListResponse>> getAllInstitutions(
+      @RequestParam(required = false) String search,
+      @RequestParam(required = false) String status,
+      @RequestParam(defaultValue = "1") int page,
+      @RequestParam(defaultValue = "10") int limit) {
+    return getAllInstitutionsUseCase.execute(search, status, page, limit)
+      .map(ResponseEntity::ok);
   }
 
   @GetMapping("/{id}")

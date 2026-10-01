@@ -74,7 +74,7 @@ class JwtAdapterTest {
   void shouldExtractUserIdFromToken() {
     // Given
     Long userId = 456L;
-    String role = "TEACHER";
+    String role = "INSTRUCTOR";
     String token = jwtAdapter.generateToken(userId, role);
 
     // When
@@ -119,7 +119,7 @@ class JwtAdapterTest {
   @Test
   void shouldHandleDifferentRoles() {
     // Test different role types
-    String[] roles = {"STUDENT", "TEACHER", "ADMIN", "SUPER_ADMIN"};
+    String[] roles = {"STUDENT", "INSTRUCTOR", "ADMIN", "SUPER_ADMIN"};
 
     for (String role : roles) {
       // When

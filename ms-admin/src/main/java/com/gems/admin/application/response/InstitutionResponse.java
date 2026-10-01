@@ -10,6 +10,7 @@ public record InstitutionResponse(
   Integer usersCount,
   LocalDateTime createdAt,
   LocalDateTime updatedAt,
-  InstitutionMetadataResponse metadata
+  InstitutionMetadataResponse metadata,
+  InstitutionBrandingResponse branding
 ) {
 }

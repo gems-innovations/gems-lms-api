@@ -3,40 +3,38 @@ package com.gems.education.application;
 import com.gems.education.application.command.EnrollmentCommand;
 import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.application.gateway.EnrollmentGateway;
-import com.gems.education.application.gateway.StudentGateway;
 import com.gems.education.application.response.EnrollmentResponse;
 import com.gems.education.domain.entities.Enrollment;
-import com.gems.education.domain.values.StudentId;
 import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
-import com.gems.education.infrastructure.driving.rest.exeption.StudentNotFoundException;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 
+/**
+ * Enrolls a user (identified by their ms-auth user id, passed here as "studentId") in a course.
+ * Deliberately does not require a matching row in the local `students` table — that table is a
+ * separate legacy student-profile registry (name, birth date, document, etc.) unrelated to the
+ * ms-auth account actually doing the enrolling, and the frontend never populates it before
+ * enrolling. Requiring it would make every enrollment fail with "student not found".
+ */
 public class EnrollStudentUseCase {
   private final EnrollmentGateway enrollmentGateway;
-  private final StudentGateway studentGateway;
   private final CourseGateway courseGateway;
 
-  public EnrollStudentUseCase(EnrollmentGateway enrollmentGateway,
-                              StudentGateway studentGateway,
-                              CourseGateway courseGateway) {
+  public EnrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
     this.enrollmentGateway = enrollmentGateway;
-    this.studentGateway = studentGateway;
     this.courseGateway = courseGateway;
   }
 
   public Mono<EnrollmentResponse> execute(EnrollmentCommand command) {
-    StudentId sIdVo = new StudentId(command.getStudentId());
-    return studentGateway.findById(sIdVo)
-      .switchIfEmpty(Mono.error(new StudentNotFoundException("Student not found with ID " + command.getStudentId())))
-      .flatMap(student -> courseGateway.findById(command.getCourseId())
-        .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + command.getCourseId())))
-      )
+    return courseGateway.findById(command.getCourseId())
+      .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + command.getCourseId())))
       .flatMap(course -> enrollmentGateway.findByStudentIdAndCourseId(command.getStudentId(), command.getCourseId())
         .switchIfEmpty(Mono.defer(() -> {
-          Enrollment enrollment = new Enrollment(null, command.getStudentId(), command.getCourseId(), LocalDateTime.now(), 0, null);
-          return enrollmentGateway.save(enrollment);
+          Enrollment enrollment = new Enrollment(null, command.getStudentId(), command.getCourseId(), "active",
+            LocalDateTime.now(), 0, null);
+          return enrollmentGateway.save(enrollment)
+            .flatMap(saved -> courseGateway.incrementEnrolledCount(command.getCourseId()).thenReturn(saved));
         }))
       )
       .map(this::mapToResponse);
@@ -47,6 +45,7 @@ public class EnrollStudentUseCase {
       enrollment.getId(),
       enrollment.getStudentId(),
       enrollment.getCourseId(),
+      enrollment.getStatus(),
       enrollment.getEnrolledAt(),
       enrollment.getProgress(),
       enrollment.getCompletedAt()

@@ -43,6 +43,11 @@ public class UserRepositoryAdapter implements UserGateway {
   }
 
   @Override
+  public Mono<Boolean> existsByUsername(String username) {
+    return userRepository.existsByUsername(username);
+  }
+
+  @Override
   public Mono<Void> deleteById(UserId id) {
     return userRepository.deleteById(id.getValue());
   }
@@ -62,11 +67,14 @@ public class UserRepositoryAdapter implements UserGateway {
   private User mapToDomain(UserEntity userEntity) {
     return new User(
       new UserId(userEntity.getUserId()),
-      new UserName(userEntity.getName()),
+      new UserName(userEntity.getFirstName()),
+      new UserName(userEntity.getLastName()),
+      userEntity.getUsername(),
       new Email(userEntity.getEmail()),
       new Password(userEntity.getPassword()),
       UserRole.valueOf(userEntity.getRole()),
       userEntity.getInstitutionId(),
+      userEntity.getAvatarUrl(),
       userEntity.getCreatedAt(),
       userEntity.getUpdatedAt(),
       userEntity.isActive()
@@ -76,11 +84,14 @@ public class UserRepositoryAdapter implements UserGateway {
   private UserEntity mapToEntity(User user) {
     return new UserEntity(
       user.getId() != null ? user.getId().getValue() : null,
-      user.getName().getValue(),
+      user.getFirstName().getValue(),
+      user.getLastName().getValue(),
+      user.getUsername(),
       user.getEmail().getValue(),
       user.getPassword().getValue(),
       user.getRole().name(),
       user.getInstitutionId(),
+      user.getAvatarUrl(),
       user.isActive(),
       user.getCreatedAt(),
       user.getUpdatedAt()

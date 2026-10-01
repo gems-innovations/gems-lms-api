@@ -16,7 +16,7 @@ public class GetEnrollmentByIdUseCase {
     return enrollmentGateway.findById(id)
       .switchIfEmpty(Mono.error(new EnrollmentNotFoundException("Enrollment not found with ID: " + id)))
       .map(e -> new EnrollmentResponse(
-        e.getId(), e.getStudentId(), e.getCourseId(),
+        e.getId(), e.getStudentId(), e.getCourseId(), e.getStatus(),
         e.getEnrolledAt(), e.getProgress(), e.getCompletedAt()
       ));
   }

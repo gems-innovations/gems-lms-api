@@ -3,6 +3,9 @@ package com.gems.admin.infrastructure.driven.postgresql;
 import com.gems.admin.application.gateway.InstitutionGateway;
 import com.gems.admin.domain.entities.Institution;
 import com.gems.admin.domain.entities.InstitutionMetadata;
+import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
+import org.springframework.data.relational.core.query.Criteria;
+import org.springframework.data.relational.core.query.Query;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -11,11 +14,50 @@ import reactor.core.publisher.Mono;
 public class InstitutionRepositoryAdapter implements InstitutionGateway {
   private final IInstitutionRepository institutionRepository;
   private final IInstitutionMetadataRepository metadataRepository;
+  private final R2dbcEntityTemplate template;
 
   public InstitutionRepositoryAdapter(IInstitutionRepository institutionRepository,
-                                      IInstitutionMetadataRepository metadataRepository) {
+                                      IInstitutionMetadataRepository metadataRepository,
+                                      R2dbcEntityTemplate template) {
     this.institutionRepository = institutionRepository;
     this.metadataRepository = metadataRepository;
+    this.template = template;
+  }
+
+  private Criteria buildCriteria(String search, String status) {
+    Criteria criteria = Criteria.empty();
+    if (search != null && !search.isBlank()) {
+      criteria = criteria.and(Criteria.where("name").like("%" + search.trim() + "%").ignoreCase(true));
+    }
+    if (status != null && !status.isBlank()) {
+      criteria = criteria.and(Criteria.where("status").is(status));
+    }
+    return criteria;
+  }
+
+  @Override
+  public Flux<Institution> findPage(String search, String status, int offset, int limit) {
+    Query query = Query.query(buildCriteria(search, status))
+      .sort(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "created_at"))
+      .offset(offset)
+      .limit(limit);
+
+    return template.select(query, InstitutionEntity.class)
+      .flatMap(entity -> {
+        entity.setNew(false);
+        return metadataRepository.findById(entity.getId())
+          .map(meta -> {
+            meta.setNew(false);
+            return mapToDomain(entity, meta);
+          })
+          .defaultIfEmpty(mapToDomain(entity, null));
+      });
+  }
+
+  @Override
+  public Mono<Long> count(String search, String status) {
+    Query query = Query.query(buildCriteria(search, status));
+    return template.count(query, InstitutionEntity.class);
   }
 
   @Override

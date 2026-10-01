@@ -2,40 +2,41 @@ package com.gems.admin.infrastructure.driving.rest.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 @Schema(description = "Request object for creating or updating an institution")
 public class InstitutionRequest {
 
-  @Schema(description = "Institution unique ID", example = "inst-001")
-  @NotBlank(message = "Institution ID is required")
+  @Schema(description = "Institution unique ID. Auto-generated from the name when omitted on creation.", example = "inst-001")
   private String id;
 
   @Schema(description = "Institution name", example = "Gems University")
   @NotBlank(message = "Institution name is required")
   private String name;
 
-  @Schema(description = "Institution type", example = "UNIVERSITY")
+  @Schema(description = "Institution type", example = "university")
   @NotBlank(message = "Institution type is required")
   private String type;
 
-  @Schema(description = "Institution status", example = "ACTIVE")
-  @NotBlank(message = "Institution status is required")
+  @Schema(description = "Institution status. Defaults to 'pending' on creation when omitted.", example = "active")
   private String status;
 
   @Schema(description = "Institution metadata details")
-  @NotNull(message = "Institution metadata is required")
   private InstitutionMetadataRequest metadata;
+
+  @Schema(description = "Institution branding configuration")
+  private InstitutionBrandingRequest branding;
 
   public InstitutionRequest() {
   }
 
-  public InstitutionRequest(String id, String name, String type, String status, InstitutionMetadataRequest metadata) {
+  public InstitutionRequest(String id, String name, String type, String status, InstitutionMetadataRequest metadata,
+                            InstitutionBrandingRequest branding) {
     this.id = id;
     this.name = name;
     this.type = type;
     this.status = status;
     this.metadata = metadata;
+    this.branding = branding;
   }
 
   public String getId() {
@@ -76,5 +77,13 @@ public class InstitutionRequest {
 
   public void setMetadata(InstitutionMetadataRequest metadata) {
     this.metadata = metadata;
+  }
+
+  public InstitutionBrandingRequest getBranding() {
+    return branding;
+  }
+
+  public void setBranding(InstitutionBrandingRequest branding) {
+    this.branding = branding;
   }
 }

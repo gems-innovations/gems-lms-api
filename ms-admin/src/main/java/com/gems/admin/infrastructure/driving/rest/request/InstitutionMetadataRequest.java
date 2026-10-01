@@ -1,8 +1,6 @@
 package com.gems.admin.infrastructure.driving.rest.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 @Schema(description = "Request object for institution metadata")
 public class InstitutionMetadataRequest {
@@ -14,7 +12,6 @@ public class InstitutionMetadataRequest {
   private String website;
 
   @Schema(description = "Contact Email", example = "contact@example.edu")
-  @NotBlank(message = "Contact email is required")
   private String contactEmail;
 
   @Schema(description = "Phone Number", example = "+1-555-0199")
@@ -23,12 +20,10 @@ public class InstitutionMetadataRequest {
   @Schema(description = "Address", example = "123 Education Way, Boston, MA")
   private String address;
 
-  @Schema(description = "Subscription Type", example = "PREMIUM")
-  @NotBlank(message = "Subscription type is required")
+  @Schema(description = "Subscription Type. Defaults to 'basic' when omitted.", example = "premium")
   private String subscriptionType;
 
-  @Schema(description = "Max Users limit", example = "500")
-  @NotNull(message = "Max users limit is required")
+  @Schema(description = "Max Users limit. Defaults to 100 when omitted.", example = "500")
   private Integer maxUsers;
 
   public InstitutionMetadataRequest() {

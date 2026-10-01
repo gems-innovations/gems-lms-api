@@ -6,6 +6,7 @@ public class Enrollment {
   private Long id;
   private Long studentId;
   private Long courseId;
+  private String status;
   private LocalDateTime enrolledAt;
   private Integer progress;
   private LocalDateTime completedAt;
@@ -13,10 +14,12 @@ public class Enrollment {
   public Enrollment() {
   }
 
-  public Enrollment(Long id, Long studentId, Long courseId, LocalDateTime enrolledAt, Integer progress, LocalDateTime completedAt) {
+  public Enrollment(Long id, Long studentId, Long courseId, String status, LocalDateTime enrolledAt,
+                    Integer progress, LocalDateTime completedAt) {
     this.id = id;
     this.studentId = studentId;
     this.courseId = courseId;
+    this.status = status;
     this.enrolledAt = enrolledAt;
     this.progress = progress;
     this.completedAt = completedAt;
@@ -44,6 +47,14 @@ public class Enrollment {
 
   public void setCourseId(Long courseId) {
     this.courseId = courseId;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
   }
 
   public LocalDateTime getEnrolledAt() {

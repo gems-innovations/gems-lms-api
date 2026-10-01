@@ -12,7 +12,12 @@ import com.gems.auth.domain.values.Password;
 import com.gems.auth.domain.values.UserRole;
 import reactor.core.publisher.Mono;
 
+import java.security.SecureRandom;
+
 public class RegisterUserUseCase {
+  private static final String PASSWORD_CHARS = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
+  private static final SecureRandom RANDOM = new SecureRandom();
+
   private final UserGateway userGateway;
   private final PasswordEncoderGateway passwordEncoderGateway;
 
@@ -30,22 +35,64 @@ public class RegisterUserUseCase {
           ));
         }
 
-        String userPassword = new Password(command.password()).getValue();
+        boolean passwordWasGenerated = command.password() == null || command.password().isBlank();
+        String rawPassword = passwordWasGenerated ? generateTemporaryPassword() : command.password();
+        String userPassword = new Password(rawPassword).getValue();
         String encodedPassword = passwordEncoderGateway.encode(userPassword);
 
-        User user = new User(command.name(), command.email(), encodedPassword, UserRole.fromString(command.role()), command.institutionId());
+        return resolveUsername(command.username(), command.firstName(), command.lastName())
+          .flatMap(username -> {
+            User user = new User(
+              command.firstName(),
+              command.lastName(),
+              username,
+              command.email(),
+              encodedPassword,
+              UserRole.fromString(command.role()),
+              command.institutionId(),
+              null
+            );
 
-        return userGateway.save(user)
-          .map(savedUser -> new UserResponse(
-            savedUser.getId().getValue(),
-            savedUser.getName().getValue(),
-            savedUser.getEmail().getValue(),
-            savedUser.getRole().name(),
-            savedUser.getInstitutionId(),
-            savedUser.getCreatedAt(),
-            savedUser.getUpdatedAt(),
-            savedUser.isActive()
-          ));
+            return userGateway.save(user)
+              .map(savedUser -> new UserResponse(
+                savedUser.getId().getValue(),
+                savedUser.getFirstName().getValue(),
+                savedUser.getLastName().getValue(),
+                savedUser.getUsername(),
+                savedUser.getEmail().getValue(),
+                savedUser.getRole().name(),
+                savedUser.getInstitutionId(),
+                savedUser.getAvatarUrl(),
+                savedUser.getCreatedAt(),
+                savedUser.getUpdatedAt(),
+                savedUser.isActive(),
+                passwordWasGenerated ? rawPassword : null
+              ));
+          });
       });
+  }
+
+  private Mono<String> resolveUsername(String requestedUsername, String firstName, String lastName) {
+    String base = (requestedUsername != null && !requestedUsername.isBlank())
+      ? requestedUsername.trim().toLowerCase()
+      : (firstName + "." + lastName).trim().toLowerCase().replaceAll("[^a-z0-9.]", "");
+
+    return findAvailableUsername(base, 0);
+  }
+
+  private Mono<String> findAvailableUsername(String base, int attempt) {
+    String candidate = attempt == 0 ? base : base + attempt;
+    return userGateway.existsByUsername(candidate)
+      .flatMap(exists -> Boolean.TRUE.equals(exists)
+        ? findAvailableUsername(base, attempt + 1)
+        : Mono.just(candidate));
+  }
+
+  private String generateTemporaryPassword() {
+    StringBuilder sb = new StringBuilder("Aa1!");
+    for (int i = 0; i < 8; i++) {
+      sb.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
+    }
+    return sb.toString();
   }
 }

@@ -11,6 +11,7 @@ public interface UserGateway {
   Mono<User> findById(UserId id);
   Mono<User> findByEmail(Email email);
   Mono<Boolean> existsByEmail(Email email);
+  Mono<Boolean> existsByUsername(String username);
   Mono<Void> deleteById(UserId id);
   Flux<User> findByInstitutionId(String institutionId);
   Flux<User> findAll();

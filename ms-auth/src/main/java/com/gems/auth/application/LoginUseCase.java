@@ -49,11 +49,17 @@ public class LoginUseCase {
 
         return Mono.just(new LoginResponse(
           user.getId().getValue(),
-          user.getName().getValue(),
+          user.getFirstName().getValue(),
+          user.getLastName().getValue(),
+          user.getUsername(),
           user.getEmail().getValue(),
           user.getRole().name(),
-          token,
-          user.getInstitutionId()
+          user.getInstitutionId(),
+          user.getAvatarUrl(),
+          user.isActive(),
+          user.getCreatedAt(),
+          user.getUpdatedAt(),
+          token
         ));
       });
   }

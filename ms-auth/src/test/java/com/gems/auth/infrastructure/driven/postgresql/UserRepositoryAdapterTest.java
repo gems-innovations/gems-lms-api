@@ -35,11 +35,14 @@ class UserRepositoryAdapterTest {
 
     testUser = new User(
       new UserId(1L),
-      new UserName("Test User"),
+      new UserName("Test"),
+      new UserName("User"),
+      "test.user",
       new Email("test@example.com"),
       new Password("Password123!"),
       UserRole.STUDENT,
       "inst-123",
+      null,
       now,
       now,
       true
@@ -47,11 +50,14 @@ class UserRepositoryAdapterTest {
 
     testUserEntity = new UserEntity(
       1L,
-      "Test User",
+      "Test",
+      "User",
+      "test.user",
       "test@example.com",
       "Password123!",
       "STUDENT",
       "inst-123",
+      null,
       true,
       now,
       now
@@ -70,7 +76,9 @@ class UserRepositoryAdapterTest {
     StepVerifier.create(result)
       .expectNextMatches(user ->
         user.getId().getValue().equals(1L) &&
-        user.getName().getValue().equals("Test User") &&
+        user.getFirstName().getValue().equals("Test") &&
+        user.getLastName().getValue().equals("User") &&
+        user.getUsername().equals("test.user") &&
         user.getEmail().getValue().equals("test@example.com") &&
         user.getInstitutionId().equals("inst-123")
       )
@@ -82,9 +90,9 @@ class UserRepositoryAdapterTest {
   @Test
   void shouldSaveUserWithoutId() {
     // Given
-    User userWithoutId = new User("New User", "new@example.com", "Password123!", UserRole.TEACHER);
+    User userWithoutId = new User("New", "User", "new.user", "new@example.com", "Password123!", UserRole.INSTRUCTOR, null, null);
     UserEntity savedEntity = new UserEntity(
-      2L, "New User", "new@example.com", "Password123!", "TEACHER", null,
+      2L, "New", "User", "new.user", "new@example.com", "Password123!", "INSTRUCTOR", null, null,
       true, LocalDateTime.now(), LocalDateTime.now()
     );
     when(userRepository.save(any(UserEntity.class))).thenReturn(Mono.just(savedEntity));
@@ -96,7 +104,8 @@ class UserRepositoryAdapterTest {
     StepVerifier.create(result)
       .expectNextMatches(user ->
         user.getId().getValue().equals(2L) &&
-        user.getName().getValue().equals("New User")
+        user.getFirstName().getValue().equals("New") &&
+        user.getUsername().equals("new.user")
       )
       .verifyComplete();
   }
@@ -173,6 +182,22 @@ class UserRepositoryAdapterTest {
   }
 
   @Test
+  void shouldCheckIfUsernameExists() {
+    // Given
+    when(userRepository.existsByUsername("test.user")).thenReturn(Mono.just(true));
+
+    // When
+    Mono<Boolean> result = userRepositoryAdapter.existsByUsername("test.user");
+
+    // Then
+    StepVerifier.create(result)
+      .expectNext(true)
+      .verifyComplete();
+
+    verify(userRepository, times(1)).existsByUsername("test.user");
+  }
+
+  @Test
   void shouldDeleteUserById() {
     // Given
     UserId userId = new UserId(1L);
@@ -200,7 +225,9 @@ class UserRepositoryAdapterTest {
     StepVerifier.create(result)
       .expectNextMatches(user ->
         user.getId().getValue().equals(testUserEntity.getUserId()) &&
-        user.getName().getValue().equals(testUserEntity.getName()) &&
+        user.getFirstName().getValue().equals(testUserEntity.getFirstName()) &&
+        user.getLastName().getValue().equals(testUserEntity.getLastName()) &&
+        user.getUsername().equals(testUserEntity.getUsername()) &&
         user.getEmail().getValue().equals(testUserEntity.getEmail()) &&
         user.getPassword().getValue().equals(testUserEntity.getPassword()) &&
         user.getRole().name().equals(testUserEntity.getRole()) &&
@@ -228,7 +255,9 @@ class UserRepositoryAdapterTest {
 
     verify(userRepository).save(argThat(entity ->
       entity.getUserId().equals(testUser.getId().getValue()) &&
-      entity.getName().equals(testUser.getName().getValue()) &&
+      entity.getFirstName().equals(testUser.getFirstName().getValue()) &&
+      entity.getLastName().equals(testUser.getLastName().getValue()) &&
+      entity.getUsername().equals(testUser.getUsername()) &&
       entity.getEmail().equals(testUser.getEmail().getValue()) &&
       entity.getPassword().equals(testUser.getPassword().getValue()) &&
       entity.getRole().equals(testUser.getRole().name()) &&

@@ -4,6 +4,7 @@ import com.gems.auth.application.DisableUserUseCase;
 import com.gems.auth.application.GetAllUsersUseCase;
 import com.gems.auth.application.GetUserByIdUseCase;
 import com.gems.auth.application.GetUsersByInstitutionUseCase;
+import com.gems.auth.application.ToggleUserStatusUseCase;
 import com.gems.auth.application.UpdateUserUseCase;
 import com.gems.auth.application.command.UpdateUserCommand;
 import com.gems.auth.application.exceptions.UserNotFoundException;
@@ -41,6 +42,8 @@ class UserControllerTest {
     private GetAllUsersUseCase getAllUsersUseCase;
     @Mock
     private UpdateUserUseCase updateUserUseCase;
+    @Mock
+    private ToggleUserStatusUseCase toggleUserStatusUseCase;
 
     private WebTestClient webTestClient;
 
@@ -51,7 +54,8 @@ class UserControllerTest {
             getUsersByInstitutionUseCase,
             getUserByIdUseCase,
             getAllUsersUseCase,
-            updateUserUseCase
+            updateUserUseCase,
+            toggleUserStatusUseCase
         );
         webTestClient = WebTestClient.bindToController(userController).build();
     }
@@ -63,8 +67,8 @@ class UserControllerTest {
         @Test
         @DisplayName("Should return all users successfully")
         void shouldReturnAllUsersSuccessfully() {
-            UserResponse user1 = new UserResponse(1L, "User One", "one@example.com", "STUDENT", "inst-123", LocalDateTime.now(), LocalDateTime.now(), true);
-            UserResponse user2 = new UserResponse(2L, "User Two", "two@example.com", "TEACHER", "inst-123", LocalDateTime.now(), LocalDateTime.now(), true);
+            UserResponse user1 = new UserResponse(1L, "User", "One", "user.one", "one@example.com", "STUDENT", "inst-123", null, LocalDateTime.now(), LocalDateTime.now(), true);
+            UserResponse user2 = new UserResponse(2L, "User", "Two", "user.two", "two@example.com", "INSTRUCTOR", "inst-123", null, LocalDateTime.now(), LocalDateTime.now(), true);
 
             when(getAllUsersUseCase.execute()).thenReturn(Flux.just(user1, user2));
 
@@ -87,7 +91,7 @@ class UserControllerTest {
         @Test
         @DisplayName("Should return user when ID exists")
         void shouldReturnUserWhenIdExists() {
-            UserResponse user = new UserResponse(1L, "John Doe", "john@example.com", "STUDENT", "inst-123", LocalDateTime.now(), LocalDateTime.now(), true);
+            UserResponse user = new UserResponse(1L, "John", "Doe", "john.doe", "john@example.com", "STUDENT", "inst-123", null, LocalDateTime.now(), LocalDateTime.now(), true);
 
             when(getUserByIdUseCase.execute(1L)).thenReturn(Mono.just(user));
 
@@ -98,7 +102,8 @@ class UserControllerTest {
                 .expectHeader().contentType(MediaType.APPLICATION_JSON)
                 .expectBody()
                 .jsonPath("$.userId").isEqualTo(1)
-                .jsonPath("$.name").isEqualTo("John Doe");
+                .jsonPath("$.firstName").isEqualTo("John")
+                .jsonPath("$.lastName").isEqualTo("Doe");
 
             verify(getUserByIdUseCase).execute(1L);
         }
@@ -122,21 +127,56 @@ class UserControllerTest {
         @Test
         @DisplayName("Should update user successfully")
         void shouldUpdateUserSuccessfully() {
-            UserResponse updatedResponse = new UserResponse(1L, "John Updated", "john@example.com", "ADMIN", "inst-456", LocalDateTime.now(), LocalDateTime.now(), true);
+            UserResponse updatedResponse = new UserResponse(1L, "John", "Updated", "john.updated", "john@example.com", "ADMIN", "inst-456", null, LocalDateTime.now(), LocalDateTime.now(), true);
 
             when(updateUserUseCase.execute(any(UpdateUserCommand.class))).thenReturn(Mono.just(updatedResponse));
 
             webTestClient.put()
                 .uri("/api/v1/users/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(new UpdateUserRequest("John Updated", "ADMIN", "inst-456"))
+                .bodyValue(new UpdateUserRequest("John", "Updated", "john.updated", "ADMIN", "inst-456"))
                 .exchange()
                 .expectStatus().isOk()
                 .expectBody()
-                .jsonPath("$.name").isEqualTo("John Updated")
+                .jsonPath("$.firstName").isEqualTo("John")
+                .jsonPath("$.lastName").isEqualTo("Updated")
                 .jsonPath("$.role").isEqualTo("ADMIN");
 
             verify(updateUserUseCase).execute(any(UpdateUserCommand.class));
+        }
+    }
+
+    @Nested
+    @DisplayName("Toggle User Status Tests")
+    class ToggleUserStatusTests {
+
+        @Test
+        @DisplayName("Should toggle user status successfully")
+        void shouldToggleUserStatusSuccessfully() {
+            UserResponse toggledResponse = new UserResponse(1L, "John", "Doe", "john.doe", "john@example.com", "STUDENT", "inst-123", null, LocalDateTime.now(), LocalDateTime.now(), false);
+
+            when(toggleUserStatusUseCase.execute(any(UserId.class))).thenReturn(Mono.just(toggledResponse));
+
+            webTestClient.patch()
+                .uri("/api/v1/users/1/status")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.active").isEqualTo(false);
+
+            verify(toggleUserStatusUseCase).execute(any(UserId.class));
+        }
+
+        @Test
+        @DisplayName("Should return 404 when toggling status for non-existent user")
+        void shouldReturn404WhenUserNotFound() {
+            when(toggleUserStatusUseCase.execute(any(UserId.class)))
+                .thenReturn(Mono.error(new UserNotFoundException("User not found")));
+
+            webTestClient.patch()
+                .uri("/api/v1/users/99/status")
+                .exchange()
+                .expectStatus().isNotFound();
         }
     }
 
@@ -166,8 +206,8 @@ class UserControllerTest {
         @DisplayName("Should return users in institution successfully")
         void shouldReturnUsersInInstitutionSuccessfully() {
             String institutionId = "inst-123";
-            UserResponse user1 = new UserResponse(1L, "User One", "one@example.com", "STUDENT", institutionId, LocalDateTime.now(), LocalDateTime.now(), true);
-            UserResponse user2 = new UserResponse(2L, "User Two", "two@example.com", "TEACHER", institutionId, LocalDateTime.now(), LocalDateTime.now(), true);
+            UserResponse user1 = new UserResponse(1L, "User", "One", "user.one", "one@example.com", "STUDENT", institutionId, null, LocalDateTime.now(), LocalDateTime.now(), true);
+            UserResponse user2 = new UserResponse(2L, "User", "Two", "user.two", "two@example.com", "INSTRUCTOR", institutionId, null, LocalDateTime.now(), LocalDateTime.now(), true);
 
             when(getUsersByInstitutionUseCase.execute(institutionId)).thenReturn(Flux.just(user1, user2));
 

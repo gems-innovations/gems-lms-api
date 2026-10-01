@@ -10,21 +10,25 @@ import static org.junit.jupiter.api.Assertions.*;
 class UserTest {
 
   @Test
-  void shouldCreateUserWithIdNameEmailPasswordAndRole() {
+  void shouldCreateUserWithIdNamesEmailPasswordAndRole() {
     // Given
     Long id = 1L;
-    String name = "John Doe";
+    String firstName = "John";
+    String lastName = "Doe";
+    String username = "john.doe";
     String email = "john.doe@example.com";
     String password = "Password123!";
     UserRole role = UserRole.STUDENT;
 
     // When
-    User user = new User(id, name, email, password, role);
+    User user = new User(id, firstName, lastName, username, email, password, role, null, null);
 
     // Then
     assertNotNull(user.getId());
     assertEquals(id, user.getId().getValue());
-    assertEquals(name, user.getName().getValue());
+    assertEquals(firstName, user.getFirstName().getValue());
+    assertEquals(lastName, user.getLastName().getValue());
+    assertEquals(username, user.getUsername());
     assertEquals(email.toLowerCase(), user.getEmail().getValue());
     assertEquals(password, user.getPassword().getValue());
     assertEquals(role, user.getRole());
@@ -36,17 +40,21 @@ class UserTest {
   @Test
   void shouldCreateUserWithoutId() {
     // Given
-    String name = "Jane Smith";
+    String firstName = "Jane";
+    String lastName = "Smith";
+    String username = "jane.smith";
     String email = "jane.smith@example.com";
     String password = "SecurePass1!";
-    UserRole role = UserRole.TEACHER;
+    UserRole role = UserRole.INSTRUCTOR;
 
     // When
-    User user = new User(name, email, password, role);
+    User user = new User(firstName, lastName, username, email, password, role, null, null);
 
     // Then
     assertNull(user.getId());
-    assertEquals(name, user.getName().getValue());
+    assertEquals(firstName, user.getFirstName().getValue());
+    assertEquals(lastName, user.getLastName().getValue());
+    assertEquals(username, user.getUsername());
     assertEquals(email.toLowerCase(), user.getEmail().getValue());
     assertEquals(password, user.getPassword().getValue());
     assertEquals(role, user.getRole());
@@ -59,7 +67,9 @@ class UserTest {
   void shouldCreateUserWithAllValueObjects() {
     // Given
     UserId id = new UserId(100L);
-    UserName name = new UserName("Admin User");
+    UserName firstName = new UserName("Admin");
+    UserName lastName = new UserName("User");
+    String username = "admin.user";
     Email email = new Email("admin@example.com");
     Password password = new Password("AdminPass123!");
     UserRole role = UserRole.ADMIN;
@@ -68,11 +78,13 @@ class UserTest {
     Boolean active = false;
 
     // When
-    User user = new User(id, name, email, password, role, null, createdAt, updatedAt, active);
+    User user = new User(id, firstName, lastName, username, email, password, role, null, null, createdAt, updatedAt, active);
 
     // Then
     assertEquals(id, user.getId());
-    assertEquals(name, user.getName());
+    assertEquals(firstName, user.getFirstName());
+    assertEquals(lastName, user.getLastName());
+    assertEquals(username, user.getUsername());
     assertEquals(email, user.getEmail());
     assertEquals(password, user.getPassword());
     assertEquals(role, user.getRole());
@@ -85,19 +97,24 @@ class UserTest {
   void shouldGetAllFieldsCorrectly() {
     // Given
     Long id = 2L;
-    String name = "Test User";
+    String firstName = "Test";
+    String lastName = "User";
+    String username = "test.user";
     String email = "test@example.com";
     String password = "TestPass123!";
     UserRole role = UserRole.SUPER_ADMIN;
 
     // When
-    User user = new User(id, name, email, password, role);
+    User user = new User(id, firstName, lastName, username, email, password, role, null, null);
 
     // Then
     assertNotNull(user.getId());
     assertEquals(2L, user.getId().getValue());
-    assertNotNull(user.getName());
-    assertEquals("Test User", user.getName().getValue());
+    assertNotNull(user.getFirstName());
+    assertEquals("Test", user.getFirstName().getValue());
+    assertNotNull(user.getLastName());
+    assertEquals("User", user.getLastName().getValue());
+    assertEquals("test.user", user.getUsername());
     assertNotNull(user.getEmail());
     assertEquals("test@example.com", user.getEmail().getValue());
     assertNotNull(user.getPassword());
@@ -113,19 +130,19 @@ class UserTest {
   @Test
   void shouldCreateUserWithDifferentRoles() {
     // Test STUDENT role
-    User student = new User("Student Name", "student@test.com", "Pass123!", UserRole.STUDENT);
+    User student = new User("Student", "Name", "student.name", "student@test.com", "Pass123!", UserRole.STUDENT, null, null);
     assertEquals(UserRole.STUDENT, student.getRole());
 
-    // Test TEACHER role
-    User teacher = new User("Teacher Name", "teacher@test.com", "Pass123!", UserRole.TEACHER);
-    assertEquals(UserRole.TEACHER, teacher.getRole());
+    // Test INSTRUCTOR role
+    User instructor = new User("Instructor", "Name", "instructor.name", "instructor@test.com", "Pass123!", UserRole.INSTRUCTOR, null, null);
+    assertEquals(UserRole.INSTRUCTOR, instructor.getRole());
 
     // Test ADMIN role
-    User admin = new User("Admin Name", "admin@test.com", "Pass123!", UserRole.ADMIN);
+    User admin = new User("Admin", "Name", "admin.name", "admin@test.com", "Pass123!", UserRole.ADMIN, null, null);
     assertEquals(UserRole.ADMIN, admin.getRole());
 
     // Test SUPER_ADMIN role
-    User superAdmin = new User("Super Admin", "superadmin@test.com", "Pass123!", UserRole.SUPER_ADMIN);
+    User superAdmin = new User("Super", "Admin", "super.admin", "superadmin@test.com", "Pass123!", UserRole.SUPER_ADMIN, null, null);
     assertEquals(UserRole.SUPER_ADMIN, superAdmin.getRole());
   }
 
@@ -135,7 +152,7 @@ class UserTest {
     LocalDateTime before = LocalDateTime.now();
 
     // When
-    User user = new User("User", "user@test.com", "Pass123!", UserRole.STUDENT);
+    User user = new User("User", "Name", "user.name", "user@test.com", "Pass123!", UserRole.STUDENT, null, null);
 
     // Then
     LocalDateTime after = LocalDateTime.now();
@@ -148,11 +165,24 @@ class UserTest {
   @Test
   void shouldBeActiveByDefault() {
     // When
-    User user1 = new User(1L, "User One", "user1@test.com", "Pass123!", UserRole.STUDENT);
-    User user2 = new User("User Two", "user2@test.com", "Pass123!", UserRole.TEACHER);
+    User user1 = new User(1L, "User", "One", "user.one", "user1@test.com", "Pass123!", UserRole.STUDENT, null, null);
+    User user2 = new User("User", "Two", "user.two", "user2@test.com", "Pass123!", UserRole.INSTRUCTOR, null, null);
 
     // Then
     assertTrue(user1.isActive());
     assertTrue(user2.isActive());
+  }
+
+  @Test
+  void shouldToggleActiveStateWithActivateAndDeactivate() {
+    // When
+    User user = new User("User", "Toggle", "user.toggle", "toggle@test.com", "Pass123!", UserRole.STUDENT, null, null);
+
+    // Then
+    assertTrue(user.isActive());
+    user.deactivate();
+    assertFalse(user.isActive());
+    user.activate();
+    assertTrue(user.isActive());
   }
 }

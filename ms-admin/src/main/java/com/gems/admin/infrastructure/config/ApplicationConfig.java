@@ -37,28 +37,33 @@ public class ApplicationConfig {
 
   @Bean
   public InstitutionGateway institutionGateway(IInstitutionRepository institutionRepository,
-                                                IInstitutionMetadataRepository metadataRepository) {
-    return new InstitutionRepositoryAdapter(institutionRepository, metadataRepository);
+                                                IInstitutionMetadataRepository metadataRepository,
+                                                org.springframework.data.r2dbc.core.R2dbcEntityTemplate template) {
+    return new InstitutionRepositoryAdapter(institutionRepository, metadataRepository, template);
   }
 
   @Bean
-  public CreateInstitutionUseCase createInstitutionUseCase(InstitutionGateway institutionGateway) {
-    return new CreateInstitutionUseCase(institutionGateway);
+  public CreateInstitutionUseCase createInstitutionUseCase(InstitutionGateway institutionGateway,
+                                                             BrandingGateway brandingGateway) {
+    return new CreateInstitutionUseCase(institutionGateway, brandingGateway);
   }
 
   @Bean
-  public GetInstitutionByIdUseCase getInstitutionByIdUseCase(InstitutionGateway institutionGateway) {
-    return new GetInstitutionByIdUseCase(institutionGateway);
+  public GetInstitutionByIdUseCase getInstitutionByIdUseCase(InstitutionGateway institutionGateway,
+                                                               BrandingGateway brandingGateway) {
+    return new GetInstitutionByIdUseCase(institutionGateway, brandingGateway);
   }
 
   @Bean
-  public GetAllInstitutionsUseCase getAllInstitutionsUseCase(InstitutionGateway institutionGateway) {
-    return new GetAllInstitutionsUseCase(institutionGateway);
+  public GetAllInstitutionsUseCase getAllInstitutionsUseCase(InstitutionGateway institutionGateway,
+                                                               BrandingGateway brandingGateway) {
+    return new GetAllInstitutionsUseCase(institutionGateway, brandingGateway);
   }
 
   @Bean
-  public UpdateInstitutionUseCase updateInstitutionUseCase(InstitutionGateway institutionGateway) {
-    return new UpdateInstitutionUseCase(institutionGateway);
+  public UpdateInstitutionUseCase updateInstitutionUseCase(InstitutionGateway institutionGateway,
+                                                             BrandingGateway brandingGateway) {
+    return new UpdateInstitutionUseCase(institutionGateway, brandingGateway);
   }
 
   @Bean

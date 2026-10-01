@@ -14,4 +14,8 @@ public interface InstitutionGateway {
   Mono<Void> deleteById(String id);
 
   Flux<Institution> findAll();
+
+  Flux<Institution> findPage(String search, String status, int offset, int limit);
+
+  Mono<Long> count(String search, String status);
 }

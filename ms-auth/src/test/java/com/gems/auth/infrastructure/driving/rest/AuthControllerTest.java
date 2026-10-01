@@ -16,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -36,14 +37,22 @@ class AuthControllerTest {
     loginUseCase = Mockito.mock(LoginUseCase.class);
 
     AuthController authController = new AuthController(registerUserUseCase, loginUseCase);
-    webTestClient = WebTestClient.bindToController(authController).build();
+    // Reactor Netty's client is built lazily on first use; on a loaded machine (or a slow
+    // /mnt/c filesystem under WSL) that cold start alone can exceed the 5s default response
+    // timeout, failing whichever test happens to run first. A longer timeout keeps this test
+    // class robust without masking a real hang.
+    webTestClient = WebTestClient.bindToController(authController).build()
+      .mutate().responseTimeout(Duration.ofSeconds(30)).build();
 
     LocalDateTime now = LocalDateTime.now();
     userResponse = new UserResponse(
       1L,
-      "John Doe",
+      "John",
+      "Doe",
+      "john.doe",
       "john.doe@example.com",
       "STUDENT",
+      null,
       null,
       now,
       now,
@@ -52,11 +61,17 @@ class AuthControllerTest {
 
     loginResponse = new LoginResponse(
       1L,
-      "John Doe",
+      "John",
+      "Doe",
+      "john.doe",
       "john.doe@example.com",
       "STUDENT",
-      "jwt.token.value",
-      null
+      null,
+      null,
+      true,
+      now,
+      now,
+      "jwt.token.value"
     );
   }
 
@@ -64,10 +79,7 @@ class AuthControllerTest {
   void shouldRegisterUserSuccessfully() {
     // Given
     RegisterUserRequest request = new RegisterUserRequest(
-      "John Doe",
-      "john.doe@example.com",
-      "Password123!",
-      "STUDENT"
+      "John", "Doe", "john.doe@example.com", "Password123!", "STUDENT", null
     );
     when(registerUserUseCase.execute(any(RegisterUserCommand.class))).thenReturn(Mono.just(userResponse));
 
@@ -82,7 +94,8 @@ class AuthControllerTest {
       .expectBody(UserResponse.class)
       .value(response -> {
         Assertions.assertEquals(1L, response.userId());
-        Assertions.assertEquals("John Doe", response.name());
+        Assertions.assertEquals("John", response.firstName());
+        Assertions.assertEquals("Doe", response.lastName());
         Assertions.assertEquals("john.doe@example.com", response.email());
         Assertions.assertEquals("STUDENT", response.role());
         Assertions.assertTrue(response.active());
@@ -92,32 +105,29 @@ class AuthControllerTest {
   }
 
   @Test
-  void shouldRegisterUserWithTeacherRole() {
+  void shouldRegisterUserWithInstructorRole() {
     // Given
-    RegisterUserRequest teacherRequest = new RegisterUserRequest(
-      "Jane Teacher",
-      "jane@example.com",
-      "Password123!",
-      "TEACHER"
+    RegisterUserRequest instructorRequest = new RegisterUserRequest(
+      "Jane", "Instructor", "jane@example.com", "Password123!", "INSTRUCTOR", null
     );
-    UserResponse teacherResponse = new UserResponse(
-      2L, "Jane Teacher", "jane@example.com", "TEACHER", null,
+    UserResponse instructorResponse = new UserResponse(
+      2L, "Jane", "Instructor", "jane.instructor", "jane@example.com", "INSTRUCTOR", null, null,
       LocalDateTime.now(), LocalDateTime.now(), true
     );
-    when(registerUserUseCase.execute(any(RegisterUserCommand.class))).thenReturn(Mono.just(teacherResponse));
+    when(registerUserUseCase.execute(any(RegisterUserCommand.class))).thenReturn(Mono.just(instructorResponse));
 
     // When & Then
     webTestClient
       .post()
       .uri("/api/v1/auth/register")
       .contentType(MediaType.APPLICATION_JSON)
-      .bodyValue(teacherRequest)
+      .bodyValue(instructorRequest)
       .exchange()
       .expectStatus().isCreated()
       .expectBody(UserResponse.class)
       .value(response -> {
-        Assertions.assertEquals("TEACHER", response.role());
-        Assertions.assertEquals("Jane Teacher", response.name());
+        Assertions.assertEquals("INSTRUCTOR", response.role());
+        Assertions.assertEquals("Jane", response.firstName());
       });
 
     verify(registerUserUseCase, times(1)).execute(any(RegisterUserCommand.class));
@@ -127,13 +137,10 @@ class AuthControllerTest {
   void shouldRegisterUserWithAdminRole() {
     // Given
     RegisterUserRequest adminRequest = new RegisterUserRequest(
-      "Admin User",
-      "admin@example.com",
-      "AdminPass123!",
-      "ADMIN"
+      "Admin", "User", "admin@example.com", "AdminPass123!", "ADMIN", null
     );
     UserResponse adminResponse = new UserResponse(
-      3L, "Admin User", "admin@example.com", "ADMIN", null,
+      3L, "Admin", "User", "admin.user", "admin@example.com", "ADMIN", null, null,
       LocalDateTime.now(), LocalDateTime.now(), true
     );
     when(registerUserUseCase.execute(any(RegisterUserCommand.class))).thenReturn(Mono.just(adminResponse));
@@ -149,7 +156,7 @@ class AuthControllerTest {
       .expectBody(UserResponse.class)
       .value(response -> {
         Assertions.assertEquals("ADMIN", response.role());
-        Assertions.assertEquals("Admin User", response.name());
+        Assertions.assertEquals("Admin", response.firstName());
       });
 
     verify(registerUserUseCase, times(1)).execute(any(RegisterUserCommand.class));
@@ -223,10 +230,7 @@ class AuthControllerTest {
   void shouldReturnCreatedStatusOnRegister() {
     // Given
     RegisterUserRequest request = new RegisterUserRequest(
-      "John Doe",
-      "john.doe@example.com",
-      "Password123!",
-      "STUDENT"
+      "John", "Doe", "john.doe@example.com", "Password123!", "STUDENT", null
     );
     when(registerUserUseCase.execute(any(RegisterUserCommand.class))).thenReturn(Mono.just(userResponse));
 
@@ -246,10 +250,7 @@ class AuthControllerTest {
   void shouldReturnUserResponseBodyOnRegister() {
     // Given
     RegisterUserRequest request = new RegisterUserRequest(
-      "John Doe",
-      "john.doe@example.com",
-      "Password123!",
-      "STUDENT"
+      "John", "Doe", "john.doe@example.com", "Password123!", "STUDENT", null
     );
     when(registerUserUseCase.execute(any(RegisterUserCommand.class))).thenReturn(Mono.just(userResponse));
 
@@ -264,7 +265,8 @@ class AuthControllerTest {
       .expectBody(UserResponse.class)
       .value(response -> {
         Assertions.assertNotNull(response.userId());
-        Assertions.assertNotNull(response.name());
+        Assertions.assertNotNull(response.firstName());
+        Assertions.assertNotNull(response.lastName());
         Assertions.assertNotNull(response.email());
         Assertions.assertNotNull(response.role());
       });
@@ -287,7 +289,8 @@ class AuthControllerTest {
       .expectBody(LoginResponse.class)
       .value(response -> {
         Assertions.assertNotNull(response.userId());
-        Assertions.assertNotNull(response.name());
+        Assertions.assertNotNull(response.firstName());
+        Assertions.assertNotNull(response.lastName());
         Assertions.assertNotNull(response.email());
         Assertions.assertNotNull(response.role());
         Assertions.assertNotNull(response.token());

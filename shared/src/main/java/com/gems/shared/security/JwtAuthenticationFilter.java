@@ -99,9 +99,8 @@ public class JwtAuthenticationFilter implements WebFilter {
 
     private boolean validateToken(String token) {
         try {
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
             Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(signingKey())
                 .build()
                 .parseClaimsJws(token);
             return true;
@@ -111,12 +110,21 @@ public class JwtAuthenticationFilter implements WebFilter {
     }
 
     private Claims getClaimsFromToken(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes());
         return Jwts.parserBuilder()
-            .setSigningKey(key)
+            .setSigningKey(signingKey())
             .build()
             .parseClaimsJws(token)
             .getBody();
+    }
+
+    private SecretKey signingKey() {
+        byte[] keyBytes = jwtSecret.getBytes();
+        if (keyBytes.length * 8 < 512) {
+            byte[] paddedKey = new byte[64];
+            System.arraycopy(keyBytes, 0, paddedKey, 0, Math.min(keyBytes.length, 64));
+            return Keys.hmacShaKeyFor(paddedKey);
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }
 

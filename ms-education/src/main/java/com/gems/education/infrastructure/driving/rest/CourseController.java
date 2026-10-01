@@ -2,6 +2,7 @@ package com.gems.education.infrastructure.driving.rest;
 
 import com.gems.education.application.*;
 import com.gems.education.application.command.CourseCommand;
+import com.gems.education.application.response.CourseListResponse;
 import com.gems.education.application.response.CourseResponse;
 import com.gems.education.infrastructure.driving.rest.mapper.CourseMapper;
 import com.gems.education.infrastructure.driving.rest.request.CourseRequest;
@@ -37,8 +38,14 @@ public class CourseController {
   }
 
   @GetMapping
-  public Mono<ResponseEntity<Flux<CourseResponse>>> getAllCourses() {
-    return Mono.just(ResponseEntity.ok(getAllCoursesUseCase.execute()));
+  public Mono<ResponseEntity<CourseListResponse>> getAllCourses(
+      @RequestParam(required = false) String search,
+      @RequestParam(required = false) String status,
+      @RequestParam(required = false) String difficulty,
+      @RequestParam(defaultValue = "1") int page,
+      @RequestParam(defaultValue = "10") int limit) {
+    return getAllCoursesUseCase.execute(search, status, difficulty, page, limit)
+      .map(ResponseEntity::ok);
   }
 
   @PostMapping

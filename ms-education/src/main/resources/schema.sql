@@ -21,8 +21,19 @@ CREATE TABLE IF NOT EXISTS courses (
     id BIGSERIAL PRIMARY KEY,
     title VARCHAR(200) NOT NULL,
     description TEXT,
-    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+    difficulty VARCHAR(20) NOT NULL DEFAULT 'beginner',
+    tags VARCHAR(500),
+    thumbnail_url VARCHAR(500),
+    instructor_name VARCHAR(200),
     institution_id VARCHAR(100) NOT NULL,
+    total_duration INT NOT NULL DEFAULT 0,
+    total_lessons INT NOT NULL DEFAULT 0,
+    enrolled_count INT NOT NULL DEFAULT 0,
+    completion_rate INT NOT NULL DEFAULT 0,
+    average_rating NUMERIC(2,1),
+    rating_count INT NOT NULL DEFAULT 0,
+    published_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -94,14 +105,19 @@ CREATE TABLE IF NOT EXISTS learning_path_courses (
     CONSTRAINT fk_c FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE
 );
 
+-- student_id holds the ms-auth user id of the enrolled student. No FK to the local
+-- `students` table: that table is a separate, legacy student-profile registry (name,
+-- birth date, document, etc.) that has nothing to do with the ms-auth user account
+-- actually doing the enrolling, and requiring a row there before enrolling would force
+-- a redundant registration flow the frontend never does.
 CREATE TABLE IF NOT EXISTS enrollments (
     id BIGSERIAL PRIMARY KEY,
     student_id BIGINT NOT NULL,
     course_id BIGINT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
     enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     progress INT DEFAULT 0,
     completed_at TIMESTAMP,
-    CONSTRAINT fk_student FOREIGN KEY(student_id) REFERENCES students(student_id) ON DELETE CASCADE,
     CONSTRAINT fk_course_enroll FOREIGN KEY(course_id) REFERENCES courses(id) ON DELETE CASCADE
 );
 

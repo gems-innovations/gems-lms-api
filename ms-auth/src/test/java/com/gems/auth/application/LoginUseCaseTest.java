@@ -50,11 +50,14 @@ class LoginUseCaseTest {
     LocalDateTime now = LocalDateTime.now();
     activeUser = new User(
       new UserId(1L),
-      new UserName("John Doe"),
+      new UserName("John"),
+      new UserName("Doe"),
+      "john.doe",
       new Email("john.doe@example.com"),
       new Password("encodedPassword123!"),
       UserRole.STUDENT,
       "inst-123",
+      null,
       now,
       now,
       true
@@ -62,11 +65,14 @@ class LoginUseCaseTest {
 
     inactiveUser = new User(
       new UserId(2L),
-      new UserName("Inactive User"),
+      new UserName("Inactive"),
+      new UserName("User"),
+      "inactive.user",
       new Email("inactive@example.com"),
       new Password("encodedPassword123!"),
       UserRole.STUDENT,
       "inst-123",
+      null,
       now,
       now,
       false
@@ -88,7 +94,9 @@ class LoginUseCaseTest {
     StepVerifier.create(result)
       .expectNextMatches(response ->
         response.userId().equals(1L) &&
-        response.name().equals("John Doe") &&
+        response.firstName().equals("John") &&
+        response.lastName().equals("Doe") &&
+        response.username().equals("john.doe") &&
         response.email().equals("john.doe@example.com") &&
         response.role().equals("STUDENT") &&
         response.token().equals(generatedToken) &&
@@ -196,32 +204,35 @@ class LoginUseCaseTest {
   }
 
   @Test
-  void shouldLoginTeacherSuccessfully() {
+  void shouldLoginInstructorSuccessfully() {
     // Given
-    User teacher = new User(
+    User instructor = new User(
       new UserId(3L),
-      new UserName("Teacher User"),
-      new Email("teacher@example.com"),
+      new UserName("Instructor"),
+      new UserName("User"),
+      "instructor.user",
+      new Email("instructor@example.com"),
       new Password("EncodedPass123!"),
-      UserRole.TEACHER,
+      UserRole.INSTRUCTOR,
       "inst-123",
+      null,
       LocalDateTime.now(),
       LocalDateTime.now(),
       true
     );
-    LoginCommand teacherCommand = new LoginCommand("teacher@example.com", "Password123!");
+    LoginCommand instructorCommand = new LoginCommand("instructor@example.com", "Password123!");
 
-    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(teacher));
+    when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(instructor));
     when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-    when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn("teacher.token");
+    when(jwtGateway.generateToken(anyLong(), anyString())).thenReturn("instructor.token");
 
     // When
-    Mono<LoginResponse> result = loginUseCase.execute(teacherCommand);
+    Mono<LoginResponse> result = loginUseCase.execute(instructorCommand);
 
     // Then
     StepVerifier.create(result)
       .expectNextMatches(response ->
-        response.role().equals("TEACHER") &&
+        response.role().equals("INSTRUCTOR") &&
         response.userId().equals(3L) &&
         response.institutionId().equals("inst-123")
       )
@@ -242,7 +253,9 @@ class LoginUseCaseTest {
     StepVerifier.create(result)
       .expectNextMatches(response ->
         response.userId() != null &&
-        response.name() != null &&
+        response.firstName() != null &&
+        response.lastName() != null &&
+        response.username() != null &&
         response.email() != null &&
         response.role() != null &&
         response.token() != null &&

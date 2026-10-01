@@ -11,7 +11,9 @@ public class UserMapper {
 
   public static RegisterUserCommand toDomain(RegisterUserRequest request) {
     return new RegisterUserCommand(
-      request.getName(),
+      request.getFirstName(),
+      request.getLastName(),
+      request.getUsername(),
       request.getEmail(),
       request.getPassword(),
       request.getRole(),

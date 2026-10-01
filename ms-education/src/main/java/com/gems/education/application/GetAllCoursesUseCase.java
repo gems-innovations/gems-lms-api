@@ -1,16 +1,10 @@
 package com.gems.education.application;
 
 import com.gems.education.application.gateway.CourseGateway;
+import com.gems.education.application.response.CourseListResponse;
 import com.gems.education.application.response.CourseResponse;
-import com.gems.education.application.response.ContentResponse;
-import com.gems.education.application.response.LessonResponse;
-import com.gems.education.application.response.ModuleResponse;
-import com.gems.education.domain.entities.Course;
 import reactor.core.publisher.Flux;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import reactor.core.publisher.Mono;
 
 public class GetAllCoursesUseCase {
   private final CourseGateway courseGateway;
@@ -19,40 +13,30 @@ public class GetAllCoursesUseCase {
     this.courseGateway = courseGateway;
   }
 
+  /** Legacy unpaginated listing, kept for callers that need every course at once. */
   public Flux<CourseResponse> execute() {
     return courseGateway.findAll()
-      .map(this::mapToResponse);
+      .map(CourseResponseMapper::toResponse);
   }
 
-  private CourseResponse mapToResponse(Course course) {
-    List<ModuleResponse> moduleResponses = new ArrayList<>();
-    if (course.getModules() != null) {
-      moduleResponses = course.getModules().stream().map(module -> {
-        List<LessonResponse> lessonResponses = new ArrayList<>();
-        if (module.getLessons() != null) {
-          lessonResponses = module.getLessons().stream().map(lesson -> {
-            List<ContentResponse> contentResponses = new ArrayList<>();
-            if (lesson.getContents() != null) {
-              contentResponses = lesson.getContents().stream()
-                .map(content -> new ContentResponse(content.getId(), content.getLessonId(), content.getType(), content.getValue(), content.getOrderIndex()))
-                .collect(Collectors.toList());
-            }
-            return new LessonResponse(lesson.getId(), lesson.getModuleId(), lesson.getTitle(), lesson.getOrderIndex(), contentResponses);
-          }).collect(Collectors.toList());
-        }
-        return new ModuleResponse(module.getId(), module.getCourseId(), module.getTitle(), module.getOrderIndex(), lessonResponses);
-      }).collect(Collectors.toList());
-    }
+  public Mono<CourseListResponse> execute(String search, String status, String difficulty, int page, int limit) {
+    int safePage = Math.max(page, 1);
+    int safeLimit = Math.max(limit, 1);
+    int offset = (safePage - 1) * safeLimit;
 
-    return new CourseResponse(
-      course.getId(),
-      course.getTitle(),
-      course.getDescription(),
-      course.getStatus(),
-      course.getInstitutionId(),
-      course.getCreatedAt(),
-      course.getUpdatedAt(),
-      moduleResponses
-    );
+    Flux<CourseResponse> courses = courseGateway.findPage(search, status, difficulty, offset, safeLimit)
+      .map(CourseResponseMapper::toResponse);
+
+    return courses.collectList()
+      .zipWith(courseGateway.count(search, status, difficulty))
+      .map(tuple -> {
+        var list = tuple.getT1();
+        long total = tuple.getT2();
+        int totalPages = (int) Math.ceil((double) total / safeLimit);
+        return new CourseListResponse(
+          list, total, safePage, safeLimit, totalPages,
+          safePage < totalPages, safePage > 1
+        );
+      });
   }
 }

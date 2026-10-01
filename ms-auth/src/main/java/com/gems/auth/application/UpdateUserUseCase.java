@@ -5,8 +5,6 @@ import com.gems.auth.application.exceptions.UserNotFoundException;
 import com.gems.auth.application.gateway.UserGateway;
 import com.gems.auth.application.response.UserResponse;
 import com.gems.auth.domain.entities.User;
-import com.gems.auth.domain.values.Email;
-import com.gems.auth.domain.values.Password;
 import com.gems.auth.domain.values.UserId;
 import com.gems.auth.domain.values.UserName;
 import com.gems.auth.domain.values.UserRole;
@@ -25,13 +23,20 @@ public class UpdateUserUseCase {
     return userGateway.findById(new UserId(command.getId()))
       .switchIfEmpty(Mono.error(new UserNotFoundException("User not found with ID: " + command.getId())))
       .flatMap(existing -> {
+        String username = command.getUsername() != null && !command.getUsername().isBlank()
+          ? command.getUsername()
+          : existing.getUsername();
+
         User updated = new User(
           existing.getId(),
-          new UserName(command.getName()),
+          new UserName(command.getFirstName()),
+          new UserName(command.getLastName()),
+          username,
           existing.getEmail(),
           existing.getPassword(),
           UserRole.valueOf(command.getRole()),
           command.getInstitutionId(),
+          existing.getAvatarUrl(),
           existing.getCreatedAt(),
           LocalDateTime.now(),
           existing.isActive()
@@ -40,10 +45,13 @@ public class UpdateUserUseCase {
       })
       .map(user -> new UserResponse(
         user.getId().getValue(),
-        user.getName().getValue(),
+        user.getFirstName().getValue(),
+        user.getLastName().getValue(),
+        user.getUsername(),
         user.getEmail().getValue(),
         user.getRole().name(),
         user.getInstitutionId(),
+        user.getAvatarUrl(),
         user.getCreatedAt(),
         user.getUpdatedAt(),
         user.isActive()

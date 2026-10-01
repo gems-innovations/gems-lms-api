@@ -17,8 +17,13 @@ public class BrandingEntity {
 
   private String domain;
 
+  private String type;
+
   @Column("logo_url")
   private String logoUrl;
+
+  @Column("icon_url")
+  private String iconUrl;
 
   @Column("favicon_url")
   private String faviconUrl;
@@ -35,6 +40,12 @@ public class BrandingEntity {
   @Column("text_color")
   private String textColor;
 
+  @Column("background_color")
+  private String backgroundColor;
+
+  @Column("dark_mode")
+  private Boolean darkMode;
+
   private String theme;
 
   @Column("login_background_url")
@@ -49,18 +60,23 @@ public class BrandingEntity {
   public BrandingEntity() {
   }
 
-  public BrandingEntity(Long brandingId, String companyId, String domain, String logoUrl, String faviconUrl,
-                        String primaryColor, String secondaryColor, String accentColor, String textColor,
+  public BrandingEntity(Long brandingId, String companyId, String domain, String type, String logoUrl,
+                        String iconUrl, String faviconUrl, String primaryColor, String secondaryColor,
+                        String accentColor, String textColor, String backgroundColor, Boolean darkMode,
                         String theme, String loginBackgroundUrl, String customCss, LocalDateTime updatedAt) {
     this.brandingId = brandingId;
     this.companyId = companyId;
     this.domain = domain;
+    this.type = type;
     this.logoUrl = logoUrl;
+    this.iconUrl = iconUrl;
     this.faviconUrl = faviconUrl;
     this.primaryColor = primaryColor;
     this.secondaryColor = secondaryColor;
     this.accentColor = accentColor;
     this.textColor = textColor;
+    this.backgroundColor = backgroundColor;
+    this.darkMode = darkMode;
     this.theme = theme;
     this.loginBackgroundUrl = loginBackgroundUrl;
     this.customCss = customCss;
@@ -105,6 +121,38 @@ public class BrandingEntity {
 
   public void setFaviconUrl(String faviconUrl) {
     this.faviconUrl = faviconUrl;
+  }
+
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
+
+  public String getIconUrl() {
+    return iconUrl;
+  }
+
+  public void setIconUrl(String iconUrl) {
+    this.iconUrl = iconUrl;
+  }
+
+  public String getBackgroundColor() {
+    return backgroundColor;
+  }
+
+  public void setBackgroundColor(String backgroundColor) {
+    this.backgroundColor = backgroundColor;
+  }
+
+  public Boolean getDarkMode() {
+    return darkMode;
+  }
+
+  public void setDarkMode(Boolean darkMode) {
+    this.darkMode = darkMode;
   }
 
   public String getPrimaryColor() {

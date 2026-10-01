@@ -4,6 +4,7 @@ import com.gems.auth.application.DisableUserUseCase;
 import com.gems.auth.application.GetAllUsersUseCase;
 import com.gems.auth.application.GetUserByIdUseCase;
 import com.gems.auth.application.GetUsersByInstitutionUseCase;
+import com.gems.auth.application.ToggleUserStatusUseCase;
 import com.gems.auth.application.UpdateUserUseCase;
 import com.gems.auth.application.command.UpdateUserCommand;
 import com.gems.auth.application.exceptions.UserNotFoundException;
@@ -26,17 +27,20 @@ public class UserController {
   private final GetUserByIdUseCase getUserByIdUseCase;
   private final GetAllUsersUseCase getAllUsersUseCase;
   private final UpdateUserUseCase updateUserUseCase;
+  private final ToggleUserStatusUseCase toggleUserStatusUseCase;
 
   public UserController(DisableUserUseCase disableUserUseCase,
                         GetUsersByInstitutionUseCase getUsersByInstitutionUseCase,
                         GetUserByIdUseCase getUserByIdUseCase,
                         GetAllUsersUseCase getAllUsersUseCase,
-                        UpdateUserUseCase updateUserUseCase) {
+                        UpdateUserUseCase updateUserUseCase,
+                        ToggleUserStatusUseCase toggleUserStatusUseCase) {
     this.disableUserUseCase = disableUserUseCase;
     this.getUsersByInstitutionUseCase = getUsersByInstitutionUseCase;
     this.getUserByIdUseCase = getUserByIdUseCase;
     this.getAllUsersUseCase = getAllUsersUseCase;
     this.updateUserUseCase = updateUserUseCase;
+    this.toggleUserStatusUseCase = toggleUserStatusUseCase;
   }
 
   @GetMapping
@@ -57,8 +61,19 @@ public class UserController {
   @PutMapping("/{id}")
   public Mono<ResponseEntity<UserResponse>> updateUser(@PathVariable("id") Long id,
                                                        @Valid @RequestBody UpdateUserRequest request) {
-    UpdateUserCommand command = new UpdateUserCommand(id, request.getName(), request.getRole(), request.getInstitutionId());
+    UpdateUserCommand command = new UpdateUserCommand(id, request.getFirstName(), request.getLastName(),
+      request.getUsername(), request.getRole(), request.getInstitutionId());
     return updateUserUseCase.execute(command)
+      .map(ResponseEntity::ok)
+      .onErrorResume(UserNotFoundException.class,
+        ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))
+      .onErrorResume(Exception.class,
+        ex -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build()));
+  }
+
+  @PatchMapping("/{id}/status")
+  public Mono<ResponseEntity<UserResponse>> toggleUserStatus(@PathVariable("id") Long id) {
+    return toggleUserStatusUseCase.execute(new UserId(id))
       .map(ResponseEntity::ok)
       .onErrorResume(UserNotFoundException.class,
         ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()))

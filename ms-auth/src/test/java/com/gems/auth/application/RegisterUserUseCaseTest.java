@@ -19,6 +19,7 @@ import reactor.test.StepVerifier;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,21 +40,21 @@ class RegisterUserUseCaseTest {
   @BeforeEach
   void setUp() {
     validCommand = new RegisterUserCommand(
-      "John Doe",
-      "john.doe@example.com",
-      "Password123!",
-      "STUDENT",
-      "inst-123"
+      "John", "Doe", "john.doe", "john.doe@example.com",
+      "Password123!", "STUDENT", "inst-123"
     );
 
     LocalDateTime now = LocalDateTime.now();
     savedUser = new User(
       new UserId(1L),
-      new UserName("John Doe"),
+      new UserName("John"),
+      new UserName("Doe"),
+      "john.doe",
       new Email("john.doe@example.com"),
       new Password("encodedPassword123!"),
       UserRole.STUDENT,
       "inst-123",
+      null,
       now,
       now,
       true
@@ -64,6 +65,7 @@ class RegisterUserUseCaseTest {
   void shouldRegisterUserSuccessfully() {
     // Given
     when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(userGateway.existsByUsername(anyString())).thenReturn(Mono.just(false));
     when(passwordEncoderGateway.encode(anyString())).thenReturn("encodedPassword123!");
     when(userGateway.save(any(User.class))).thenReturn(Mono.just(savedUser));
 
@@ -74,7 +76,9 @@ class RegisterUserUseCaseTest {
     StepVerifier.create(result)
       .expectNextMatches(response ->
         response.userId().equals(1L) &&
-        response.name().equals("John Doe") &&
+        response.firstName().equals("John") &&
+        response.lastName().equals("Doe") &&
+        response.username().equals("john.doe") &&
         response.email().equals("john.doe@example.com") &&
         response.role().equals("STUDENT") &&
         response.institutionId().equals("inst-123") &&
@@ -106,40 +110,41 @@ class RegisterUserUseCaseTest {
   }
 
   @Test
-  void shouldRegisterUserWithTeacherRole() {
+  void shouldRegisterUserWithInstructorRole() {
     // Given
-    RegisterUserCommand teacherCommand = new RegisterUserCommand(
-      "Jane Teacher",
-      "jane@example.com",
-      "Password123!",
-      "TEACHER",
-      "inst-123"
+    RegisterUserCommand instructorCommand = new RegisterUserCommand(
+      "Jane", "Instructor", "jane.instructor", "jane@example.com",
+      "Password123!", "INSTRUCTOR", "inst-123"
     );
 
     LocalDateTime now = LocalDateTime.now();
-    User teacherUser = new User(
+    User instructorUser = new User(
       new UserId(2L),
-      new UserName("Jane Teacher"),
+      new UserName("Jane"),
+      new UserName("Instructor"),
+      "jane.instructor",
       new Email("jane@example.com"),
       new Password("EncodedPass123!"),
-      UserRole.TEACHER,
+      UserRole.INSTRUCTOR,
       "inst-123",
+      null,
       now,
       now,
       true
     );
 
     when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(userGateway.existsByUsername(anyString())).thenReturn(Mono.just(false));
     when(passwordEncoderGateway.encode(anyString())).thenReturn("EncodedPass123!");
-    when(userGateway.save(any(User.class))).thenReturn(Mono.just(teacherUser));
+    when(userGateway.save(any(User.class))).thenReturn(Mono.just(instructorUser));
 
     // When
-    Mono<UserResponse> result = registerUserUseCase.execute(teacherCommand);
+    Mono<UserResponse> result = registerUserUseCase.execute(instructorCommand);
 
     // Then
     StepVerifier.create(result)
       .expectNextMatches(response ->
-        response.role().equals("TEACHER") &&
+        response.role().equals("INSTRUCTOR") &&
         response.institutionId().equals("inst-123")
       )
       .verifyComplete();
@@ -149,27 +154,28 @@ class RegisterUserUseCaseTest {
   void shouldRegisterUserWithAdminRole() {
     // Given
     RegisterUserCommand adminCommand = new RegisterUserCommand(
-      "Admin User",
-      "admin@example.com",
-      "AdminPass123!",
-      "ADMIN",
-      "inst-123"
+      "Admin", "User", "admin.user", "admin@example.com",
+      "AdminPass123!", "ADMIN", "inst-123"
     );
 
     LocalDateTime now = LocalDateTime.now();
     User adminUser = new User(
       new UserId(3L),
-      new UserName("Admin User"),
+      new UserName("Admin"),
+      new UserName("User"),
+      "admin.user",
       new Email("admin@example.com"),
       new Password("EncodedPass123!"),
       UserRole.ADMIN,
       "inst-123",
+      null,
       now,
       now,
       true
     );
 
     when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(userGateway.existsByUsername(anyString())).thenReturn(Mono.just(false));
     when(passwordEncoderGateway.encode(anyString())).thenReturn("EncodedPass123!");
     when(userGateway.save(any(User.class))).thenReturn(Mono.just(adminUser));
 
@@ -192,6 +198,7 @@ class RegisterUserUseCaseTest {
     String encodedPassword = "EncodedPass123!";
 
     when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(userGateway.existsByUsername(anyString())).thenReturn(Mono.just(false));
     when(passwordEncoderGateway.encode(rawPassword)).thenReturn(encodedPassword);
     when(userGateway.save(any(User.class))).thenReturn(Mono.just(savedUser));
 
@@ -210,9 +217,57 @@ class RegisterUserUseCaseTest {
   }
 
   @Test
+  void shouldGenerateTemporaryPasswordWhenNoneProvided() {
+    // Given
+    RegisterUserCommand commandWithoutPassword = new RegisterUserCommand(
+      "John", "Doe", "john.doe", "john.doe@example.com",
+      null, "STUDENT", "inst-123"
+    );
+
+    when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(userGateway.existsByUsername(anyString())).thenReturn(Mono.just(false));
+    when(passwordEncoderGateway.encode(anyString())).thenReturn("encodedPassword123!");
+    when(userGateway.save(any(User.class))).thenReturn(Mono.just(savedUser));
+
+    // When
+    Mono<UserResponse> result = registerUserUseCase.execute(commandWithoutPassword);
+
+    // Then
+    StepVerifier.create(result)
+      .expectNextMatches(response -> response.temporaryPassword() != null && !response.temporaryPassword().isBlank())
+      .verifyComplete();
+  }
+
+  @Test
+  void shouldGenerateAlternativeUsernameOnCollision() {
+    // Given
+    when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(userGateway.existsByUsername("john.doe")).thenReturn(Mono.just(true));
+    when(userGateway.existsByUsername("john.doe1")).thenReturn(Mono.just(false));
+    when(passwordEncoderGateway.encode(anyString())).thenReturn("encodedPassword123!");
+    when(userGateway.save(any(User.class))).thenReturn(Mono.just(savedUser));
+
+    RegisterUserCommand commandWithoutUsername = new RegisterUserCommand(
+      "John", "Doe", null, "john.doe@example.com",
+      "Password123!", "STUDENT", "inst-123"
+    );
+
+    // When
+    Mono<UserResponse> result = registerUserUseCase.execute(commandWithoutUsername);
+
+    // Then
+    StepVerifier.create(result)
+      .expectNextCount(1)
+      .verifyComplete();
+
+    verify(userGateway).save(argThat(user -> user.getUsername().equals("john.doe1")));
+  }
+
+  @Test
   void shouldReturnUserResponseWithAllFields() {
     // Given
     when(userGateway.existsByEmail(any(Email.class))).thenReturn(Mono.just(false));
+    when(userGateway.existsByUsername(anyString())).thenReturn(Mono.just(false));
     when(passwordEncoderGateway.encode(anyString())).thenReturn("encodedPassword123!");
     when(userGateway.save(any(User.class))).thenReturn(Mono.just(savedUser));
 
@@ -223,7 +278,9 @@ class RegisterUserUseCaseTest {
     StepVerifier.create(result)
       .expectNextMatches(response ->
         response.userId() != null &&
-        response.name() != null &&
+        response.firstName() != null &&
+        response.lastName() != null &&
+        response.username() != null &&
         response.email() != null &&
         response.role() != null &&
         response.institutionId() != null &&

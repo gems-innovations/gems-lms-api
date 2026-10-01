@@ -11,5 +11,7 @@ public interface IUserRepository extends ReactiveCrudRepository<UserEntity, Long
 
   Mono<Boolean> existsByEmail(String email);
 
+  Mono<Boolean> existsByUsername(String username);
+
   Flux<UserEntity> findByInstitutionId(String institutionId);
 }
