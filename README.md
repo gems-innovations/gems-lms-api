@@ -172,7 +172,7 @@ CORS_MAX_AGE=3600
 Antes de ejecutar los microservicios, compilar el proyecto:
 
 ```bash
-./gradlew build -x jacocoTestCoverageVerification
+./gradlew build -x bootJar
 ```
 
 ### 6. Ejecutar los Microservicios
