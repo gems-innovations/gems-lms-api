@@ -310,11 +310,15 @@ gems-lms-api/
 ./gradlew build
 ```
 
-Para ejecutar solo los tests sin verificar cobertura:
+Para ejecutar solo los tests (más rápido: sin reporte ni verificación de cobertura):
 
 ```bash
 ./gradlew test
 ```
+
+`./gradlew build` exige un mínimo de cobertura de líneas (`coverageMinimum` en `gradle.properties`,
+50% por defecto; se puede cambiar con `-PcoverageMinimum=0.7`). Los módulos compilan en paralelo y
+Gradle reutiliza resultados en caché, así que una corrida sin cambios tarda unos segundos.
 
 ### Ver Logs en Tiempo Real
 
