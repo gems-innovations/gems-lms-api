@@ -1,5 +1,6 @@
 package com.gems.admin.application;
 
+import com.gems.admin.TestData;
 import com.gems.admin.application.command.BrandingCommand;
 import com.gems.admin.application.exceptions.BrandingNotFoundException;
 import com.gems.admin.application.gateway.BrandingGateway;
@@ -50,8 +51,7 @@ class UpdateBrandingUseCaseTest {
     );
 
     LocalDateTime now = LocalDateTime.now();
-    existingBranding = new Branding(
-      1L, "company-123", "example.com",
+    existingBranding = TestData.branding(1L, "company-123", "example.com",
       "https://cdn.example.com/logo.png",
       "https://cdn.example.com/favicon.ico",
       "#3B82F6", "#8B5CF6", "#10B981", "#1F2937",
@@ -59,8 +59,7 @@ class UpdateBrandingUseCaseTest {
       ".custom { color: red; }", now
     );
 
-    updatedBranding = new Branding(
-      1L, "company-123", "updated.com",
+    updatedBranding = TestData.branding(1L, "company-123", "updated.com",
       "https://cdn.example.com/new-logo.png",
       "https://cdn.example.com/new-favicon.ico",
       "#FF0000", "#00FF00", "#0000FF", "#FFFFFF",

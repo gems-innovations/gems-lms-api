@@ -1,5 +1,6 @@
 package com.gems.education.application;
 
+import com.gems.education.TestData;
 import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.domain.entities.Course;
 import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
@@ -30,7 +31,7 @@ class DeleteCourseUseCaseTest {
 
   @BeforeEach
   void setUp() {
-    course = new Course(
+    course = TestData.course(
       1L,
       "Java Course",
       "Java fundamentals",

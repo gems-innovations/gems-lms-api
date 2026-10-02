@@ -1,5 +1,6 @@
 package com.gems.education.application;
 
+import com.gems.education.TestData;
 import com.gems.education.application.command.LearningPathCommand;
 import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.application.gateway.LearningPathGateway;
@@ -35,7 +36,7 @@ class CreateLearningPathUseCaseTest {
   @Test
   void shouldCreateLearningPathSuccessfully() {
     LearningPathCommand command = new LearningPathCommand("Java Track", "Desc", "inst-1", List.of(1L));
-    Course course = new Course(1L, "Java 1", "Desc", "PUBLISHED", "inst-1", LocalDateTime.now(), LocalDateTime.now(), List.of());
+    Course course = TestData.course(1L, "Java 1", "Desc", "PUBLISHED", "inst-1", LocalDateTime.now(), LocalDateTime.now(), List.of());
     LearningPath lp = new LearningPath(1L, "Java Track", "Desc", "inst-1", LocalDateTime.now(), List.of(course));
 
     when(courseGateway.findById(1L)).thenReturn(Mono.just(course));

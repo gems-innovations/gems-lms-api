@@ -1,135 +1,57 @@
 package com.gems.education.infrastructure.driving.rest;
 
 import com.gems.education.application.*;
-import com.gems.education.application.command.StudentCommand;
 import com.gems.education.application.response.StudentResponse;
-import com.gems.education.infrastructure.driving.rest.request.StudentRequest;
-import org.junit.jupiter.api.*;
-import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class StudentControllerTest {
-
-  private RegisterStudentUseCase registerUC;
-  private GetStudentByIdUseCase getByIdUC;
-  private GetAllStudentsUseCase getAllUC;
-  private UpdateStudentUseCase updateUC;
-  private DeleteStudentUseCase deleteUC;
+/** The legacy student registry is staff-only. */
+class StudentControllerTest extends ControllerTestSupport {
+  private final RegisterStudentUseCase registerStudentUseCase = mock(RegisterStudentUseCase.class);
+  private final GetStudentByIdUseCase getStudentByIdUseCase = mock(GetStudentByIdUseCase.class);
+  private final GetAllStudentsUseCase getAllStudentsUseCase = mock(GetAllStudentsUseCase.class);
+  private final UpdateStudentUseCase updateStudentUseCase = mock(UpdateStudentUseCase.class);
+  private final DeleteStudentUseCase deleteStudentUseCase = mock(DeleteStudentUseCase.class);
   private StudentController controller;
 
+  private final StudentResponse student = new StudentResponse(1L, "María López", "maria@unal.edu.co",
+    LocalDate.of(2000, 5, 10), "Colombia", "Bogotá", "CC", "1000000001");
+
   @BeforeEach
-  void setup() {
-    registerUC = mock(RegisterStudentUseCase.class);
-    getByIdUC = mock(GetStudentByIdUseCase.class);
-    getAllUC = mock(GetAllStudentsUseCase.class);
-    updateUC = mock(UpdateStudentUseCase.class);
-    deleteUC = mock(DeleteStudentUseCase.class);
-
-    controller = new StudentController(registerUC, getByIdUC, getAllUC, updateUC, deleteUC);
-  }
-
-  private StudentRequest request() {
-    return new StudentRequest(
-      "Juan",
-      "juan@example.com",
-      LocalDate.of(2000, 1, 1),
-      "Colombia",
-      "Medellín",
-      "CC",
-      "123456"
-    );
+  void setUp() {
+    controller = new StudentController(registerStudentUseCase, getStudentByIdUseCase, getAllStudentsUseCase,
+      updateStudentUseCase, deleteStudentUseCase, access);
   }
 
   @Test
-  void shouldRegisterStudent() {
-    StudentResponse response = new StudentResponse(
-      1L, "Juan", "juan@example.com",
-      LocalDate.of(2000, 1, 1),
-      "Colombia","Medellín","CC","123456"
-    );
+  void staffListAndReadStudents() {
+    when(getAllStudentsUseCase.execute()).thenReturn(Flux.just(student));
+    when(getStudentByIdUseCase.execute(1L)).thenReturn(Mono.just(student));
 
-    when(registerUC.execute(any(StudentCommand.class)))
-      .thenReturn(Mono.just(response));
-
-    StepVerifier.create(controller.registerStudent(request()))
-      .assertNext(entity -> {
-        assertEquals(201, entity.getStatusCode().value());
-        assertEquals("Juan", entity.getBody().getName());
-      })
-      .verifyComplete();
-
-    ArgumentCaptor<StudentCommand> captor = ArgumentCaptor.forClass(StudentCommand.class);
-    verify(registerUC).execute(captor.capture());
-    assertEquals("Juan", captor.getValue().getName());
+    client(controller, ADMIN).get().uri("/api/v1/students").exchange().expectStatus().isOk()
+      .expectBodyList(StudentResponse.class).hasSize(1);
+    client(controller, INSTRUCTOR).get().uri("/api/v1/students/1").exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$.email").isEqualTo("maria@unal.edu.co");
   }
 
   @Test
-  void shouldGetAllStudents() {
-    StudentResponse r1 = new StudentResponse(
-      1L, "Juan","juan@example.com",
-      LocalDate.of(2000,1,1),
-      "Colombia","Medellín","CC","123456"
-    );
-
-    when(getAllUC.execute()).thenReturn(Flux.just(r1));
-
-    StepVerifier.create(controller.getAllStudents())
-      .assertNext(r -> assertEquals("Juan", r.getName()))
-      .verifyComplete();
+  void studentsCannotUseTheRegistry() {
+    client(controller, STUDENT).get().uri("/api/v1/students").exchange().expectStatus().isForbidden();
+    client(controller, STUDENT).get().uri("/api/v1/students/1").exchange().expectStatus().isForbidden();
+    client(controller, STUDENT).delete().uri("/api/v1/students/1").exchange().expectStatus().isForbidden();
+    verifyNoInteractions(getAllStudentsUseCase, getStudentByIdUseCase, deleteStudentUseCase);
   }
 
   @Test
-  void shouldUpdateStudent() {
-    StudentResponse updated = new StudentResponse(
-      1L,"Juan","juan@example.com",
-      LocalDate.of(2000,1,1),
-      "Colombia","Medellín","CC","123456"
-    );
+  void staffDeleteStudents() {
+    when(deleteStudentUseCase.execute(1L)).thenReturn(Mono.empty());
 
-    when(updateUC.execute(eq(1L), any(StudentCommand.class)))
-      .thenReturn(Mono.just(updated));
-
-    StepVerifier.create(controller.updateStudent(1L, request()))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals("Juan", entity.getBody().getName());
-      })
-      .verifyComplete();
-  }
-
-  @Test
-  void shouldGetStudentById() {
-    StudentResponse response = new StudentResponse(
-      1L,"Juan","juan@example.com",
-      LocalDate.of(2000,1,1),
-      "Colombia","Medellín","CC","123456"
-    );
-
-    when(getByIdUC.execute(1L)).thenReturn(Mono.just(response));
-
-    StepVerifier.create(controller.getStudentById(1L))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals("Juan", entity.getBody().getName());
-      })
-      .verifyComplete();
-  }
-
-  @Test
-  void shouldDeleteStudent() {
-    when(deleteUC.execute(1L)).thenReturn(Mono.empty());
-
-    StepVerifier.create(controller.deleteStudent(1L))
-      .assertNext(entity -> assertEquals(204, entity.getStatusCode().value()))
-      .verifyComplete();
-
-    verify(deleteUC).execute(1L);
+    client(controller, ADMIN).delete().uri("/api/v1/students/1").exchange().expectStatus().isNoContent();
   }
 }

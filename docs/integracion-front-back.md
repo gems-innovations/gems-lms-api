@@ -109,9 +109,10 @@ Pendiente:
 
 ### Calidad
 
-3. **Los tests de ms-admin y ms-education no compilan** (76 errores ya en `main`: constructores de
-   `Branding`, `InstitutionCommand`, `Course`, `Enrollment`, `CourseRequest`… cambiaron y los tests no).
-   `./gradlew build` falla; el CI no puede estar validando nada.
+3. **Cobertura**: `jacocoTestCoverageVerification` exige 100% y hoy hay ~60% (admin), ~70% (auth) y
+   ~40% (education), por eso `./gradlew build` solo pasa con `-x jacocoTestCoverageVerification` (como
+   indica el README). Hay que subir la cobertura o fijar una meta alcanzable. Los tests en sí (306)
+   compilan y pasan: antes 76 errores de compilación impedían correr ms-admin y ms-education.
 4. La capa `application` de ms-education importa excepciones de `infrastructure.driving.rest`
    (rompe la arquitectura limpia que pide el README).
 5. `/actuator/health` responde 401 (no está en las rutas públicas); el README dice lo contrario.

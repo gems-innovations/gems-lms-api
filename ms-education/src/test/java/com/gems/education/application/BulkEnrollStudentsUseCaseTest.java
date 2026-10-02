@@ -1,5 +1,6 @@
 package com.gems.education.application;
 
+import com.gems.education.TestData;
 import com.gems.education.application.command.BulkEnrollmentCommand;
 import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.application.gateway.EnrollmentGateway;
@@ -44,13 +45,13 @@ class BulkEnrollStudentsUseCaseTest {
   void shouldBulkEnrollStudentsSuccessfully() {
     BulkEnrollmentCommand command = new BulkEnrollmentCommand(List.of(10L), 5L);
     Student student = new Student(10L, "Juan", "juan@gmail.com", LocalDate.of(2000, 1, 1), "Colombia", "Medellin", "CC", "123456");
-    Course course = new Course(5L, "Java", "Desc", "PUBLISHED", "inst-1", LocalDateTime.now(), LocalDateTime.now(), List.of());
-    Enrollment enrollment = new Enrollment(1L, 10L, 5L, LocalDateTime.now(), 0, null);
+    Course course = TestData.course(5L, "Java", "Desc", "PUBLISHED", "inst-1", LocalDateTime.now(), LocalDateTime.now(), List.of());
+    Enrollment enrollment = TestData.enrollment(1L, 10L, 5L, LocalDateTime.now(), 0, null);
 
-    when(courseGateway.findById(5L)).thenReturn(Mono.just(course));
-    when(studentGateway.findById(any(StudentId.class))).thenReturn(Mono.just(student));
+    when(courseGateway.findById(5L)).thenReturn(Mono.just(course));
     when(enrollmentGateway.findByStudentIdAndCourseId(10L, 5L)).thenReturn(Mono.empty());
     when(enrollmentGateway.save(any(Enrollment.class))).thenReturn(Mono.just(enrollment));
+    when(courseGateway.incrementEnrolledCount(5L)).thenReturn(Mono.empty());
 
     Flux<EnrollmentResponse> result = bulkEnrollStudentsUseCase.execute(command);
 
@@ -59,7 +60,8 @@ class BulkEnrollStudentsUseCaseTest {
       .verifyComplete();
 
     verify(courseGateway, times(1)).findById(5L);
-    verify(studentGateway, times(1)).findById(any(StudentId.class));
+    // studentId is the ms-auth user id; the legacy students table is not consulted.
+    verifyNoInteractions(studentGateway);
     verify(enrollmentGateway, times(1)).save(any(Enrollment.class));
   }
 }

@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 class InstitutionControllerTest {
@@ -48,7 +49,10 @@ class InstitutionControllerTest {
       deleteInstitutionUseCase
     );
 
-    webTestClient = WebTestClient.bindToController(controller).build();
+    webTestClient = WebTestClient.bindToController(controller)
+      .webFilter(TestSecurity.superAdmin())
+      .controllerAdvice(new GlobalExceptionHandler(), new com.gems.shared.security.SecurityExceptionAdvice())
+      .build();
 
     InstitutionMetadataResponse metadataResponse = new InstitutionMetadataResponse(
       "inst-1", "Description", "http://gems.edu", "contact@gems.edu",
@@ -57,7 +61,7 @@ class InstitutionControllerTest {
 
     institutionResponse = new InstitutionResponse(
       "inst-1", "Gems College", "COLLEGE", "ACTIVE", 0,
-      LocalDateTime.now(), LocalDateTime.now(), metadataResponse
+      LocalDateTime.now(), LocalDateTime.now(), metadataResponse, null
     );
   }
 
@@ -68,7 +72,7 @@ class InstitutionControllerTest {
       "Address", "PREMIUM", 100
     );
     InstitutionRequest request = new InstitutionRequest(
-      "inst-1", "Gems College", "COLLEGE", "ACTIVE", metaReq
+      "inst-1", "Gems College", "COLLEGE", "ACTIVE", metaReq, null
     );
 
     when(createInstitutionUseCase.execute(any(InstitutionCommand.class)))
@@ -110,17 +114,19 @@ class InstitutionControllerTest {
 
   @Test
   void shouldGetAllInstitutionsSuccessfully() {
-    when(getAllInstitutionsUseCase.execute())
-      .thenReturn(Flux.just(institutionResponse));
+    when(getAllInstitutionsUseCase.execute(any(), any(), anyInt(), anyInt()))
+      .thenReturn(Mono.just(new com.gems.admin.application.response.InstitutionListResponse(
+        java.util.List.of(institutionResponse), 1, 1, 10, 1, false, false)));
 
     webTestClient.get()
       .uri("/api/v1/institutions")
       .exchange()
       .expectStatus().isOk()
-      .expectBodyList(InstitutionResponse.class)
-      .hasSize(1);
+      .expectBody()
+      .jsonPath("$.institutions.length()").isEqualTo(1)
+      .jsonPath("$.institutions[0].id").isEqualTo("inst-1");
 
-    verify(getAllInstitutionsUseCase, times(1)).execute();
+    verify(getAllInstitutionsUseCase, times(1)).execute(null, null, 1, 10);
   }
 
   @Test
@@ -130,7 +136,7 @@ class InstitutionControllerTest {
       "Address", "PREMIUM", 100
     );
     InstitutionRequest request = new InstitutionRequest(
-      "inst-1", "Gems College", "COLLEGE", "ACTIVE", metaReq
+      "inst-1", "Gems College", "COLLEGE", "ACTIVE", metaReq, null
     );
 
     when(updateInstitutionUseCase.execute(anyString(), any(InstitutionCommand.class)))

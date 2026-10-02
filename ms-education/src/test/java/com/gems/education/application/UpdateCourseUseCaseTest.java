@@ -1,5 +1,6 @@
 package com.gems.education.application;
 
+import com.gems.education.TestData;
 import com.gems.education.application.command.ContentCommand;
 import com.gems.education.application.command.CourseCommand;
 import com.gems.education.application.command.LessonCommand;
@@ -45,7 +46,7 @@ class UpdateCourseUseCaseTest {
     List<LessonCommand> lessonCommands = List.of(new LessonCommand("Updated Lesson 1", 1, contentCommands));
     List<ModuleCommand> moduleCommands = List.of(new ModuleCommand("Updated Module 1", 1, lessonCommands));
 
-    courseCommand = new CourseCommand(
+    courseCommand = TestData.courseCommand(
       "Java Course Updated",
       "Java fundamentals updated",
       "PUBLISHED",
@@ -53,7 +54,7 @@ class UpdateCourseUseCaseTest {
       moduleCommands
     );
 
-    existingCourse = new Course(
+    existingCourse = TestData.course(
       1L,
       "Java Course",
       "Java fundamentals",
@@ -68,7 +69,7 @@ class UpdateCourseUseCaseTest {
     List<Lesson> updatedLessons = List.of(new Lesson(1L, 1L, "Updated Lesson 1", 1, updatedContents));
     List<Module> updatedModules = List.of(new Module(1L, 1L, "Updated Module 1", 1, updatedLessons));
 
-    updatedCourse = new Course(
+    updatedCourse = TestData.course(
       1L,
       "Java Course Updated",
       "Java fundamentals updated",

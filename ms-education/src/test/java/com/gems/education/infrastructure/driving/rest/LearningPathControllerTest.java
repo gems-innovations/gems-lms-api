@@ -1,131 +1,102 @@
 package com.gems.education.infrastructure.driving.rest;
 
 import com.gems.education.application.*;
-import com.gems.education.application.command.LearningPathCommand;
 import com.gems.education.application.response.LearningPathResponse;
 import com.gems.education.infrastructure.driving.rest.request.LearningPathRequest;
+import com.gems.shared.security.AuthenticatedUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class LearningPathControllerTest {
-
-  private CreateLearningPathUseCase createLearningPathUseCase;
-  private GetLearningPathByIdUseCase getLearningPathByIdUseCase;
-  private GetLearningPathsByInstitutionUseCase getLearningPathsByInstitutionUseCase;
-  private UpdateLearningPathUseCase updateLearningPathUseCase;
-  private DeleteLearningPathUseCase deleteLearningPathUseCase;
-  private GetAllLearningPathsUseCase getAllLearningPathsUseCase;
+class LearningPathControllerTest extends ControllerTestSupport {
+  private final CreateLearningPathUseCase createLearningPathUseCase = mock(CreateLearningPathUseCase.class);
+  private final GetLearningPathsByInstitutionUseCase getLearningPathsByInstitutionUseCase = mock(GetLearningPathsByInstitutionUseCase.class);
+  private final UpdateLearningPathUseCase updateLearningPathUseCase = mock(UpdateLearningPathUseCase.class);
+  private final DeleteLearningPathUseCase deleteLearningPathUseCase = mock(DeleteLearningPathUseCase.class);
+  private final GetAllLearningPathsUseCase getAllLearningPathsUseCase = mock(GetAllLearningPathsUseCase.class);
   private LearningPathController controller;
+
+  private static LearningPathResponse path(String institutionId) {
+    return new LearningPathResponse(1L, "DevOps", "Ruta", institutionId, LocalDateTime.now(),
+      List.of(course(1L, "published", institutionId)));
+  }
 
   @BeforeEach
   void setUp() {
-    createLearningPathUseCase = mock(CreateLearningPathUseCase.class);
-    getLearningPathByIdUseCase = mock(GetLearningPathByIdUseCase.class);
-    getLearningPathsByInstitutionUseCase = mock(GetLearningPathsByInstitutionUseCase.class);
-    updateLearningPathUseCase = mock(UpdateLearningPathUseCase.class);
-    deleteLearningPathUseCase = mock(DeleteLearningPathUseCase.class);
-    getAllLearningPathsUseCase = mock(GetAllLearningPathsUseCase.class);
+    when(getLearningPathByIdUseCase.execute(1L)).thenReturn(Mono.just(path("inst-1")));
+    controller = new LearningPathController(createLearningPathUseCase, getLearningPathByIdUseCase,
+      getLearningPathsByInstitutionUseCase, updateLearningPathUseCase, deleteLearningPathUseCase,
+      getAllLearningPathsUseCase, access, studentView);
+  }
 
-    controller = new LearningPathController(
-      createLearningPathUseCase,
-      getLearningPathByIdUseCase,
-      getLearningPathsByInstitutionUseCase,
-      updateLearningPathUseCase,
-      deleteLearningPathUseCase,
-      getAllLearningPathsUseCase
-    );
+  private WebTestClient as(AuthenticatedUser caller) {
+    return client(controller, caller);
   }
 
   @Test
-  void shouldGetAllLearningPaths() {
-    LearningPathResponse response = new LearningPathResponse(1L, "LP 1", "Desc", "inst-1", LocalDateTime.now(), List.of());
-    when(getAllLearningPathsUseCase.execute()).thenReturn(Flux.just(response));
+  void listIsScopedToTheCallersInstitution() {
+    when(getLearningPathsByInstitutionUseCase.execute("inst-1")).thenReturn(Flux.just(path("inst-1")));
 
-    StepVerifier.create(controller.getAllLearningPaths())
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        StepVerifier.create(entity.getBody())
-          .assertNext(res -> assertEquals("LP 1", res.getTitle()))
-          .verifyComplete();
-      })
-      .verifyComplete();
+    as(STUDENT).get().uri("/api/v1/learning-paths").exchange().expectStatus().isOk()
+      .expectBodyList(LearningPathResponse.class).hasSize(1);
+    verifyNoInteractions(getAllLearningPathsUseCase);
   }
 
   @Test
-  void shouldCreateLearningPath() {
-    LearningPathResponse response = new LearningPathResponse(1L, "LP 1", "Desc", "inst-1", LocalDateTime.now(), List.of());
-    when(createLearningPathUseCase.execute(any(LearningPathCommand.class))).thenReturn(Mono.just(response));
+  void superAdminListsEveryPath() {
+    when(getAllLearningPathsUseCase.execute()).thenReturn(Flux.just(path("inst-1"), path("inst-2")));
 
-    LearningPathRequest request = new LearningPathRequest("LP 1", "Desc", "inst-1", List.of());
-
-    StepVerifier.create(controller.createLearningPath(request))
-      .assertNext(entity -> {
-        assertEquals(201, entity.getStatusCode().value());
-        assertEquals("LP 1", entity.getBody().getTitle());
-      })
-      .verifyComplete();
+    as(SUPER_ADMIN).get().uri("/api/v1/learning-paths").exchange().expectStatus().isOk()
+      .expectBodyList(LearningPathResponse.class).hasSize(2);
   }
 
   @Test
-  void shouldGetLearningPathById() {
-    LearningPathResponse response = new LearningPathResponse(1L, "LP 1", "Desc", "inst-1", LocalDateTime.now(), List.of());
-    when(getLearningPathByIdUseCase.execute(1L)).thenReturn(Mono.just(response));
+  void studentsGetPathCoursesWithoutAnswerKeys() {
+    String body = as(STUDENT).get().uri("/api/v1/learning-paths/1").exchange().expectStatus().isOk()
+      .expectBody(String.class).returnResult().getResponseBody();
 
-    StepVerifier.create(controller.getLearningPathById(1L))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals("LP 1", entity.getBody().getTitle());
-      })
-      .verifyComplete();
+    assertEquals(false, body.contains("correctAnswer"));
   }
 
   @Test
-  void shouldGetLearningPathsByInstitution() {
-    LearningPathResponse response = new LearningPathResponse(1L, "LP 1", "Desc", "inst-1", LocalDateTime.now(), List.of());
-    when(getLearningPathsByInstitutionUseCase.execute("inst-1")).thenReturn(Flux.just(response));
-
-    StepVerifier.create(controller.getLearningPathsByInstitution("inst-1"))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        StepVerifier.create(entity.getBody())
-          .assertNext(res -> assertEquals("LP 1", res.getTitle()))
-          .verifyComplete();
-      })
-      .verifyComplete();
+  void otherInstitutionsCannotReadThePath() {
+    as(OTHER_ADMIN).get().uri("/api/v1/learning-paths/1").exchange().expectStatus().isForbidden();
   }
 
   @Test
-  void shouldUpdateLearningPath() {
-    LearningPathResponse response = new LearningPathResponse(1L, "Updated LP", "Desc", "inst-1", LocalDateTime.now(), List.of());
-    when(updateLearningPathUseCase.execute(eq(1L), any(LearningPathCommand.class))).thenReturn(Mono.just(response));
+  void staffCreateOnlyInTheirInstitution() {
+    when(createLearningPathUseCase.execute(any())).thenReturn(Mono.just(path("inst-1")));
 
-    LearningPathRequest request = new LearningPathRequest("Updated LP", "Desc", "inst-1", List.of());
-
-    StepVerifier.create(controller.updateLearningPath(1L, request))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals("Updated LP", entity.getBody().getTitle());
-      })
-      .verifyComplete();
+    as(INSTRUCTOR).post().uri("/api/v1/learning-paths").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new LearningPathRequest("DevOps", "Ruta", "inst-1", List.of(1L)))
+      .exchange().expectStatus().isCreated();
+    as(INSTRUCTOR).post().uri("/api/v1/learning-paths").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new LearningPathRequest("DevOps", "Ruta", "inst-2", List.of(1L)))
+      .exchange().expectStatus().isForbidden();
+    as(STUDENT).post().uri("/api/v1/learning-paths").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new LearningPathRequest("DevOps", "Ruta", "inst-1", List.of(1L)))
+      .exchange().expectStatus().isForbidden();
   }
 
   @Test
-  void shouldDeleteLearningPath() {
+  void staffUpdateAndDeleteTheirPaths() {
+    when(updateLearningPathUseCase.execute(eq(1L), any())).thenReturn(Mono.just(path("inst-1")));
     when(deleteLearningPathUseCase.execute(1L)).thenReturn(Mono.empty());
 
-    StepVerifier.create(controller.deleteLearningPath(1L))
-      .assertNext(entity -> {
-        assertEquals(204, entity.getStatusCode().value());
-      })
-      .verifyComplete();
+    as(ADMIN).put().uri("/api/v1/learning-paths/1").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new LearningPathRequest("DevOps 2", "Ruta", "inst-1", List.of(1L)))
+      .exchange().expectStatus().isOk();
+    as(OTHER_ADMIN).delete().uri("/api/v1/learning-paths/1").exchange().expectStatus().isForbidden();
+    as(ADMIN).delete().uri("/api/v1/learning-paths/1").exchange().expectStatus().isNoContent();
   }
 }

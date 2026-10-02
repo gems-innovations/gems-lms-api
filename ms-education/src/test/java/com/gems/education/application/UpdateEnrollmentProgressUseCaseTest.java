@@ -1,5 +1,6 @@
 package com.gems.education.application;
 
+import com.gems.education.TestData;
 import com.gems.education.application.gateway.EnrollmentGateway;
 import com.gems.education.application.response.EnrollmentResponse;
 import com.gems.education.domain.entities.Enrollment;
@@ -28,7 +29,7 @@ class UpdateEnrollmentProgressUseCaseTest {
 
   @Test
   void shouldUpdateProgressSuccessfully() {
-    Enrollment enrollment = new Enrollment(1L, 10L, 5L, LocalDateTime.now(), 50, null);
+    Enrollment enrollment = TestData.enrollment(1L, 10L, 5L, LocalDateTime.now(), 50, null);
     when(enrollmentGateway.findById(1L)).thenReturn(Mono.just(enrollment));
     when(enrollmentGateway.save(any(Enrollment.class))).thenReturn(Mono.just(enrollment));
 
