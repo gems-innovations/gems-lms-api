@@ -6,13 +6,12 @@ import com.gems.education.application.GetQuizByIdUseCase;
 import com.gems.education.application.GetQuizByLessonUseCase;
 import com.gems.education.application.SubmitQuizUseCase;
 import com.gems.education.application.UpdateQuizUseCase;
-import com.gems.education.application.command.QuizCommand;
-import com.gems.education.application.command.QuizSubmissionCommand;
 import com.gems.education.application.response.QuizGradingResponse;
 import com.gems.education.application.response.QuizResponse;
 import com.gems.education.infrastructure.driving.rest.mapper.QuizMapper;
 import com.gems.education.infrastructure.driving.rest.request.QuizRequest;
 import com.gems.education.infrastructure.driving.rest.request.QuizSubmissionRequest;
+import com.gems.shared.security.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,25 +27,28 @@ public class QuizController {
   private final UpdateQuizUseCase updateQuizUseCase;
   private final DeleteQuizUseCase deleteQuizUseCase;
   private final SubmitQuizUseCase submitQuizUseCase;
+  private final EducationAccess access;
 
   public QuizController(CreateQuizUseCase createQuizUseCase,
                         GetQuizByLessonUseCase getQuizByLessonUseCase,
                         GetQuizByIdUseCase getQuizByIdUseCase,
                         UpdateQuizUseCase updateQuizUseCase,
                         DeleteQuizUseCase deleteQuizUseCase,
-                        SubmitQuizUseCase submitQuizUseCase) {
+                        SubmitQuizUseCase submitQuizUseCase,
+                        EducationAccess access) {
     this.createQuizUseCase = createQuizUseCase;
     this.getQuizByLessonUseCase = getQuizByLessonUseCase;
     this.getQuizByIdUseCase = getQuizByIdUseCase;
     this.updateQuizUseCase = updateQuizUseCase;
     this.deleteQuizUseCase = deleteQuizUseCase;
     this.submitQuizUseCase = submitQuizUseCase;
+    this.access = access;
   }
 
   @PostMapping
   public Mono<ResponseEntity<QuizResponse>> createQuiz(@Valid @RequestBody QuizRequest request) {
-    QuizCommand command = QuizMapper.toCommand(request);
-    return createQuizUseCase.execute(command)
+    return access.staff()
+      .flatMap(caller -> createQuizUseCase.execute(QuizMapper.toCommand(request)))
       .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
   }
 
@@ -67,8 +69,8 @@ public class QuizController {
   @PutMapping("/{id}")
   public Mono<ResponseEntity<QuizResponse>> updateQuiz(@PathVariable Long id,
                                                        @Valid @RequestBody QuizRequest request) {
-    QuizCommand command = QuizMapper.toCommand(request);
-    return updateQuizUseCase.execute(id, command)
+    return access.staff()
+      .flatMap(caller -> updateQuizUseCase.execute(id, QuizMapper.toCommand(request)))
       .map(ResponseEntity::ok)
       .onErrorResume(ex -> ex.getMessage() != null && ex.getMessage().contains("not found"),
         ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
@@ -76,7 +78,8 @@ public class QuizController {
 
   @DeleteMapping("/{id}")
   public Mono<ResponseEntity<Void>> deleteQuiz(@PathVariable Long id) {
-    return deleteQuizUseCase.execute(id)
+    return access.staff()
+      .flatMap(caller -> deleteQuizUseCase.execute(id))
       .then(Mono.just(ResponseEntity.noContent().<Void>build()))
       .onErrorResume(ex -> ex.getMessage() != null && ex.getMessage().contains("not found"),
         ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
@@ -86,8 +89,8 @@ public class QuizController {
   public Mono<ResponseEntity<QuizGradingResponse>> submitQuiz(
       @PathVariable Long id,
       @Valid @RequestBody QuizSubmissionRequest request) {
-    QuizSubmissionCommand command = QuizMapper.toCommand(request);
-    return submitQuizUseCase.execute(id, command)
+    return CurrentUser.require(caller -> caller.isUser(request.getStudentId()), "You can only submit your own answers")
+      .flatMap(caller -> submitQuizUseCase.execute(id, QuizMapper.toCommand(request)))
       .map(ResponseEntity::ok);
   }
 }

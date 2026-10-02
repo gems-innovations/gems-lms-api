@@ -26,24 +26,29 @@ post() {
 
 register() { # firstName lastName username email role institutionId
   local inst_json="null"; [ -n "$6" ] && inst_json="\"$6\""
-  echo "  usuario $4 ($5) -> $(post auth/register <<JSON
+  echo "  usuario $4 ($5) -> $(post auth/register "$TOKEN" <<JSON
 {"firstName":"$1","lastName":"$2","username":"$3","email":"$4","password":"$DEV_PASSWORD","role":"$5","institutionId":$inst_json}
 JSON
 )"
 }
 
-echo "1) Usuarios"
-register Super   Admin   superadmin     super@gems.lms          SUPER_ADMIN ""
-register Carlos  Ramírez carlos.ramirez admin@unal.edu.co       ADMIN       inst-1
-register Lucía   Gómez   lucia.gomez    admin@pragma.co         ADMIN       inst-2
-register Andrés  Torres  andres.torres  instructor@unal.edu.co  INSTRUCTOR  inst-1
-register María   López   maria.lopez    estudiante@unal.edu.co  STUDENT     inst-1
-
+# El super admin lo crea ms-auth al arrancar (BOOTSTRAP_SUPERADMIN_*, ver dev-up.sh);
+# el registro exige un administrador autenticado.
 TOKEN=$(curl -s -X POST "$BASE/auth/login" -H 'Content-Type: application/json' --data-binary @- <<JSON | json_field token
 {"email":"super@gems.lms","password":"$DEV_PASSWORD"}
 JSON
 )
-if [ -z "$TOKEN" ]; then echo "No se pudo iniciar sesión como super@gems.lms"; exit 1; fi
+if [ -z "$TOKEN" ]; then
+  echo "No se pudo iniciar sesión como super@gems.lms."
+  echo "Arranca ms-auth con BOOTSTRAP_SUPERADMIN_EMAIL=super@gems.lms y BOOTSTRAP_SUPERADMIN_PASSWORD=\$DEV_PASSWORD (dev-up.sh lo hace)."
+  exit 1
+fi
+
+echo "1) Usuarios"
+register Carlos  Ramírez carlos.ramirez admin@unal.edu.co       ADMIN       inst-1
+register Lucía   Gómez   lucia.gomez    admin@pragma.co         ADMIN       inst-2
+register Andrés  Torres  andres.torres  instructor@unal.edu.co  INSTRUCTOR  inst-1
+register María   López   maria.lopez    estudiante@unal.edu.co  STUDENT     inst-1
 
 echo "2) Instituciones"
 echo "  inst-1 -> $(post institutions "$TOKEN" <<'JSON'

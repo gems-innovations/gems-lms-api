@@ -41,7 +41,10 @@ class AuthControllerTest {
     // /mnt/c filesystem under WSL) that cold start alone can exceed the 5s default response
     // timeout, failing whichever test happens to run first. A longer timeout keeps this test
     // class robust without masking a real hang.
-    webTestClient = WebTestClient.bindToController(authController).build()
+    webTestClient = WebTestClient.bindToController(authController)
+      .webFilter(TestSecurity.superAdmin())
+      .controllerAdvice(new GlobalExceptionHandler(), new com.gems.shared.security.SecurityExceptionAdvice())
+      .build()
       .mutate().responseTimeout(Duration.ofSeconds(30)).build();
 
     LocalDateTime now = LocalDateTime.now();

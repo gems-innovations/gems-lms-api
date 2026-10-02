@@ -13,6 +13,10 @@
 export MSYS_NO_PATHCONV=1
 export MSYS2_ENV_CONV_EXCL='*'
 
+# Primer super admin para desarrollo local (ms-auth lo crea al arrancar si no existe).
+# En otros entornos defínelos en el .env con valores propios.
+export DEV_PASSWORD="${DEV_PASSWORD:-GemsDev2026!}"
+
 set -e
 cd "$(dirname "$0")"
 
@@ -24,6 +28,8 @@ while IFS= read -r line || [ -n "$line" ]; do
   line=${line%$'\r'}
   [[ $line =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]] && export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
 done < .env
+export BOOTSTRAP_SUPERADMIN_EMAIL="${BOOTSTRAP_SUPERADMIN_EMAIL:-super@gems.lms}"
+export BOOTSTRAP_SUPERADMIN_PASSWORD="${BOOTSTRAP_SUPERADMIN_PASSWORD:-$DEV_PASSWORD}"
 
 echo "1) Bases de datos y Redis"
 docker compose -f docker-compose-local.yml --env-file .env up -d
@@ -53,11 +59,12 @@ start api-gateway  :api-gateway:bootRun  8080
 
 echo "4) Esperando a que respondan (puede tardar 1-2 min la primera vez)..."
 for port in "${AUTH_PORT:-8081}" "${ADMIN_PORT:-8082}" "${EDUCATION_PORT:-8083}" 8080; do
+  code=000
   for _ in $(seq 1 90); do
-    curl -s -o /dev/null -m 2 "http://localhost:$port/v3/api-docs" && break
+    code=$(curl -s -o /dev/null -w "%{http_code}" -m 3 "http://localhost:$port/v3/api-docs" || true)
+    [ "$code" != "000" ] && break
     sleep 2
   done
-  code=$(curl -s -o /dev/null -w '%{http_code}' -m 2 "http://localhost:$port/v3/api-docs" || true)
   [ "$code" != "000" ] && echo "   :$port arriba" || echo "   :$port sin respuesta (revisa logs/)"
 done
 

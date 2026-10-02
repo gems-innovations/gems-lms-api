@@ -25,6 +25,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 
+import com.gems.shared.security.AuthenticatedUser;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -57,7 +58,14 @@ class UserControllerTest {
             updateUserUseCase,
             toggleUserStatusUseCase
         );
-        webTestClient = WebTestClient.bindToController(userController).build();
+        webTestClient = WebTestClient.bindToController(userController)
+            .webFilter(TestSecurity.superAdmin())
+            .controllerAdvice(new GlobalExceptionHandler(), new com.gems.shared.security.SecurityExceptionAdvice())
+            .build();
+        // Write endpoints first load the target user to check permissions.
+        lenient().when(getUserByIdUseCase.execute(org.mockito.ArgumentMatchers.anyLong())).thenReturn(Mono.just(
+            new UserResponse(1L, "John", "Doe", "john.doe", "john@example.com", "STUDENT", "inst-123", null,
+                LocalDateTime.now(), LocalDateTime.now(), true)));
     }
 
     @Nested
@@ -220,6 +228,50 @@ class UserControllerTest {
                 .hasSize(2);
 
             verify(getUsersByInstitutionUseCase).execute(institutionId);
+        }
+    }
+    @Nested
+    @DisplayName("Authorization Tests")
+    class AuthorizationTests {
+
+        private WebTestClient as(AuthenticatedUser caller) {
+            UserController controller = new UserController(disableUserUseCase, getUsersByInstitutionUseCase,
+                getUserByIdUseCase, getAllUsersUseCase, updateUserUseCase, toggleUserStatusUseCase);
+            return WebTestClient.bindToController(controller)
+                .webFilter(TestSecurity.authenticatedAs(caller))
+                .controllerAdvice(new GlobalExceptionHandler(), new com.gems.shared.security.SecurityExceptionAdvice())
+                .build();
+        }
+
+        @Test
+        @DisplayName("Admin cannot list every user")
+        void adminCannotListAllUsers() {
+            as(new AuthenticatedUser(2L, "ADMIN", "inst-123")).get().uri("/api/v1/users")
+                .exchange().expectStatus().isForbidden();
+            verifyNoInteractions(getAllUsersUseCase);
+        }
+
+        @Test
+        @DisplayName("Admin cannot disable users of another institution")
+        void adminCannotDisableOtherInstitutionUser() {
+            as(new AuthenticatedUser(2L, "ADMIN", "inst-999")).delete().uri("/api/v1/users/1")
+                .exchange().expectStatus().isForbidden();
+            verifyNoInteractions(disableUserUseCase);
+        }
+
+        @Test
+        @DisplayName("Student cannot list institution users")
+        void studentCannotListInstitutionUsers() {
+            as(new AuthenticatedUser(3L, "STUDENT", "inst-123")).get().uri("/api/v1/users/institution/inst-123")
+                .exchange().expectStatus().isForbidden();
+        }
+
+        @Test
+        @DisplayName("Admin can disable users of their institution")
+        void adminCanDisableOwnInstitutionUser() {
+            when(disableUserUseCase.execute(any(UserId.class))).thenReturn(Mono.empty());
+            as(new AuthenticatedUser(2L, "ADMIN", "inst-123")).delete().uri("/api/v1/users/1")
+                .exchange().expectStatus().isNoContent();
         }
     }
 }

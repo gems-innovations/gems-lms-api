@@ -39,9 +39,10 @@ public class JwtReactiveAuthenticationManager implements ReactiveAuthenticationM
 
       Long userId = Long.parseLong(claims.getSubject());
       String role = claims.get("role", String.class);
+      String institutionId = claims.get("institutionId", String.class);
 
       return Mono.just(new UsernamePasswordAuthenticationToken(
-        userId,
+        new AuthenticatedUser(userId, role, institutionId),
         token,
         List.of(new SimpleGrantedAuthority("ROLE_" + role))
       ));

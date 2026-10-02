@@ -1,7 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
 import com.gems.education.application.*;
-import com.gems.education.application.command.StudentCommand;
 import com.gems.education.application.response.StudentResponse;
 import com.gems.education.infrastructure.driving.rest.constants.RestConstants;
 import com.gems.education.infrastructure.driving.rest.mapper.StudentMapper;
@@ -22,31 +21,34 @@ public class StudentController {
   private final GetAllStudentsUseCase getAllStudentsUseCase;
   private final UpdateStudentUseCase updateStudentUseCase;
   private final DeleteStudentUseCase deleteStudentUseCase;
+  private final EducationAccess access;
 
   public StudentController(
     RegisterStudentUseCase registerStudentUseCase,
     GetStudentByIdUseCase getStudentByIdUseCase,
     GetAllStudentsUseCase getAllStudentsUseCase,
     UpdateStudentUseCase updateStudentUseCase,
-    DeleteStudentUseCase deleteStudentUseCase
+    DeleteStudentUseCase deleteStudentUseCase,
+    EducationAccess access
   ) {
     this.registerStudentUseCase = registerStudentUseCase;
     this.getStudentByIdUseCase = getStudentByIdUseCase;
     this.getAllStudentsUseCase = getAllStudentsUseCase;
     this.updateStudentUseCase = updateStudentUseCase;
     this.deleteStudentUseCase = deleteStudentUseCase;
+    this.access = access;
   }
 
   @PostMapping(RestConstants.REGISTER_ENDPOINT)
   public Mono<ResponseEntity<StudentResponse>> registerStudent(@Valid @RequestBody StudentRequest request) {
-    StudentCommand command = StudentMapper.toDomain(request);
-    return registerStudentUseCase.execute(command)
+    return access.staff()
+      .flatMap(caller -> registerStudentUseCase.execute(StudentMapper.toDomain(request)))
       .map(studentResponse -> ResponseEntity.status(HttpStatus.CREATED).body(studentResponse));
   }
 
   @GetMapping
   public Flux<StudentResponse> getAllStudents() {
-    return getAllStudentsUseCase.execute();
+    return access.staff().flatMapMany(caller -> getAllStudentsUseCase.execute());
   }
 
   @PutMapping("/{id}")
@@ -54,20 +56,22 @@ public class StudentController {
     @PathVariable Long id,
     @Valid @RequestBody StudentRequest request
   ) {
-    StudentCommand command = StudentMapper.toDomain(request);
-    return updateStudentUseCase.execute(id, command)
+    return access.staff()
+      .flatMap(caller -> updateStudentUseCase.execute(id, StudentMapper.toDomain(request)))
       .map(ResponseEntity::ok);
   }
 
   @GetMapping("/{id}")
   public Mono<ResponseEntity<StudentResponse>> getStudentById(@PathVariable Long id) {
-    return getStudentByIdUseCase.execute(id)
+    return access.staff()
+      .flatMap(caller -> getStudentByIdUseCase.execute(id))
       .map(ResponseEntity::ok);
   }
 
   @DeleteMapping("/{id}")
   public Mono<ResponseEntity<Void>> deleteStudent(@PathVariable Long id) {
-    return deleteStudentUseCase.execute(id)
+    return access.staff()
+      .flatMap(caller -> deleteStudentUseCase.execute(id))
       .then(Mono.just(ResponseEntity.noContent().<Void>build()));
   }
 }

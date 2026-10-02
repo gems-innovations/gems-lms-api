@@ -1,9 +1,9 @@
 package com.gems.auth.infrastructure.driving.rest;
 
+import com.gems.shared.security.CurrentUser;
 import com.gems.auth.application.LoginUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.command.LoginCommand;
-import com.gems.auth.application.command.RegisterUserCommand;
 import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.application.response.UserResponse;
 import com.gems.auth.infrastructure.constants.AuthInfraConstants;
@@ -68,9 +68,16 @@ public class AuthController {
       )
   })
   public Mono<ResponseEntity<UserResponse>> registerUser(@Valid @RequestBody RegisterUserRequest request) {
-    RegisterUserCommand command = UserMapper.toDomain(request);
-
-    return registerUserUseCase.execute(command)
+    // Accounts are created by administrators: an admin inside their own institution (defaulting
+    // to it) and never as SUPER_ADMIN. The first super admin comes from SuperAdminBootstrap.
+    return CurrentUser.get()
+      .flatMap(caller -> {
+        if (caller.isAdmin() && request.getInstitutionId() == null) {
+          request.setInstitutionId(caller.institutionId());
+        }
+        UserController.ensureCanAssign(caller, request.getRole(), request.getInstitutionId());
+        return registerUserUseCase.execute(UserMapper.toDomain(request));
+      })
       .map(userResponse -> ResponseEntity.status(HttpStatus.CREATED).body(userResponse));
   }
 

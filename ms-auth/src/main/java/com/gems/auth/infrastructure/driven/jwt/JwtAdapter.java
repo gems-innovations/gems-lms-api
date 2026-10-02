@@ -21,7 +21,7 @@ public class JwtAdapter implements JwtGateway {
   private int jwtExpiration;
 
   @Override
-  public String generateToken(Long userId, String role) {
+  public String generateToken(Long userId, String role, String institutionId) {
     Date now = new Date();
     Date expiryDate = new Date(now.getTime() + jwtExpiration * 1000L);
 
@@ -30,6 +30,7 @@ public class JwtAdapter implements JwtGateway {
     return Jwts.builder()
       .setSubject(userId.toString())
       .claim("role", role)
+      .claim("institutionId", institutionId)
       .setIssuedAt(now)
       .setExpiration(expiryDate)
       .signWith(key, SignatureAlgorithm.HS512)

@@ -23,7 +23,7 @@ Usuarios de desarrollo (contraseña: `DEV_PASSWORD` en `seed-dev.sh`):
 
 | Correo | Rol | Institución |
 |---|---|---|
-| super@gems.lms | SUPER_ADMIN | — |
+| super@gems.lms | SUPER_ADMIN (lo crea ms-auth al arrancar) | — |
 | admin@unal.edu.co | ADMIN | inst-1 |
 | admin@pragma.co | ADMIN | inst-2 |
 | instructor@unal.edu.co | INSTRUCTOR | inst-1 |
@@ -78,49 +78,61 @@ como JSON con todos sus campos; `contents.type` lleva el tipo.
 
 ## Qué falta — back
 
-### Seguridad (urgente)
+### Seguridad
 
-1. **No hay autorización por rol en ningún endpoint.** Todos los microservicios solo exigen un JWT
-   válido: un estudiante puede crear/borrar instituciones, listar todos los usuarios, borrar cursos, etc.
-2. **`POST /auth/register` es público y acepta `role: SUPER_ADMIN`**: cualquiera sin cuenta puede
-   crearse un super admin. Hay que protegerlo (solo ADMIN/SUPER_ADMIN, y ADMIN solo en su institución)
-   y definir cómo se crea el primer super admin (p. ej. por migración o variable de entorno).
-3. Sin control de propiedad: un estudiante puede inscribir a otro `studentId` o modificar el progreso
-   de inscripciones ajenas. El `studentId` debería salir del token.
-4. Las respuestas correctas viajan al estudiante: `QuizResponse.correctOption` y, en el modelo actual,
-   el JSON de los bloques de quiz dentro del curso. La calificación debe hacerse en el servidor y el
-   curso debe servirse sin respuestas a estudiantes.
-5. `jwt.secret` y contraseñas tienen valores por defecto en `application.properties`: si falta la
+Resuelto (rama `feature/integracion-front`):
+
+- **Autorización por rol e institución** en todos los servicios. El JWT lleva `role` e `institutionId`;
+  `shared` expone `AuthenticatedUser`/`CurrentUser` y un acceso denegado responde 403.
+  - ms-auth: solo el super admin lista todos los usuarios; los admins gestionan los usuarios de su
+    institución (sin tocar super admins ni dar ese rol); cada usuario edita su propio perfil.
+  - ms-admin: solo el super admin crea/borra instituciones o cambia su estado; el admin edita la suya;
+    el resto solo lee la propia.
+  - ms-education: todo queda dentro de la institución del usuario; el staff (admin, instructor) gestiona
+    cursos, rutas, quizzes e inscripciones; el estudiante ve cursos publicados y solo se inscribe a sí
+    mismo y toca su propio progreso.
+- **`POST /auth/register` ya no es público.** El primer super admin se crea al arrancar ms-auth con
+  `BOOTSTRAP_SUPERADMIN_EMAIL` y `BOOTSTRAP_SUPERADMIN_PASSWORD` (`dev-up.sh` los define en local).
+- Las sesiones del front con tokens anteriores (sin `institutionId`) se descartan y piden login.
+
+Pendiente:
+
+1. Las respuestas correctas viajan al estudiante: `QuizResponse.correctOption` y el JSON de los bloques
+   de quiz dentro del curso. La calificación debe hacerse en el servidor y el curso debe servirse sin
+   respuestas a estudiantes.
+2. `jwt.secret` y contraseñas tienen valores por defecto en `application.properties`: si falta la
    variable de entorno, arranca con un secreto conocido.
+3. El staff puede inscribir cualquier `studentId`: ms-education no puede verificar en ms-auth que el
+   usuario pertenezca a la institución.
 
 ### Calidad
 
-6. **Los tests de ms-admin y ms-education no compilan** (76 errores ya en `main`: constructores de
+4. **Los tests de ms-admin y ms-education no compilan** (76 errores ya en `main`: constructores de
    `Branding`, `InstitutionCommand`, `Course`, `Enrollment`, `CourseRequest`… cambiaron y los tests no).
    `./gradlew build` falla; el CI no puede estar validando nada.
-7. La capa `application` de ms-education importa excepciones de `infrastructure.driving.rest`
+5. La capa `application` de ms-education importa excepciones de `infrastructure.driving.rest`
    (rompe la arquitectura limpia que pide el README).
-8. `/actuator/health` responde 401 (no está en las rutas públicas); el README dice lo contrario.
-9. README desactualizado (puertos, gateway, compose local); scripts de arranque no portables a Windows.
+6. `/actuator/health` responde 401 (no está en las rutas públicas); el README dice lo contrario.
+7. README desactualizado (puertos, gateway, compose local); scripts de arranque no portables a Windows.
 
 ### Funcionalidad que el front ya tiene y el back no
 
-10. **Grupos/cohortes**: sin API. Hoy se guardan en el navegador (por institución) y el instructor ve
+8. **Grupos/cohortes**: sin API. Hoy se guardan en el navegador (por institución) y el instructor ve
     un grupo automático "Todos los inscritos" por curso.
-11. **Intentos de quiz y entregas de tareas**: sin recursos propios; se guardan provisionalmente dentro
+9. **Intentos de quiz y entregas de tareas**: sin recursos propios; se guardan provisionalmente dentro
     de `progress_data` de cada inscripción (el instructor califica reescribiendo la inscripción del
     estudiante). Debería haber tablas/endpoints y calificación en el servidor.
-12. **Archivos**: no hay almacenamiento para entregas de tareas, miniaturas ni logos (solo URLs).
-13. **Rutas de aprendizaje**: faltan estado (borrador/publicada), etiquetas, miniatura, pasos
+10. **Archivos**: no hay almacenamiento para entregas de tareas, miniaturas ni logos (solo URLs).
+11. **Rutas de aprendizaje**: faltan estado (borrador/publicada), etiquetas, miniatura, pasos
     opcionales y **inscripción a rutas** (hoy en el navegador).
-14. **Encuestas de curso, notificaciones y reseñas**: sin API (encuestas y notificaciones son locales;
+12. **Encuestas de curso, notificaciones y reseñas**: sin API (encuestas y notificaciones son locales;
     reseñas quedan vacías).
-15. Lecciones y módulos no guardan `description`/`isFree`; los bloques no tienen fecha de entrega.
-16. `usersCount` de instituciones nunca se sincroniza con ms-auth; `completionRate`, `averageRating`
+13. Lecciones y módulos no guardan `description`/`isFree`; los bloques no tienen fecha de entrega.
+14. `usersCount` de instituciones nunca se sincroniza con ms-auth; `completionRate`, `averageRating`
     nunca se calculan; `enrolledCount` no baja al borrar una inscripción.
-17. `DELETE /users/{id}` solo desactiva (el usuario reaparece como inactivo al recargar).
-18. Sin flujos de **recuperar contraseña**, **auto-registro** ni **cambio de contraseña temporal**.
-19. Sin paginación en usuarios, rutas e inscripciones; la tabla `students` de ms-education quedó sin uso.
+15. `DELETE /users/{id}` solo desactiva (el usuario reaparece como inactivo al recargar).
+16. Sin flujos de **recuperar contraseña**, **auto-registro** ni **cambio de contraseña temporal**.
+17. Sin paginación en usuarios, rutas e inscripciones; la tabla `students` de ms-education quedó sin uso.
 
 ## Qué falta — front
 
