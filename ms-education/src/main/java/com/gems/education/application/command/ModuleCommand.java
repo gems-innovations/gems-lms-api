@@ -3,6 +3,7 @@ package com.gems.education.application.command;
 import java.util.List;
 
 public class ModuleCommand {
+  private Long id;
   private final String title;
   private final Integer orderIndex;
   private final List<LessonCommand> lessons;
@@ -23,5 +24,14 @@ public class ModuleCommand {
 
   public List<LessonCommand> getLessons() {
     return lessons;
+  }
+
+  public ModuleCommand withId(Long id) {
+    this.id = id;
+    return this;
+  }
+
+  public Long getId() {
+    return id;
   }
 }

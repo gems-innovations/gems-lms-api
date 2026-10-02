@@ -6,6 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public class ModuleRequest {
+  // Present when updating an existing module; keeps its id stable across course updates.
+  private Long id;
+
   @NotBlank(message = "Module title is required")
   private String title;
 
@@ -46,5 +49,13 @@ public class ModuleRequest {
 
   public void setLessons(List<LessonRequest> lessons) {
     this.lessons = lessons;
+  }
+
+  public Long getId() {
+    return id;
+  }
+
+  public void setId(Long id) {
+    this.id = id;
   }
 }

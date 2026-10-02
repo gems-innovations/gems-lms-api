@@ -28,13 +28,13 @@ public class CourseMapper {
             List<ContentCommand> contents = new ArrayList<>();
             if (lReq.getContents() != null) {
               contents = lReq.getContents().stream()
-                .map(cReq -> new ContentCommand(cReq.getType(), cReq.getValue(), cReq.getOrderIndex()))
+                .map(cReq -> new ContentCommand(cReq.getType(), cReq.getValue(), cReq.getOrderIndex()).withId(cReq.getId()))
                 .collect(Collectors.toList());
             }
-            return new LessonCommand(lReq.getTitle(), lReq.getOrderIndex(), contents);
+            return new LessonCommand(lReq.getTitle(), lReq.getOrderIndex(), contents).withId(lReq.getId());
           }).collect(Collectors.toList());
         }
-        return new ModuleCommand(mReq.getTitle(), mReq.getOrderIndex(), lessons);
+        return new ModuleCommand(mReq.getTitle(), mReq.getOrderIndex(), lessons).withId(mReq.getId());
       }).collect(Collectors.toList());
     }
 

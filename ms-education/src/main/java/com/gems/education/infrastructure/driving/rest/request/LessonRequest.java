@@ -6,6 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public class LessonRequest {
+  // Present when updating an existing lesson; keeps its id stable across course updates.
+  private Long id;
+
   @NotBlank(message = "Lesson title is required")
   private String title;
 
@@ -46,5 +49,13 @@ public class LessonRequest {
 
   public void setContents(List<ContentRequest> contents) {
     this.contents = contents;
+  }
+
+  public Long getId() {
+    return id;
+  }
+
+  public void setId(Long id) {
+    this.id = id;
   }
 }

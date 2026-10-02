@@ -13,9 +13,9 @@ public interface CourseGateway {
 
   Flux<Course> findAll();
 
-  Flux<Course> findPage(String search, String status, String difficulty, int offset, int limit);
+  Flux<Course> findPage(String search, String status, String difficulty, String institutionId, int offset, int limit);
 
-  Mono<Long> count(String search, String status, String difficulty);
+  Mono<Long> count(String search, String status, String difficulty, String institutionId);
 
   Mono<Void> incrementEnrolledCount(Long courseId);
 

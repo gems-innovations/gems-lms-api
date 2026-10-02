@@ -20,15 +20,20 @@ public class GetAllCoursesUseCase {
   }
 
   public Mono<CourseListResponse> execute(String search, String status, String difficulty, int page, int limit) {
+    return execute(search, status, difficulty, null, page, limit);
+  }
+
+  public Mono<CourseListResponse> execute(String search, String status, String difficulty, String institutionId,
+                                          int page, int limit) {
     int safePage = Math.max(page, 1);
     int safeLimit = Math.max(limit, 1);
     int offset = (safePage - 1) * safeLimit;
 
-    Flux<CourseResponse> courses = courseGateway.findPage(search, status, difficulty, offset, safeLimit)
+    Flux<CourseResponse> courses = courseGateway.findPage(search, status, difficulty, institutionId, offset, safeLimit)
       .map(CourseResponseMapper::toResponse);
 
     return courses.collectList()
-      .zipWith(courseGateway.count(search, status, difficulty))
+      .zipWith(courseGateway.count(search, status, difficulty, institutionId))
       .map(tuple -> {
         var list = tuple.getT1();
         long total = tuple.getT2();

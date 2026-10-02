@@ -42,9 +42,10 @@ public class CourseController {
       @RequestParam(required = false) String search,
       @RequestParam(required = false) String status,
       @RequestParam(required = false) String difficulty,
+      @RequestParam(required = false) String institutionId,
       @RequestParam(defaultValue = "1") int page,
       @RequestParam(defaultValue = "10") int limit) {
-    return getAllCoursesUseCase.execute(search, status, difficulty, page, limit)
+    return getAllCoursesUseCase.execute(search, status, difficulty, institutionId, page, limit)
       .map(ResponseEntity::ok);
   }
 

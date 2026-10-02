@@ -49,12 +49,12 @@ public class UpdateCourseUseCase {
                 List<Content> contents = new ArrayList<>();
                 if (lCmd.getContents() != null) {
                   lCmd.getContents().forEach(cCmd ->
-                    contents.add(new Content(null, null, cCmd.getType(), cCmd.getValue(), cCmd.getOrderIndex())));
+                    contents.add(new Content(cCmd.getId(), null, cCmd.getType(), cCmd.getValue(), cCmd.getOrderIndex())));
                 }
-                lessons.add(new Lesson(null, null, lCmd.getTitle(), lCmd.getOrderIndex(), contents));
+                lessons.add(new Lesson(lCmd.getId(), null, lCmd.getTitle(), lCmd.getOrderIndex(), contents));
               });
             }
-            modules.add(new Module(null, null, mCmd.getTitle(), mCmd.getOrderIndex(), lessons));
+            modules.add(new Module(mCmd.getId(), null, mCmd.getTitle(), mCmd.getOrderIndex(), lessons));
           });
           existing.setModules(modules);
           existing.setTotalLessons(modules.stream().mapToInt(m -> m.getLessons() == null ? 0 : m.getLessons().size()).sum());
