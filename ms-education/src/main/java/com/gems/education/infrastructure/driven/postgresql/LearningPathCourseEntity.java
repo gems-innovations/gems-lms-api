@@ -17,6 +17,10 @@ public class LearningPathCourseEntity implements Persistable<Long> {
 
   @Column("order_index")
   private Integer orderIndex;
+  @Column("is_required")
+  private Boolean isRequired = true;
+  @Column("minimum_score")
+  private Integer minimumScore;
 
   @Transient
   private boolean isNewEntry = true;
@@ -67,4 +71,9 @@ public class LearningPathCourseEntity implements Persistable<Long> {
   public void setNew(boolean isNewEntry) {
     this.isNewEntry = isNewEntry;
   }
+
+  public Boolean getIsRequired() { return isRequired; }
+  public void setIsRequired(Boolean isRequired) { this.isRequired = isRequired; }
+  public Integer getMinimumScore() { return minimumScore; }
+  public void setMinimumScore(Integer minimumScore) { this.minimumScore = minimumScore; }
 }

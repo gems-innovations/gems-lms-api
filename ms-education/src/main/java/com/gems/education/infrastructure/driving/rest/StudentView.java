@@ -42,8 +42,7 @@ public class StudentView {
 
   public LearningPathResponse path(AuthenticatedUser caller, LearningPathResponse p) {
     if (!caller.isStudent() || p.getCourses() == null) return p;
-    return new LearningPathResponse(p.getId(), p.getTitle(), p.getDescription(), p.getInstitutionId(),
-      p.getCreatedAt(), p.getCourses().stream().map(c -> course(caller, c)).toList());
+    return p.withCourses(p.getCourses().stream().map(c -> course(caller, c)).toList());
   }
 
   public QuizResponse quiz(AuthenticatedUser caller, QuizResponse q) {

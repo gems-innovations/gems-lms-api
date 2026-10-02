@@ -114,8 +114,9 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public LearningPathGateway learningPathGateway(ILearningPathRepository lpRepo, ILearningPathCourseRepository lpcRepo, CourseGateway courseGateway) {
-    return new LearningPathRepositoryAdapter(lpRepo, lpcRepo, courseGateway);
+  public LearningPathGateway learningPathGateway(ILearningPathRepository lpRepo, ILearningPathCourseRepository lpcRepo,
+                                                  CourseGateway courseGateway, IPathEnrollmentRepository enrollmentRepo) {
+    return new LearningPathRepositoryAdapter(lpRepo, lpcRepo, courseGateway, enrollmentRepo);
   }
 
   @Bean
@@ -219,5 +220,10 @@ public class ApplicationConfig {
   @Bean
   public GroupUseCase groupUseCase(GroupGateway groupGateway) {
     return new GroupUseCase(groupGateway);
+  }
+
+  @Bean
+  public PathEnrollmentUseCase pathEnrollmentUseCase(PathEnrollmentGateway pathEnrollmentGateway) {
+    return new PathEnrollmentUseCase(pathEnrollmentGateway);
   }
 }

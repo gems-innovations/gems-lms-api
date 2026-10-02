@@ -77,9 +77,10 @@ public class EducationAccess {
       .flatMap(enrollment -> editableCourse(enrollment.getCourseId()).thenReturn(enrollment));
   }
 
+  /** The path, if the caller may read it (students: only published paths). */
   public Mono<LearningPathResponse> readablePath(Long pathId) {
     return CurrentUser.get().flatMap(caller -> getLearningPathByIdUseCase.execute(pathId).flatMap(path ->
-      caller.belongsTo(path.getInstitutionId())
+      caller.belongsTo(path.getInstitutionId()) && (!caller.isStudent() || PUBLISHED.equals(path.getStatus()))
         ? Mono.just(path)
         : Mono.error(new ForbiddenException("You cannot see this learning path"))));
   }

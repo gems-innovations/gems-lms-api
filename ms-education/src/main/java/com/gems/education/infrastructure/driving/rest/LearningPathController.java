@@ -15,6 +15,8 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api/v1/learning-paths")
 public class LearningPathController {
+  private static final String PUBLISHED = "published";
+
   private final CreateLearningPathUseCase createLearningPathUseCase;
   private final GetLearningPathByIdUseCase getLearningPathByIdUseCase;
   private final GetLearningPathsByInstitutionUseCase getLearningPathsByInstitutionUseCase;
@@ -48,6 +50,7 @@ public class LearningPathController {
     return CurrentUser.get().map(caller -> ResponseEntity.ok((caller.isSuperAdmin()
       ? getAllLearningPathsUseCase.execute()
       : getLearningPathsByInstitutionUseCase.execute(caller.institutionId()))
+      .filter(path -> !caller.isStudent() || PUBLISHED.equals(path.getStatus()))
       .map(path -> studentView.path(caller, path))));
   }
 
@@ -69,6 +72,7 @@ public class LearningPathController {
   public Mono<ResponseEntity<Flux<LearningPathResponse>>> getLearningPathsByInstitution(@PathVariable String institutionId) {
     return CurrentUser.require(caller -> caller.belongsTo(institutionId), "You can only list your institution's learning paths")
       .map(caller -> ResponseEntity.ok(getLearningPathsByInstitutionUseCase.execute(institutionId)
+        .filter(path -> !caller.isStudent() || PUBLISHED.equals(path.getStatus()))
         .map(path -> studentView.path(caller, path))));
   }
 

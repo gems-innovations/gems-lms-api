@@ -34,14 +34,12 @@ public class UpdateLearningPathUseCase {
       .flatMap(existing -> {
         existing.setTitle(command.getTitle());
         existing.setDescription(command.getDescription());
-
-        if (command.getCourseIds() == null || command.getCourseIds().isEmpty()) {
-          existing.setCourses(new ArrayList<>());
-          return learningPathGateway.save(existing);
-        }
-
-        return Flux.fromIterable(command.getCourseIds())
-          .flatMap(courseId -> courseGateway.findById(courseId)
+        if (command.getStatus() != null) existing.setStatus(command.getStatus());
+        if (command.getTags() != null) existing.setTags(command.getTags());
+        if (command.getThumbnailUrl() != null) existing.setThumbnailUrl(command.getThumbnailUrl());
+        if (command.getSteps() != null) existing.setSteps(command.getSteps());
+        return Flux.fromIterable(command.getCourseIds() == null ? List.<Long>of() : command.getCourseIds())
+          .concatMap(courseId -> courseGateway.findById(courseId)
             .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + courseId))))
           .collectList()
           .flatMap(courses -> {
@@ -53,18 +51,6 @@ public class UpdateLearningPathUseCase {
   }
 
   private LearningPathResponse mapToResponse(LearningPath lp) {
-    List<CourseResponse> courseResponses = new ArrayList<>();
-    if (lp.getCourses() != null) {
-      courseResponses = lp.getCourses().stream().map(CourseResponseMapper::toResponse).collect(Collectors.toList());
-    }
-
-    return new LearningPathResponse(
-      lp.getId(),
-      lp.getTitle(),
-      lp.getDescription(),
-      lp.getInstitutionId(),
-      lp.getCreatedAt(),
-      courseResponses
-    );
+    return LearningPathResponses.toResponse(lp);
   }
 }

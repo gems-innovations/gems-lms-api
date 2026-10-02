@@ -182,3 +182,24 @@ CREATE TABLE IF NOT EXISTS student_groups (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_student_groups_institution ON student_groups(institution_id);
+
+-- Learning path details added after the initial schema. Paths that existed before the
+-- status column were visible to everyone, so they start as published.
+ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'published';
+ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS tags VARCHAR(500);
+ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR(500);
+ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+ALTER TABLE learning_path_courses ADD COLUMN IF NOT EXISTS is_required BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE learning_path_courses ADD COLUMN IF NOT EXISTS minimum_score INT;
+
+CREATE TABLE IF NOT EXISTS path_enrollments (
+    id BIGSERIAL PRIMARY KEY,
+    learning_path_id BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    UNIQUE (learning_path_id, student_id),
+    CONSTRAINT fk_path_enrollment_path FOREIGN KEY(learning_path_id) REFERENCES learning_paths(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_path_enrollments_student ON path_enrollments(student_id);

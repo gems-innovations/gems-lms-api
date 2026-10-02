@@ -69,6 +69,43 @@ class LearningPathControllerTest extends ControllerTestSupport {
   }
 
   @Test
+  void studentsDoNotSeeDraftPaths() {
+    LearningPathResponse draft = path("inst-1");
+    draft.setStatus("draft");
+    when(getLearningPathByIdUseCase.execute(1L)).thenReturn(Mono.just(draft));
+    when(getLearningPathsByInstitutionUseCase.execute("inst-1")).thenReturn(Flux.just(draft, path("inst-1")));
+
+    as(STUDENT).get().uri("/api/v1/learning-paths/1").exchange().expectStatus().isForbidden();
+    as(STUDENT).get().uri("/api/v1/learning-paths").exchange().expectStatus().isOk()
+      .expectBodyList(LearningPathResponse.class).hasSize(1);
+    as(INSTRUCTOR).get().uri("/api/v1/learning-paths/1").exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$.status").isEqualTo("draft");
+  }
+
+  @Test
+  void stepsReplaceTheCourseListAndKeepTheirSettings() {
+    when(createLearningPathUseCase.execute(any())).thenReturn(Mono.just(path("inst-1")));
+
+    as(ADMIN).post().uri("/api/v1/learning-paths").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"title\":\"DevOps\",\"institutionId\":\"inst-1\",\"status\":\"published\",\"tags\":[\"cloud\"],"
+        + "\"steps\":[{\"courseId\":2,\"required\":false,\"minimumScore\":80},{\"courseId\":1}]}")
+      .exchange().expectStatus().isCreated();
+
+    verify(createLearningPathUseCase).execute(argThat(c ->
+      c.getCourseIds().equals(List.of(2L, 1L))
+        && !c.getSteps().get(0).required() && c.getSteps().get(0).minimumScore() == 80
+        && c.getSteps().get(1).required()
+        && "published".equals(c.getStatus()) && c.getTags().equals(List.of("cloud"))));
+  }
+
+  @Test
+  void anUnknownStatusIsRejected() {
+    as(ADMIN).post().uri("/api/v1/learning-paths").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"title\":\"DevOps\",\"institutionId\":\"inst-1\",\"status\":\"live\"}")
+      .exchange().expectStatus().isBadRequest();
+  }
+
+  @Test
   void otherInstitutionsCannotReadThePath() {
     as(OTHER_ADMIN).get().uri("/api/v1/learning-paths/1").exchange().expectStatus().isForbidden();
   }

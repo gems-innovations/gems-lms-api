@@ -123,8 +123,10 @@ Pendiente:
     la institución; cursos y rutas del grupo deben ser de la misma institución). El front migra una vez
     los grupos que tenía en el navegador. Sigue el grupo automático "Todos los inscritos" por curso.
 8. **Archivos**: no hay almacenamiento para entregas de tareas, miniaturas ni logos (solo URLs).
-9. **Rutas de aprendizaje**: faltan estado (borrador/publicada), etiquetas, miniatura, pasos
-    opcionales y **inscripción a rutas** (hoy en el navegador).
+9. ~~**Rutas de aprendizaje**~~ **Resuelto**: estado (borrador/publicada/archivada; el estudiante solo ve
+    publicadas), etiquetas, miniatura (URL), pasos opcionales con puntaje mínimo y contador de inscritos.
+    Inscripción a rutas en `/learning-paths/{id}/enrollments` y `/learning-paths/enrollments/me`. Falta
+    calcular el avance de la ruta en el back (hoy lo deriva el front de las matrículas de sus cursos).
 10. **Encuestas de curso, notificaciones y reseñas**: sin API (encuestas y notificaciones son locales;
     reseñas quedan vacías).
 11. Lecciones y módulos no guardan `description`/`isFree`; los bloques no tienen fecha de entrega.
