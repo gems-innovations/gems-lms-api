@@ -168,3 +168,17 @@ CREATE INDEX IF NOT EXISTS idx_quiz_attempts_student ON quiz_attempts(student_id
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_enrollment_block ON quiz_attempts(enrollment_id, block_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_student ON assignment_submissions(student_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_course ON assignment_submissions(course_id);
+
+-- Cohorts. Member, course and path ids are kept as arrays: a group is always read and
+-- written whole, and student/instructor ids live in ms-auth (no FK possible).
+CREATE TABLE IF NOT EXISTS student_groups (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    institution_id VARCHAR(100) NOT NULL,
+    instructor_id BIGINT,
+    student_ids BIGINT[] NOT NULL DEFAULT '{}',
+    course_ids BIGINT[] NOT NULL DEFAULT '{}',
+    path_ids BIGINT[] NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_student_groups_institution ON student_groups(institution_id);

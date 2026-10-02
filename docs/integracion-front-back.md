@@ -119,8 +119,9 @@ Pendiente:
 
 ### Funcionalidad que el front ya tiene y el back no
 
-7. **Grupos/cohortes**: sin API. Hoy se guardan en el navegador (por institución) y el instructor ve
-    un grupo automático "Todos los inscritos" por curso.
+7. ~~**Grupos/cohortes**~~ **Resuelto**: API `/api/v1/groups` (GET/POST/PUT parcial/DELETE, solo staff de
+    la institución; cursos y rutas del grupo deben ser de la misma institución). El front migra una vez
+    los grupos que tenía en el navegador. Sigue el grupo automático "Todos los inscritos" por curso.
 8. **Archivos**: no hay almacenamiento para entregas de tareas, miniaturas ni logos (solo URLs).
 9. **Rutas de aprendizaje**: faltan estado (borrador/publicada), etiquetas, miniatura, pasos
     opcionales y **inscripción a rutas** (hoy en el navegador).

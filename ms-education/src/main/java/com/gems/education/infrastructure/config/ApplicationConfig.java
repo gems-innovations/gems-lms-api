@@ -215,4 +215,9 @@ public class ApplicationConfig {
   public GetCourseActivityUseCase getCourseActivityUseCase(CourseActivityGateway activityGateway) {
     return new GetCourseActivityUseCase(activityGateway);
   }
+
+  @Bean
+  public GroupUseCase groupUseCase(GroupGateway groupGateway) {
+    return new GroupUseCase(groupGateway);
+  }
 }

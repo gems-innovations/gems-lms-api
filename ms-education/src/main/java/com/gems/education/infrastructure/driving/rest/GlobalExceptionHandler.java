@@ -2,6 +2,7 @@ package com.gems.education.infrastructure.driving.rest;
 
 
 import com.gems.education.application.exceptions.CourseActivityException;
+import com.gems.education.application.exceptions.GroupNotFoundException;
 import com.gems.education.infrastructure.driving.rest.constants.RestConstants;
 import com.gems.education.infrastructure.driving.rest.exeption.StudentAlreadyExistsException;
 import com.gems.education.infrastructure.driving.rest.exeption.StudentNotFoundException;
@@ -151,6 +152,12 @@ public class GlobalExceptionHandler {
       default -> HttpStatus.BAD_REQUEST;
     };
     return Mono.just(ResponseEntity.status(status).body(new ErrorResponse(ex.getCode(), ex.getMessage(), status.value())));
+  }
+
+  @ExceptionHandler(GroupNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleGroupNotFound(GroupNotFoundException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
+      .body(new ErrorResponse(GroupNotFoundException.CODE, ex.getMessage(), HttpStatus.NOT_FOUND.value())));
   }
 
   // Framework errors (unknown route, wrong method, malformed body...) keep their own status
