@@ -1,6 +1,7 @@
 package com.gems.education.infrastructure.driving.rest;
 
 
+import com.gems.education.application.exceptions.CourseActivityException;
 import com.gems.education.infrastructure.driving.rest.constants.RestConstants;
 import com.gems.education.infrastructure.driving.rest.exeption.StudentAlreadyExistsException;
 import com.gems.education.infrastructure.driving.rest.exeption.StudentNotFoundException;
@@ -139,6 +140,17 @@ public class GlobalExceptionHandler {
       HttpStatus.BAD_REQUEST.value()
     );
     return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error));
+  }
+
+  @ExceptionHandler(CourseActivityException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleCourseActivityException(CourseActivityException ex) {
+    HttpStatus status = switch (ex.getCode()) {
+      case CourseActivityException.NOT_ENROLLED -> HttpStatus.FORBIDDEN;
+      case CourseActivityException.BLOCK_NOT_FOUND, CourseActivityException.SUBMISSION_NOT_FOUND -> HttpStatus.NOT_FOUND;
+      case CourseActivityException.ATTEMPT_LIMIT_REACHED -> HttpStatus.CONFLICT;
+      default -> HttpStatus.BAD_REQUEST;
+    };
+    return Mono.just(ResponseEntity.status(status).body(new ErrorResponse(ex.getCode(), ex.getMessage(), status.value())));
   }
 
   // Framework errors (unknown route, wrong method, malformed body...) keep their own status

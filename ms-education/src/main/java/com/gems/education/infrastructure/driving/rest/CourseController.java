@@ -24,6 +24,7 @@ public class CourseController {
   private final GetCoursesByInstitutionUseCase getCoursesByInstitutionUseCase;
   private final GetAllCoursesUseCase getAllCoursesUseCase;
   private final EducationAccess access;
+  private final StudentView studentView;
 
   public CourseController(CreateCourseUseCase createCourseUseCase,
                           GetCourseByIdUseCase getCourseByIdUseCase,
@@ -31,7 +32,8 @@ public class CourseController {
                           DeleteCourseUseCase deleteCourseUseCase,
                           GetCoursesByInstitutionUseCase getCoursesByInstitutionUseCase,
                           GetAllCoursesUseCase getAllCoursesUseCase,
-                          EducationAccess access) {
+                          EducationAccess access,
+                          StudentView studentView) {
     this.createCourseUseCase = createCourseUseCase;
     this.getCourseByIdUseCase = getCourseByIdUseCase;
     this.updateCourseUseCase = updateCourseUseCase;
@@ -39,6 +41,7 @@ public class CourseController {
     this.getCoursesByInstitutionUseCase = getCoursesByInstitutionUseCase;
     this.getAllCoursesUseCase = getAllCoursesUseCase;
     this.access = access;
+    this.studentView = studentView;
   }
 
   @GetMapping
@@ -56,7 +59,8 @@ public class CourseController {
         return Mono.error(new ForbiddenException("Your account has no institution"));
       }
       String visibleStatus = caller.isStudent() ? "published" : status;
-      return getAllCoursesUseCase.execute(search, visibleStatus, difficulty, scope, page, limit);
+      return getAllCoursesUseCase.execute(search, visibleStatus, difficulty, scope, page, limit)
+        .map(list -> studentView.courses(caller, list));
     }).map(ResponseEntity::ok);
   }
 
@@ -75,7 +79,8 @@ public class CourseController {
 
   @GetMapping("/{id}")
   public Mono<ResponseEntity<CourseResponse>> getCourseById(@PathVariable Long id) {
-    return access.readableCourse(id)
+    return CurrentUser.get()
+      .flatMap(caller -> access.readableCourse(id).map(course -> studentView.course(caller, course)))
       .map(ResponseEntity::ok);
   }
 
@@ -102,7 +107,9 @@ public class CourseController {
     return CurrentUser.require(caller -> caller.belongsTo(institutionId), "You can only list your institution's courses")
       .map(caller -> {
         Flux<CourseResponse> courses = getCoursesByInstitutionUseCase.execute(institutionId);
-        return ResponseEntity.ok(caller.isStudent() ? courses.filter(c -> "published".equals(c.getStatus())) : courses);
+        return ResponseEntity.ok(caller.isStudent()
+          ? courses.filter(c -> "published".equals(c.getStatus())).map(c -> studentView.course(caller, c))
+          : courses);
       });
   }
 }

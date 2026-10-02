@@ -4,6 +4,7 @@ import com.gems.education.application.BulkEnrollStudentsUseCase;
 import com.gems.education.application.DeleteEnrollmentUseCase;
 import com.gems.education.application.EnrollStudentUseCase;
 import com.gems.education.application.GetEnrollmentByIdUseCase;
+import com.gems.education.application.GetEnrollmentsByInstitutionUseCase;
 import com.gems.education.application.GetEnrollmentsByCourseUseCase;
 import com.gems.education.application.GetStudentEnrollmentsUseCase;
 import com.gems.education.application.UpdateEnrollmentProgressUseCase;
@@ -31,6 +32,7 @@ public class EnrollmentController {
   private final UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase;
   private final DeleteEnrollmentUseCase deleteEnrollmentUseCase;
   private final GetEnrollmentByIdUseCase getEnrollmentByIdUseCase;
+  private final GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase;
   private final EducationAccess access;
 
   public EnrollmentController(EnrollStudentUseCase enrollStudentUseCase,
@@ -40,6 +42,7 @@ public class EnrollmentController {
                                UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase,
                                DeleteEnrollmentUseCase deleteEnrollmentUseCase,
                                GetEnrollmentByIdUseCase getEnrollmentByIdUseCase,
+                               GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase,
                                EducationAccess access) {
     this.enrollStudentUseCase = enrollStudentUseCase;
     this.bulkEnrollStudentsUseCase = bulkEnrollStudentsUseCase;
@@ -48,6 +51,7 @@ public class EnrollmentController {
     this.updateEnrollmentProgressUseCase = updateEnrollmentProgressUseCase;
     this.deleteEnrollmentUseCase = deleteEnrollmentUseCase;
     this.getEnrollmentByIdUseCase = getEnrollmentByIdUseCase;
+    this.getEnrollmentsByInstitutionUseCase = getEnrollmentsByInstitutionUseCase;
     this.access = access;
   }
 
@@ -85,6 +89,13 @@ public class EnrollmentController {
       return Mono.just(ResponseEntity.ok(all.filterWhen(e ->
         access.editableCourse(e.getCourseId()).hasElement().onErrorReturn(false))));
     });
+  }
+
+  /** Every enrollment in the institution's courses (staff dashboards). */
+  @GetMapping("/institution/{institutionId}")
+  public Mono<ResponseEntity<Flux<EnrollmentResponse>>> getEnrollmentsByInstitution(@PathVariable String institutionId) {
+    return access.staffOf(institutionId)
+      .map(caller -> ResponseEntity.ok(getEnrollmentsByInstitutionUseCase.execute(institutionId)));
   }
 
   @GetMapping("/course/{courseId}")

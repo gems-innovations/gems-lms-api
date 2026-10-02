@@ -46,6 +46,12 @@ public class EnrollmentRepositoryAdapter implements EnrollmentGateway {
   }
 
   @Override
+  public Flux<Enrollment> findByInstitutionId(String institutionId) {
+    return enrollmentRepository.findByInstitutionId(institutionId)
+      .map(this::mapToDomain);
+  }
+
+  @Override
   public Flux<Enrollment> findByCourseId(Long courseId) {
     return enrollmentRepository.findByCourseId(courseId)
       .map(this::mapToDomain);

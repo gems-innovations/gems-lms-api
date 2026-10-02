@@ -94,52 +94,50 @@ Resuelto (rama `feature/integracion-front`):
 - **`POST /auth/register` ya no es público.** El primer super admin se crea al arrancar ms-auth con
   `BOOTSTRAP_SUPERADMIN_EMAIL` y `BOOTSTRAP_SUPERADMIN_PASSWORD` (`dev-up.sh` los define en local).
 - Las sesiones del front con tokens anteriores (sin `institutionId`) se descartan y piden login.
+- **Quizzes calificados en el servidor y respuestas ocultas.** Intentos (`POST /courses/{id}/blocks/{blockId}/attempts`)
+  y entregas (`PUT .../submission`) tienen tablas propias (`quiz_attempts`, `assignment_submissions`);
+  el back respeta `maxAttempts` y `passingScore`, y el staff califica con `PUT /submissions/{id}/grade`.
+  A los estudiantes se les sirven cursos, rutas y quizzes sin `correctAnswers`, `correctAnswer`,
+  `sampleAnswer` ni `explanation` (la explicación llega como retroalimentación del intento).
 
 Pendiente:
 
-1. Las respuestas correctas viajan al estudiante: `QuizResponse.correctOption` y el JSON de los bloques
-   de quiz dentro del curso. La calificación debe hacerse en el servidor y el curso debe servirse sin
-   respuestas a estudiantes.
-2. `jwt.secret` y contraseñas tienen valores por defecto en `application.properties`: si falta la
+1. `jwt.secret` y contraseñas tienen valores por defecto en `application.properties`: si falta la
    variable de entorno, arranca con un secreto conocido.
-3. El staff puede inscribir cualquier `studentId`: ms-education no puede verificar en ms-auth que el
+2. El staff puede inscribir cualquier `studentId`: ms-education no puede verificar en ms-auth que el
    usuario pertenezca a la institución.
 
 ### Calidad
 
-4. **Los tests de ms-admin y ms-education no compilan** (76 errores ya en `main`: constructores de
+3. **Los tests de ms-admin y ms-education no compilan** (76 errores ya en `main`: constructores de
    `Branding`, `InstitutionCommand`, `Course`, `Enrollment`, `CourseRequest`… cambiaron y los tests no).
    `./gradlew build` falla; el CI no puede estar validando nada.
-5. La capa `application` de ms-education importa excepciones de `infrastructure.driving.rest`
+4. La capa `application` de ms-education importa excepciones de `infrastructure.driving.rest`
    (rompe la arquitectura limpia que pide el README).
-6. `/actuator/health` responde 401 (no está en las rutas públicas); el README dice lo contrario.
-7. README desactualizado (puertos, gateway, compose local); scripts de arranque no portables a Windows.
+5. `/actuator/health` responde 401 (no está en las rutas públicas); el README dice lo contrario.
+6. README desactualizado (puertos, gateway, compose local); scripts de arranque no portables a Windows.
 
 ### Funcionalidad que el front ya tiene y el back no
 
-8. **Grupos/cohortes**: sin API. Hoy se guardan en el navegador (por institución) y el instructor ve
+7. **Grupos/cohortes**: sin API. Hoy se guardan en el navegador (por institución) y el instructor ve
     un grupo automático "Todos los inscritos" por curso.
-9. **Intentos de quiz y entregas de tareas**: sin recursos propios; se guardan provisionalmente dentro
-    de `progress_data` de cada inscripción (el instructor califica reescribiendo la inscripción del
-    estudiante). Debería haber tablas/endpoints y calificación en el servidor.
-10. **Archivos**: no hay almacenamiento para entregas de tareas, miniaturas ni logos (solo URLs).
-11. **Rutas de aprendizaje**: faltan estado (borrador/publicada), etiquetas, miniatura, pasos
+8. **Archivos**: no hay almacenamiento para entregas de tareas, miniaturas ni logos (solo URLs).
+9. **Rutas de aprendizaje**: faltan estado (borrador/publicada), etiquetas, miniatura, pasos
     opcionales y **inscripción a rutas** (hoy en el navegador).
-12. **Encuestas de curso, notificaciones y reseñas**: sin API (encuestas y notificaciones son locales;
+10. **Encuestas de curso, notificaciones y reseñas**: sin API (encuestas y notificaciones son locales;
     reseñas quedan vacías).
-13. Lecciones y módulos no guardan `description`/`isFree`; los bloques no tienen fecha de entrega.
-14. `usersCount` de instituciones nunca se sincroniza con ms-auth; `completionRate`, `averageRating`
+11. Lecciones y módulos no guardan `description`/`isFree`; los bloques no tienen fecha de entrega.
+12. `usersCount` de instituciones nunca se sincroniza con ms-auth; `completionRate`, `averageRating`
     nunca se calculan; `enrolledCount` no baja al borrar una inscripción.
-15. `DELETE /users/{id}` solo desactiva (el usuario reaparece como inactivo al recargar).
-16. Sin flujos de **recuperar contraseña**, **auto-registro** ni **cambio de contraseña temporal**.
-17. Sin paginación en usuarios, rutas e inscripciones; la tabla `students` de ms-education quedó sin uso.
+13. `DELETE /users/{id}` solo desactiva (el usuario reaparece como inactivo al recargar).
+14. Sin flujos de **recuperar contraseña**, **auto-registro** ni **cambio de contraseña temporal**.
+15. Sin paginación en usuarios, rutas e inscripciones; la tabla `students` de ms-education quedó sin uso.
 
 ## Qué falta — front
 
 1. "¿Olvidaste tu contraseña?" y "Regístrate" son enlaces muertos (`href="#"`).
-2. La calificación de quizzes se hace en el cliente (pasarla al back cuando exista el recurso).
-3. El proyecto no tiene ni un test (`*.spec.ts`: 0).
-4. Las librerías se compilan con `environment.ts` (localhost:8080): para producción hay que definir
+2. El proyecto no tiene ni un test (`*.spec.ts`: 0).
+3. Las librerías se compilan con `environment.ts` (localhost:8080): para producción hay que definir
    `globalThis.API_BASE_URL` antes de arrancar la app o compilar las librerías con el entorno de prod.
-5. Corregido de paso: el build de producción fallaba porque `instructor/**` no estaba declarado como
+4. Corregido de paso: el build de producción fallaba porque `instructor/**` no estaba declarado como
    renderizado en cliente en `app.routes.server.ts`.

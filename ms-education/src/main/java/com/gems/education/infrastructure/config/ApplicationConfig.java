@@ -187,5 +187,32 @@ public class ApplicationConfig {
   public DeleteEnrollmentUseCase deleteEnrollmentUseCase(EnrollmentGateway enrollmentGateway) {
     return new DeleteEnrollmentUseCase(enrollmentGateway);
   }
-}
+  @Bean
+  public SubmitQuizAttemptUseCase submitQuizAttemptUseCase(EnrollmentGateway enrollmentGateway,
+                                                           CourseActivityGateway activityGateway,
+                                                           ContentBlockGateway contentBlockGateway) {
+    return new SubmitQuizAttemptUseCase(enrollmentGateway, activityGateway, contentBlockGateway);
+  }
 
+  @Bean
+  public SubmitAssignmentUseCase submitAssignmentUseCase(EnrollmentGateway enrollmentGateway,
+                                                         CourseActivityGateway activityGateway,
+                                                         ContentBlockGateway contentBlockGateway) {
+    return new SubmitAssignmentUseCase(enrollmentGateway, activityGateway, contentBlockGateway);
+  }
+
+  @Bean
+  public GradeSubmissionUseCase gradeSubmissionUseCase(CourseActivityGateway activityGateway) {
+    return new GradeSubmissionUseCase(activityGateway);
+  }
+
+  @Bean
+  public GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase(EnrollmentGateway enrollmentGateway) {
+    return new GetEnrollmentsByInstitutionUseCase(enrollmentGateway);
+  }
+
+  @Bean
+  public GetCourseActivityUseCase getCourseActivityUseCase(CourseActivityGateway activityGateway) {
+    return new GetCourseActivityUseCase(activityGateway);
+  }
+}

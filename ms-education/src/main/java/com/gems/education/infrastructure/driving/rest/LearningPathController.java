@@ -22,6 +22,7 @@ public class LearningPathController {
   private final DeleteLearningPathUseCase deleteLearningPathUseCase;
   private final GetAllLearningPathsUseCase getAllLearningPathsUseCase;
   private final EducationAccess access;
+  private final StudentView studentView;
 
   public LearningPathController(CreateLearningPathUseCase createLearningPathUseCase,
                                 GetLearningPathByIdUseCase getLearningPathByIdUseCase,
@@ -29,7 +30,8 @@ public class LearningPathController {
                                 UpdateLearningPathUseCase updateLearningPathUseCase,
                                 DeleteLearningPathUseCase deleteLearningPathUseCase,
                                 GetAllLearningPathsUseCase getAllLearningPathsUseCase,
-                                EducationAccess access) {
+                                EducationAccess access,
+                                StudentView studentView) {
     this.createLearningPathUseCase = createLearningPathUseCase;
     this.getLearningPathByIdUseCase = getLearningPathByIdUseCase;
     this.getLearningPathsByInstitutionUseCase = getLearningPathsByInstitutionUseCase;
@@ -37,14 +39,16 @@ public class LearningPathController {
     this.deleteLearningPathUseCase = deleteLearningPathUseCase;
     this.getAllLearningPathsUseCase = getAllLearningPathsUseCase;
     this.access = access;
+    this.studentView = studentView;
   }
 
   @GetMapping
   public Mono<ResponseEntity<Flux<LearningPathResponse>>> getAllLearningPaths() {
     // Only the super admin lists across institutions.
-    return CurrentUser.get().map(caller -> ResponseEntity.ok(caller.isSuperAdmin()
+    return CurrentUser.get().map(caller -> ResponseEntity.ok((caller.isSuperAdmin()
       ? getAllLearningPathsUseCase.execute()
-      : getLearningPathsByInstitutionUseCase.execute(caller.institutionId())));
+      : getLearningPathsByInstitutionUseCase.execute(caller.institutionId()))
+      .map(path -> studentView.path(caller, path))));
   }
 
   @PostMapping
@@ -56,14 +60,16 @@ public class LearningPathController {
 
   @GetMapping("/{id}")
   public Mono<ResponseEntity<LearningPathResponse>> getLearningPathById(@PathVariable Long id) {
-    return access.readablePath(id)
+    return CurrentUser.get()
+      .flatMap(caller -> access.readablePath(id).map(path -> studentView.path(caller, path)))
       .map(ResponseEntity::ok);
   }
 
   @GetMapping("/institution/{institutionId}")
   public Mono<ResponseEntity<Flux<LearningPathResponse>>> getLearningPathsByInstitution(@PathVariable String institutionId) {
     return CurrentUser.require(caller -> caller.belongsTo(institutionId), "You can only list your institution's learning paths")
-      .map(caller -> ResponseEntity.ok(getLearningPathsByInstitutionUseCase.execute(institutionId)));
+      .map(caller -> ResponseEntity.ok(getLearningPathsByInstitutionUseCase.execute(institutionId)
+        .map(path -> studentView.path(caller, path))));
   }
 
   @PutMapping("/{id}")

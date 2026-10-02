@@ -129,3 +129,42 @@ CREATE INDEX IF NOT EXISTS idx_enrollments_course ON enrollments(course_id);
 
 -- Detailed per-student progress (JSON) added after the initial schema.
 ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS progress_data TEXT;
+
+-- What students do inside a course (graded server-side).
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+    id BIGSERIAL PRIMARY KEY,
+    enrollment_id BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
+    course_id BIGINT NOT NULL,
+    block_id BIGINT NOT NULL,
+    lesson_id BIGINT,
+    attempt_number INT NOT NULL,
+    answers TEXT NOT NULL,
+    score INT NOT NULL,
+    passed BOOLEAN NOT NULL,
+    feedback TEXT,
+    completed_at TIMESTAMP NOT NULL,
+    CONSTRAINT fk_attempt_enrollment FOREIGN KEY(enrollment_id) REFERENCES enrollments(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS assignment_submissions (
+    id BIGSERIAL PRIMARY KEY,
+    enrollment_id BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
+    course_id BIGINT NOT NULL,
+    block_id BIGINT NOT NULL,
+    lesson_id BIGINT,
+    text_content TEXT,
+    file_urls TEXT,
+    submitted_at TIMESTAMP NOT NULL,
+    grade INT,
+    feedback TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    CONSTRAINT fk_submission_enrollment FOREIGN KEY(enrollment_id) REFERENCES enrollments(id) ON DELETE CASCADE,
+    CONSTRAINT uq_submission_block UNIQUE (enrollment_id, block_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_student ON quiz_attempts(student_id);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_enrollment_block ON quiz_attempts(enrollment_id, block_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_student ON assignment_submissions(student_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_course ON assignment_submissions(course_id);

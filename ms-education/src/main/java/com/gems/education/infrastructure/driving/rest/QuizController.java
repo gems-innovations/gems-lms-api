@@ -28,6 +28,7 @@ public class QuizController {
   private final DeleteQuizUseCase deleteQuizUseCase;
   private final SubmitQuizUseCase submitQuizUseCase;
   private final EducationAccess access;
+  private final StudentView studentView;
 
   public QuizController(CreateQuizUseCase createQuizUseCase,
                         GetQuizByLessonUseCase getQuizByLessonUseCase,
@@ -35,7 +36,8 @@ public class QuizController {
                         UpdateQuizUseCase updateQuizUseCase,
                         DeleteQuizUseCase deleteQuizUseCase,
                         SubmitQuizUseCase submitQuizUseCase,
-                        EducationAccess access) {
+                        EducationAccess access,
+                        StudentView studentView) {
     this.createQuizUseCase = createQuizUseCase;
     this.getQuizByLessonUseCase = getQuizByLessonUseCase;
     this.getQuizByIdUseCase = getQuizByIdUseCase;
@@ -43,6 +45,7 @@ public class QuizController {
     this.deleteQuizUseCase = deleteQuizUseCase;
     this.submitQuizUseCase = submitQuizUseCase;
     this.access = access;
+    this.studentView = studentView;
   }
 
   @PostMapping
@@ -54,7 +57,8 @@ public class QuizController {
 
   @GetMapping("/{id}")
   public Mono<ResponseEntity<QuizResponse>> getQuizById(@PathVariable Long id) {
-    return getQuizByIdUseCase.execute(id)
+    return CurrentUser.get()
+      .flatMap(caller -> getQuizByIdUseCase.execute(id).map(quiz -> studentView.quiz(caller, quiz)))
       .map(ResponseEntity::ok)
       .onErrorResume(ex -> ex.getMessage() != null && ex.getMessage().contains("not found"),
         ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
@@ -62,7 +66,8 @@ public class QuizController {
 
   @GetMapping("/lesson/{lessonId}")
   public Mono<ResponseEntity<QuizResponse>> getQuizByLesson(@PathVariable Long lessonId) {
-    return getQuizByLessonUseCase.execute(lessonId)
+    return CurrentUser.get()
+      .flatMap(caller -> getQuizByLessonUseCase.execute(lessonId).map(quiz -> studentView.quiz(caller, quiz)))
       .map(ResponseEntity::ok);
   }
 
