@@ -1,0 +1,772 @@
+[
+  {
+    "title": "Introducción a la Inteligencia Artificial",
+    "description": "Aprende los fundamentos del machine learning, redes neuronales y los casos de uso más relevantes de la IA en la industria actual.",
+    "status": "published",
+    "difficulty": "beginner",
+    "tags": [
+      "AI",
+      "Machine Learning",
+      "Python"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=600&q=80",
+    "instructorName": "Dr. Andrés Mora",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Fundamentos de IA",
+        "orderIndex": 1,
+        "lessons": [
+          {
+            "title": "¿Qué es la Inteligencia Artificial?",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Panorama de la Inteligencia Artificial\",\"description\":\"Un recorrido completo por la historia y el estado actual de la IA.\",\"duration\":20,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/ad79nYk2keg\",\"videoProvider\":\"youtube\",\"videoThumbnailUrl\":\"https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=400&q=70\",\"videoTranscript\":\"La inteligencia artificial (IA) es la simulación de procesos de inteligencia humana por sistemas informáticos. Estos procesos incluyen el aprendizaje, el razonamiento y la autocorrección...\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Lectura: Historia de la IA\",\"duration\":15,\"isRequired\":true,\"markdownContent\":\"# Historia de la Inteligencia Artificial\\n\\n## Los orígenes (1940-1960)\\n\\nLa inteligencia artificial como disciplina formal nació en **1956** durante la conferencia de Dartmouth, organizada por John McCarthy, Marvin Minsky, Nathaniel Rochester y Claude Shannon.\\n\\n### Hitos clave\\n\\n- **1950** — Alan Turing publica *Computing Machinery and Intelligence*, proponiendo el famoso **Test de Turing**\\n- **1956** — Nace el término \\\"Inteligencia Artificial\\\" en Dartmouth\\n- **1966** — ELIZA, el primer chatbot, desarrollado en el MIT\\n\\n## El invierno de la IA (1974-1980)\\n\\n> \\\"Las máquinas serán capaces de hacer cualquier trabajo que pueda hacer un hombre dentro de 20 años\\\" — Herbert Simon, 1965\\n\\nLas expectativas superaron con creces los avances reales. La falta de progreso provocó recortes en financiamiento.\\n\\n## El renacimiento (1990-presente)\\n\\nCon la llegada de mayor poder computacional, grandes conjuntos de datos y nuevos algoritmos, la IA experimentó un renacimiento culminando con hitos como DeepBlue (1997), Watson (2011), AlphaGo (2016) y ChatGPT (2022).\"}"
+              }
+            ]
+          },
+          {
+            "title": "Tipos de Aprendizaje Automático",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Aprendizaje Supervisado vs No Supervisado\",\"duration\":30,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/ujTCoH21GlA\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "quiz",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Evaluación: Tipos de ML\",\"duration\":15,\"isRequired\":true,\"timeLimit\":15,\"passingScore\":70,\"maxAttempts\":3,\"shuffleQuestions\":false,\"questions\":[{\"id\":\"q1\",\"type\":\"multiple-choice\",\"question\":\"¿Cuál de los siguientes es un ejemplo de aprendizaje supervisado?\",\"points\":1,\"order\":1,\"allowMultiple\":false,\"options\":[{\"id\":\"a\",\"text\":\"Clasificación de emails como spam o no spam\"},{\"id\":\"b\",\"text\":\"Agrupación de clientes por comportamiento de compra\"},{\"id\":\"c\",\"text\":\"Un agente aprendiendo a jugar ajedrez desde cero\"},{\"id\":\"d\",\"text\":\"Reducción de dimensionalidad con PCA\"}],\"correctAnswers\":[\"a\"],\"explanation\":\"El filtrado de spam es supervisado porque se entrena con ejemplos etiquetados (spam / no spam).\"},{\"id\":\"q2\",\"type\":\"true-false\",\"question\":\"El aprendizaje por refuerzo requiere un conjunto de datos etiquetados para entrenarse.\",\"points\":1,\"order\":2,\"correctAnswer\":false,\"explanation\":\"El aprendizaje por refuerzo aprende a través de la interacción con el entorno y señales de recompensa, no de datos etiquetados.\"},{\"id\":\"q3\",\"type\":\"multiple-choice\",\"question\":\"¿Qué algoritmos pertenecen al aprendizaje no supervisado? (Selecciona todos los que apliquen)\",\"points\":1,\"order\":3,\"allowMultiple\":true,\"options\":[{\"id\":\"a\",\"text\":\"K-Means Clustering\"},{\"id\":\"b\",\"text\":\"Regresión Logística\"},{\"id\":\"c\",\"text\":\"DBSCAN\"},{\"id\":\"d\",\"text\":\"Random Forest\"}],\"correctAnswers\":[\"a\",\"c\"],\"explanation\":\"K-Means y DBSCAN son algoritmos de clustering (no supervisado). Regresión logística y Random Forest son supervisados.\"},{\"id\":\"q4\",\"type\":\"multiple-choice\",\"question\":\"¿Cuál es la principal diferencia entre clasificación y regresión?\",\"points\":1,\"order\":4,\"allowMultiple\":false,\"options\":[{\"id\":\"a\",\"text\":\"La clasificación predice categorías discretas; la regresión predice valores continuos\"},{\"id\":\"b\",\"text\":\"La regresión predice categorías; la clasificación predice valores numéricos\"},{\"id\":\"c\",\"text\":\"No hay diferencia, ambas predicen lo mismo\"},{\"id\":\"d\",\"text\":\"La clasificación solo funciona con imágenes\"}],\"correctAnswers\":[\"a\"],\"explanation\":\"Clasificación → categorías discretas (spam/no spam). Regresión → valores continuos (precio de una casa).\"}]}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Machine Learning con Python",
+        "orderIndex": 2,
+        "lessons": [
+          {
+            "title": "Entorno de Desarrollo",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Instalación de Python y Jupyter\",\"duration\":20,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/Uq5JgFiEXmM\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "assignment",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Tarea: Configura tu entorno\",\"duration\":10,\"isRequired\":true,\"assignmentInstructions\":\"## Objetivo\\n\\nConfigura un entorno Python con las bibliotecas necesarias.\\n\\n## Instrucciones\\n\\n1. Instala Python 3.11+\\n2. Crea un entorno virtual\\n3. Instala numpy, pandas, scikit-learn, matplotlib, jupyter\\n4. Verifica la instalación\\n\\n## Entrega\\n\\nSube una captura de pantalla con:\\n- La versión de Python\\n- El output de `pip list`\\n- Jupyter corriendo en tu navegador\",\"maxScore\":100,\"allowedFileTypes\":[\"jpg\",\"png\",\"pdf\"],\"rubric\":[{\"id\":\"r1\",\"criterion\":\"Python instalado correctamente\",\"maxPoints\":30},{\"id\":\"r2\",\"criterion\":\"Bibliotecas instaladas\",\"maxPoints\":40},{\"id\":\"r3\",\"criterion\":\"Jupyter en ejecución\",\"maxPoints\":30}]}"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Desarrollo Full Stack con Angular y Node.js",
+    "description": "Construye aplicaciones web completas desde el frontend con Angular hasta el backend con Node.js, Express y PostgreSQL.",
+    "status": "published",
+    "difficulty": "intermediate",
+    "tags": [
+      "Angular",
+      "Node.js",
+      "TypeScript",
+      "Web Dev"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80",
+    "instructorName": "Valentina Torres",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Angular Fundamentos",
+        "orderIndex": 1,
+        "lessons": [
+          {
+            "title": "Arquitectura de Angular",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Angular Architecture Overview\",\"description\":\"Componentes, módulos, servicios e inyección de dependencias: cómo encajan las piezas de Angular.\",\"duration\":25,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/3dHNOWTI7H8\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Guía de Componentes Angular\",\"duration\":15,\"isRequired\":false,\"markdownContent\":\"# Componentes en Angular\\n\\nUn componente es el **bloque fundamental** de construcción en Angular. Combina:\\n- **Template HTML** — la vista\\n- **Clase TypeScript** — la lógica\\n- **Estilos SCSS** — el diseño\\n\\n## Comunicación entre Componentes\\n\\n| Dirección | Mecanismo |\\n|-----------|----------|\\n| Padre → Hijo | `input()` |\\n| Hijo → Padre | `output()` |\\n| Cualquiera | Service |\"}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Backend con Node.js y Express",
+        "orderIndex": 2,
+        "lessons": [
+          {
+            "title": "REST API con Express",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Creando tu primera API REST\",\"description\":\"Construye paso a paso una API con Express: rutas, middlewares y manejo de errores.\",\"duration\":45,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/ENrzD9HAZK4\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "assignment",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Proyecto: Implementa un CRUD\",\"duration\":15,\"isRequired\":true,\"assignmentInstructions\":\"## Proyecto: API REST CRUD\\n\\nCrea una API REST completa con Express.js.\\n\\n### Endpoints requeridos:\\n- GET /api/items — listar\\n- GET /api/items/:id — obtener\\n- POST /api/items — crear\\n- PUT /api/items/:id — actualizar\\n- DELETE /api/items/:id — eliminar\\n\\n## Entrega\\n\\nSube un ZIP con código fuente + README + colección Postman.\",\"maxScore\":100,\"allowedFileTypes\":[\"zip\"],\"rubric\":[{\"id\":\"r1\",\"criterion\":\"Endpoints CRUD funcionales\",\"maxPoints\":50},{\"id\":\"r2\",\"criterion\":\"Manejo de errores\",\"maxPoints\":20},{\"id\":\"r3\",\"criterion\":\"Calidad del código\",\"maxPoints\":20},{\"id\":\"r4\",\"criterion\":\"Documentación\",\"maxPoints\":10}]}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Bases de Datos con PostgreSQL",
+        "orderIndex": 3,
+        "lessons": [
+          {
+            "title": "Introducción a PostgreSQL",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Instalación y primeros pasos con PostgreSQL\",\"description\":\"Instala PostgreSQL, crea tu primera base de datos y ejecuta consultas básicas.\",\"duration\":35,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/qw--VYLpxG4\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Comandos SQL Esenciales\",\"duration\":15,\"isRequired\":false,\"markdownContent\":\"# SQL Esencial\\n\\n## DDL — Definición de estructura\\n\\n```sql\\nCREATE TABLE users (\\n  id SERIAL PRIMARY KEY,\\n  email VARCHAR(255) UNIQUE NOT NULL,\\n  created_at TIMESTAMP DEFAULT NOW()\\n);\\n```\\n\\n## DML — Manipulación de datos\\n\\n```sql\\nINSERT INTO users (email) VALUES ('test@example.com');\\nSELECT * FROM users WHERE id = 1;\\nUPDATE users SET email = 'new@example.com' WHERE id = 1;\\nDELETE FROM users WHERE id = 1;\\n```\\n\\n## JOINs\\n\\n| Tipo | Descripción |\\n|------|-------------|\\n| INNER JOIN | Solo coincidencias en ambas tablas |\\n| LEFT JOIN  | Todas las filas de la izquierda |\\n| RIGHT JOIN | Todas las filas de la derecha |\"}"
+              }
+            ]
+          },
+          {
+            "title": "ORM con Prisma",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Prisma ORM desde cero\",\"description\":\"Modela tu esquema, ejecuta migraciones y consulta datos con el cliente tipado de Prisma.\",\"duration\":40,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/RebA5J-rlwg\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "quiz",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Evaluación: Bases de Datos\",\"duration\":15,\"isRequired\":true,\"timeLimit\":15,\"passingScore\":70,\"maxAttempts\":3,\"shuffleQuestions\":false,\"questions\":[{\"id\":\"q-db1\",\"type\":\"multiple-choice\",\"question\":\"¿Qué comando Prisma genera el cliente a partir del schema?\",\"points\":50,\"order\":1,\"options\":[{\"id\":\"a\",\"text\":\"prisma generate\"},{\"id\":\"b\",\"text\":\"prisma migrate dev\"},{\"id\":\"c\",\"text\":\"prisma db push\"},{\"id\":\"d\",\"text\":\"prisma init\"}],\"correctAnswers\":[\"a\"],\"explanation\":\"`prisma generate` lee el schema y genera el Prisma Client tipado.\"},{\"id\":\"q-db2\",\"type\":\"true-false\",\"question\":\"Una PRIMARY KEY puede contener valores NULL.\",\"points\":50,\"order\":2,\"correctAnswer\":false,\"explanation\":\"Las PRIMARY KEY deben ser únicas y NOT NULL por definición.\"}]}"
+              }
+            ]
+          },
+          {
+            "title": "Proyecto: API con Base de Datos",
+            "orderIndex": 3,
+            "contents": [
+              {
+                "type": "assignment",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Integra PostgreSQL en tu API\",\"duration\":90,\"isRequired\":true,\"assignmentInstructions\":\"## Proyecto: API + PostgreSQL\\n\\nExtiende tu API REST para usar PostgreSQL con Prisma.\\n\\n### Requisitos\\n- Schema Prisma con al menos 2 modelos relacionados\\n- Migraciones aplicadas\\n- Todos los endpoints CRUD usando Prisma Client\\n- Variables de entorno para DATABASE_URL\\n\\n## Entrega\\nRepositorio GitHub con README que incluya instrucciones de setup.\",\"maxScore\":100,\"allowedFileTypes\":[\"zip\",\"txt\"],\"rubric\":[{\"id\":\"r-db1\",\"criterion\":\"Schema Prisma correcto\",\"maxPoints\":30},{\"id\":\"r-db2\",\"criterion\":\"Operaciones CRUD con Prisma\",\"maxPoints\":40},{\"id\":\"r-db3\",\"criterion\":\"Manejo de relaciones\",\"maxPoints\":30}]}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Autenticación y Seguridad",
+        "orderIndex": 4,
+        "lessons": [
+          {
+            "title": "Autenticación con JWT",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"JSON Web Tokens explicado\",\"description\":\"Qué es un JWT, cómo se firma y por qué es el estándar para autenticación stateless.\",\"duration\":30,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/7Q17ubqLfaM\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "video",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Implementando Login y Register\",\"description\":\"Endpoints de registro y login con bcrypt para hashear contraseñas y emisión de tokens.\",\"duration\":35,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/mbsmsi7l3r4\",\"videoProvider\":\"youtube\"}"
+              }
+            ]
+          },
+          {
+            "title": "Guards en Angular",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Route Guards y CanActivate\",\"description\":\"Protege rutas de tu aplicación Angular con guards funcionales y redirecciones.\",\"duration\":30,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/kDEl6yn4cBE\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Interceptors HTTP en Angular\",\"duration\":15,\"isRequired\":false,\"markdownContent\":\"# HTTP Interceptors\\n\\nLos interceptors permiten modificar cada petición HTTP de forma global.\\n\\n## Caso de uso típico: agregar el token JWT\\n\\n```typescript\\nexport const authInterceptor: HttpInterceptorFn = (req, next) => {\\n  const token = inject(AuthService).token();\\n  if (!token) return next(req);\\n\\n  const authReq = req.clone({\\n    headers: req.headers.set('Authorization', `Bearer ${token}`)\\n  });\\n  return next(authReq);\\n};\\n```\\n\\n> Registra el interceptor en `app.config.ts` con `provideHttpClient(withInterceptors([authInterceptor]))`.\"}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Deploy y DevOps",
+        "orderIndex": 5,
+        "lessons": [
+          {
+            "title": "Dockerizando tu aplicación",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Docker para desarrolladores Node.js\",\"description\":\"Imágenes, contenedores y volúmenes: empaqueta tu API Node.js con Docker.\",\"duration\":40,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/9zUHg7xjIqQ\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Dockerfile y docker-compose.yml\",\"duration\":15,\"isRequired\":false,\"markdownContent\":\"# Dockerfile para Node.js\\n\\n```dockerfile\\nFROM node:20-alpine\\nWORKDIR /app\\nCOPY package*.json ./\\nRUN npm ci --only=production\\nCOPY . .\\nEXPOSE 3000\\nCMD [\\\"node\\\", \\\"src/index.js\\\"]\\n```\\n\\n## docker-compose.yml\\n\\n```yaml\\nservices:\\n  api:\\n    build: .\\n    ports:\\n      - \\\"3000:3000\\\"\\n    environment:\\n      DATABASE_URL: postgresql://user:pass@db:5432/mydb\\n    depends_on:\\n      - db\\n  db:\\n    image: postgres:16-alpine\\n    environment:\\n      POSTGRES_PASSWORD: pass\\n      POSTGRES_USER: user\\n      POSTGRES_DB: mydb\\n```\\n\"}"
+              }
+            ]
+          },
+          {
+            "title": "CI/CD con GitHub Actions",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"GitHub Actions desde cero\",\"description\":\"Crea workflows de CI/CD que ejecutan tests y despliegan automáticamente en cada push.\",\"duration\":35,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/R8_veQiYBjI\",\"videoProvider\":\"youtube\"}"
+              }
+            ]
+          },
+          {
+            "title": "Proyecto Final: App Full Stack en Producción",
+            "orderIndex": 3,
+            "contents": [
+              {
+                "type": "assignment",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Despliega tu aplicación completa\",\"duration\":120,\"isRequired\":true,\"assignmentInstructions\":\"## Proyecto Final\\n\\nDespliega una aplicación Full Stack completa que integre todo lo aprendido.\\n\\n### Stack requerido\\n- **Frontend**: Angular con routing y guards\\n- **Backend**: Express + Prisma + PostgreSQL\\n- **Auth**: JWT con refresh tokens\\n- **Deploy**: Docker + cualquier plataforma cloud\\n\\n### Entrega\\nURL pública de la aplicación + repositorio GitHub.\",\"maxScore\":100,\"allowedFileTypes\":[\"txt\",\"zip\"],\"rubric\":[{\"id\":\"r-f1\",\"criterion\":\"Frontend Angular funcional\",\"maxPoints\":25},{\"id\":\"r-f2\",\"criterion\":\"API REST completa\",\"maxPoints\":25},{\"id\":\"r-f3\",\"criterion\":\"Autenticación JWT\",\"maxPoints\":25},{\"id\":\"r-f4\",\"criterion\":\"Deploy en producción\",\"maxPoints\":25}]}"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Análisis de Datos con Python",
+    "description": "Domina pandas, numpy, matplotlib y seaborn para analizar, visualizar y extraer insights de datos reales.",
+    "status": "published",
+    "difficulty": "intermediate",
+    "tags": [
+      "Python",
+      "Data Science",
+      "Pandas"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=80",
+    "instructorName": "Prof. Carlos Gómez",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Python para Data Science",
+        "orderIndex": 1,
+        "lessons": [
+          {
+            "title": "NumPy Fundamentos",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Arrays y operaciones vectoriales\",\"duration\":30,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "assignment",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Ejercicios NumPy\",\"duration\":15,\"isRequired\":true,\"assignmentInstructions\":\"## Ejercicios de NumPy\\n\\nSube un Jupyter Notebook con tus soluciones.\\n\\n1. Crea un array de 10 ceros, uno del 1 al 20 y una identidad 5x5\\n2. Dado a = [1,4,9,16,25]: calcula raíz, máximo, mínimo, media\\n3. De una matriz 4x4: extrae fila 2, columna 3, bloque 2x2 inferior\",\"maxScore\":100,\"allowedFileTypes\":[\"ipynb\",\"zip\"]}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Análisis Exploratorio de Datos",
+        "orderIndex": 2,
+        "lessons": [
+          {
+            "title": "Carga y limpieza de datasets",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"pandas read_csv, dropna, fillna\",\"duration\":25,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Guía de referencia: operaciones con DataFrames\",\"duration\":15,\"isRequired\":false}"
+              }
+            ]
+          },
+          {
+            "title": "Visualización con Matplotlib y Seaborn",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Gráficas de dispersión, histogramas y heatmaps\",\"duration\":35,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "quiz",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Quiz: pandas y visualización\",\"duration\":15,\"isRequired\":true,\"questions\":[{\"id\":\"q1\",\"question\":\"¿Qué método devuelve estadísticas descriptivas de un DataFrame?\",\"type\":\"multiple-choice\",\"options\":[{\"id\":\"a\",\"text\":\"df.info()\"},{\"id\":\"b\",\"text\":\"df.describe()\"},{\"id\":\"c\",\"text\":\"df.stats()\"}],\"correctAnswers\":[\"b\"],\"points\":10,\"order\":1}]}"
+              }
+            ]
+          },
+          {
+            "title": "Estadística descriptiva aplicada",
+            "orderIndex": 3,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Media, mediana, varianza y correlaciones\",\"duration\":35,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Machine Learning con Scikit-Learn",
+        "orderIndex": 3,
+        "lessons": [
+          {
+            "title": "Introducción al aprendizaje supervisado",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Train/test split, métricas y overfitting\",\"duration\":30,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Conceptos clave: bias-variance tradeoff\",\"duration\":15,\"isRequired\":false}"
+              }
+            ]
+          },
+          {
+            "title": "Regresión lineal y logística",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Implementación con sklearn y evaluación\",\"duration\":40,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "assignment",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Proyecto: predicción de precios de vivienda\",\"duration\":15,\"isRequired\":true,\"assignmentInstructions\":\"## Predicción con regresión\\n\\nUsa el dataset de Boston Housing para entrenar un modelo de regresión lineal. Reporta R², MAE y RMSE.\",\"maxScore\":100,\"allowedFileTypes\":[\"ipynb\",\"zip\"]}"
+              }
+            ]
+          },
+          {
+            "title": "Árboles de decisión y Random Forest",
+            "orderIndex": 3,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Ensemble methods y feature importance\",\"duration\":45,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "quiz",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Quiz: árboles y ensembles\",\"duration\":15,\"isRequired\":true,\"questions\":[{\"id\":\"q2\",\"question\":\"¿Qué técnica reduce la varianza combinando múltiples árboles?\",\"type\":\"multiple-choice\",\"options\":[{\"id\":\"a\",\"text\":\"Boosting\"},{\"id\":\"b\",\"text\":\"Bagging (Random Forest)\"},{\"id\":\"c\",\"text\":\"Pruning\"}],\"correctAnswers\":[\"b\"],\"points\":10,\"order\":1}]}"
+              }
+            ]
+          },
+          {
+            "title": "Pipelines y Cross-Validation",
+            "orderIndex": 4,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Pipeline de preprocesamiento + modelo + CV\",\"duration\":40,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Proyecto Final: Pipeline de Datos End-to-End",
+        "orderIndex": 4,
+        "lessons": [
+          {
+            "title": "Definición del problema y dataset",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Planteamiento del caso de negocio\",\"duration\":30,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              }
+            ]
+          },
+          {
+            "title": "Implementación del pipeline",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "assignment",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Entrega final: pipeline completo\",\"duration\":90,\"isRequired\":true,\"assignmentInstructions\":\"## Proyecto Final\\n\\nEntrega un Jupyter Notebook con:\\n1. Ingesta y limpieza de datos\\n2. EDA con al menos 5 visualizaciones\\n3. Modelo entrenado y evaluado con CV\\n4. Conclusiones y próximos pasos\",\"maxScore\":100,\"allowedFileTypes\":[\"ipynb\",\"zip\",\"pdf\"]}"
+              }
+            ]
+          },
+          {
+            "title": "Presentación de resultados",
+            "orderIndex": 3,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Cómo comunicar hallazgos de datos\",\"duration\":20,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/QUT1VHiLmmI\",\"videoProvider\":\"youtube\"}"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Marketing Digital y Estrategia de Contenido",
+    "description": "Aprende a crear estrategias de contenido, SEO, SEM, redes sociales y analítica para hacer crecer tu marca online.",
+    "status": "draft",
+    "difficulty": "beginner",
+    "tags": [
+      "Marketing",
+      "SEO",
+      "Contenido"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1432888622747-4eb9a8efeb07?w=600&q=80",
+    "instructorName": "Gabriela Ríos",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Fundamentos del Marketing Digital",
+        "orderIndex": 1,
+        "lessons": [
+          {
+            "title": "El ecosistema digital",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Overview del marketing digital\",\"duration\":25,\"isRequired\":true,\"url\":\"https://www.youtube.com/embed/nU-IIXBWlS4\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Glosario de términos\",\"duration\":10,\"isRequired\":false,\"markdownContent\":\"# Glosario de Marketing Digital\\n\\n**CTR** — Click-Through Rate: % de clics sobre impresiones.\\n\\n**CPC** — Cost Per Click: costo por cada clic en un anuncio.\\n\\n**ROI** — Return on Investment: retorno sobre la inversión.\\n\\n**SEO** — Search Engine Optimization: optimización para buscadores.\\n\\n**Funnel** — Embudo de ventas: proceso desde descubrimiento hasta compra.\"}"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Machine Learning Avanzado con TensorFlow",
+    "description": "Domina redes neuronales profundas, CNNs, RNNs y transformers con TensorFlow y Keras para proyectos reales de producción.",
+    "status": "published",
+    "difficulty": "advanced",
+    "tags": [
+      "TensorFlow",
+      "Deep Learning",
+      "Python"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1555255707-c07966088b7b?w=600&q=80",
+    "instructorName": "Dr. Andrés Mora",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Introducción a TensorFlow",
+        "orderIndex": 1,
+        "lessons": []
+      }
+    ]
+  },
+  {
+    "title": "Despliegue de Modelos en Producción",
+    "description": "Aprende a empaquetar, versionar y servir modelos de ML usando Docker, FastAPI, Kubernetes y pipelines de CI/CD.",
+    "status": "published",
+    "difficulty": "advanced",
+    "tags": [
+      "MLOps",
+      "Docker",
+      "Kubernetes"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=80",
+    "instructorName": "Valentina Torres",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Fundamentos de MLOps",
+        "orderIndex": 1,
+        "lessons": []
+      }
+    ]
+  },
+  {
+    "title": "React y Next.js: De Cero a Producción",
+    "description": "Construye aplicaciones web modernas con React 18, hooks, Context, y Next.js 14 con App Router, SSR y despliegue en Vercel.",
+    "status": "published",
+    "difficulty": "intermediate",
+    "tags": [
+      "React",
+      "Next.js",
+      "JavaScript"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1633356122102-3fe601e05bd2?w=600&q=80",
+    "instructorName": "Luis Herrera",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Fundamentos de React",
+        "orderIndex": 1,
+        "lessons": []
+      }
+    ]
+  },
+  {
+    "title": "AWS Cloud Practitioner + Solutions Architect",
+    "description": "Domina los servicios core de AWS: EC2, S3, RDS, Lambda, VPC y más. Preparación para la certificación Solutions Architect Associate.",
+    "status": "published",
+    "difficulty": "intermediate",
+    "tags": [
+      "AWS",
+      "Cloud",
+      "DevOps"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=600&q=80",
+    "instructorName": "Roberto Salinas",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Introducción a AWS",
+        "orderIndex": 1,
+        "lessons": []
+      }
+    ]
+  },
+  {
+    "title": "UX/UI Design: Figma a Producto Real",
+    "description": "Aprende diseño de interfaces desde cero con Figma, sistemas de diseño, pruebas de usabilidad y handoff a desarrollo.",
+    "status": "published",
+    "difficulty": "beginner",
+    "tags": [
+      "UX",
+      "UI",
+      "Figma"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1561070791-2526d30994b5?w=600&q=80",
+    "instructorName": "Camila Rondón",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Fundamentos de UX",
+        "orderIndex": 1,
+        "lessons": []
+      }
+    ]
+  },
+  {
+    "title": "Docker y Contenedores desde Cero",
+    "description": "Aprende a contenerizar aplicaciones con Docker: imágenes, volúmenes, redes, Docker Compose y buenas prácticas para ambientes de desarrollo y producción.",
+    "status": "published",
+    "difficulty": "intermediate",
+    "tags": [
+      "Docker",
+      "DevOps",
+      "Contenedores"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1605745341112-85968b19335b?w=600&q=80",
+    "instructorName": "Andrea Ramírez",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Fundamentos de Docker",
+        "orderIndex": 1,
+        "lessons": [
+          {
+            "title": "Conceptos básicos y primera imagen",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"¿Qué es Docker y cómo funciona?\",\"duration\":20,\"minTimeSeconds\":30,\"isRequired\":true,\"description\":\"Introducción a contenedores, diferencias con VMs y arquitectura de Docker.\",\"url\":\"https://www.youtube.com/watch?v=3c-iBn73dDE\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Guía: comandos esenciales de Docker\",\"duration\":20,\"minTimeSeconds\":20,\"isRequired\":true,\"markdownContent\":\"# Comandos esenciales de Docker\\n\\n## Imágenes\\n\\n```bash\\ndocker pull nginx          # descargar imagen\\ndocker images              # listar imágenes\\ndocker rmi nginx           # eliminar imagen\\n```\\n\\n## Contenedores\\n\\n```bash\\ndocker run -d -p 80:80 nginx   # ejecutar en background\\ndocker ps                      # contenedores activos\\ndocker stop <id>               # detener\\ndocker rm <id>                 # eliminar\\n```\\n\\n## Cheat sheet de flags\\n\\n| Flag | Significado |\\n|------|-------------|\\n| `-d` | Detached (background) |\\n| `-p` | Port mapping host:container |\\n| `-v` | Volume mount |\\n| `--name` | Nombre personalizado |\\n\"}"
+              }
+            ]
+          },
+          {
+            "title": "Docker Compose y multi-contenedores",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Docker Compose en la práctica\",\"duration\":25,\"minTimeSeconds\":20,\"isRequired\":true,\"description\":\"Orquesta múltiples servicios con docker-compose.yml: base de datos, backend y frontend juntos.\",\"url\":\"https://www.youtube.com/watch?v=SXwC9fSwct8\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "quiz",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Quiz: Docker fundamentals\",\"duration\":15,\"isRequired\":true,\"timeLimit\":8,\"passingScore\":70,\"maxAttempts\":3,\"questions\":[{\"id\":\"qa-1\",\"type\":\"multiple-choice\",\"question\":\"¿Qué hace el flag -p 8080:80 en docker run?\",\"points\":1,\"order\":1,\"allowMultiple\":false,\"options\":[{\"id\":\"a\",\"text\":\"Expone el puerto 8080 del contenedor al 80 del host\"},{\"id\":\"b\",\"text\":\"Mapea el puerto 8080 del host al 80 del contenedor\"},{\"id\":\"c\",\"text\":\"Crea una red en el puerto 8080\"},{\"id\":\"d\",\"text\":\"Ninguna de las anteriores\"}],\"correctAnswers\":[\"b\"],\"explanation\":\"host:container — el tráfico al puerto 8080 del host llega al 80 del contenedor.\"},{\"id\":\"qa-2\",\"type\":\"true-false\",\"question\":\"Un Dockerfile es un archivo de texto con instrucciones para construir una imagen Docker.\",\"points\":1,\"order\":2,\"correctAnswer\":true,\"explanation\":\"Correcto. FROM, RUN, COPY, CMD son instrucciones comunes.\"},{\"id\":\"qa-3\",\"type\":\"multiple-choice\",\"question\":\"¿Cuál es el comando correcto para listar todos los contenedores (activos e inactivos)?\",\"points\":1,\"order\":3,\"allowMultiple\":false,\"options\":[{\"id\":\"a\",\"text\":\"docker ps\"},{\"id\":\"b\",\"text\":\"docker containers list\"},{\"id\":\"c\",\"text\":\"docker ps -a\"},{\"id\":\"d\",\"text\":\"docker list all\"}],\"correctAnswers\":[\"c\"],\"explanation\":\"El flag -a (o --all) permite ver todos los contenedores, incluso los detenidos.\"},{\"id\":\"qa-4\",\"type\":\"true-false\",\"question\":\"Docker Compose se utiliza para definir y ejecutar aplicaciones multi-contenedor en Docker.\",\"points\":1,\"order\":4,\"correctAnswer\":true,\"explanation\":\"Correcto. Con docker-compose.yml puedes orquestar múltiples servicios fácilmente.\"},{\"id\":\"qa-5\",\"type\":\"multiple-choice\",\"question\":\"¿Para qué sirve la instrucción WORKDIR en un Dockerfile?\",\"points\":1,\"order\":5,\"allowMultiple\":false,\"options\":[{\"id\":\"a\",\"text\":\"Para descargar dependencias\"},{\"id\":\"b\",\"text\":\"Para establecer el directorio de trabajo donde se ejecutarán las siguientes instrucciones\"},{\"id\":\"c\",\"text\":\"Para definir el punto de entrada de la aplicación\"},{\"id\":\"d\",\"text\":\"Ninguna de las anteriores\"}],\"correctAnswers\":[\"b\"],\"explanation\":\"Establece el directorio base para cualquier comando RUN, CMD, ENTRYPOINT, COPY o ADD.\"},{\"id\":\"qa-6\",\"type\":\"true-false\",\"question\":\"Las imágenes de Docker son mutables y se pueden modificar una vez creadas.\",\"points\":1,\"order\":6,\"correctAnswer\":false,\"explanation\":\"Falso. Las imágenes de Docker son de solo lectura (inmutables). Se instancian en contenedores que tienen una capa de escritura temporal.\"},{\"id\":\"qa-7\",\"type\":\"multiple-choice\",\"question\":\"¿Qué comando descarga una imagen de un registro como Docker Hub sin ejecutarla?\",\"points\":1,\"order\":7,\"allowMultiple\":false,\"options\":[{\"id\":\"a\",\"text\":\"docker get\"},{\"id\":\"b\",\"text\":\"docker fetch\"},{\"id\":\"c\",\"text\":\"docker pull\"},{\"id\":\"d\",\"text\":\"docker load\"}],\"correctAnswers\":[\"c\"],\"explanation\":\"docker pull descarga la imagen a la máquina host.\"},{\"id\":\"qa-8\",\"type\":\"multiple-choice\",\"question\":\"En un docker-compose.yml, ¿qué etiqueta define las dependencias entre servicios?\",\"points\":1,\"order\":8,\"allowMultiple\":false,\"options\":[{\"id\":\"a\",\"text\":\"requires:\"},{\"id\":\"b\",\"text\":\"depends_on:\"},{\"id\":\"c\",\"text\":\"links:\"},{\"id\":\"d\",\"text\":\"needs:\"}],\"correctAnswers\":[\"b\"],\"explanation\":\"depends_on expresa el orden de inicio (y apagado) de los servicios.\"},{\"id\":\"qa-9\",\"type\":\"true-false\",\"question\":\"El comando `docker rm` elimina una imagen del disco duro.\",\"points\":1,\"order\":9,\"correctAnswer\":false,\"explanation\":\"Falso. `docker rm` elimina contenedores. Para eliminar imágenes se usa `docker rmi`.\"},{\"id\":\"qa-10\",\"type\":\"multiple-choice\",\"question\":\"¿Cuál es la principal diferencia entre CMD y ENTRYPOINT?\",\"points\":1,\"order\":10,\"allowMultiple\":false,\"options\":[{\"id\":\"a\",\"text\":\"Ninguna, hacen exactamente lo mismo\"},{\"id\":\"b\",\"text\":\"ENTRYPOINT no puede ser sobreescrito fácilmente, CMD sí\"},{\"id\":\"c\",\"text\":\"CMD se ejecuta en tiempo de build, ENTRYPOINT en tiempo de run\"},{\"id\":\"d\",\"text\":\"ENTRYPOINT solo funciona con imágenes Alpine\"}],\"correctAnswers\":[\"b\"],\"explanation\":\"CMD define parámetros por defecto que son fácilmente reemplazables, ENTRYPOINT configura el ejecutable principal.\"},{\"id\":\"qa-11\",\"type\":\"multiple-choice\",\"question\":\"¿Cómo puedes pasar una variable de entorno a un contenedor al iniciarlo?\",\"points\":1,\"order\":11,\"allowMultiple\":false,\"options\":[{\"id\":\"a\",\"text\":\"Usando el flag -e o --env\"},{\"id\":\"b\",\"text\":\"Usando el flag -v\"},{\"id\":\"c\",\"text\":\"Mediante docker set-env\"},{\"id\":\"d\",\"text\":\"Usando el flag --var\"}],\"correctAnswers\":[\"a\"],\"explanation\":\"El flag -e o --env permite inyectar variables de entorno en tiempo de ejecución.\"},{\"id\":\"qa-12\",\"type\":\"true-false\",\"question\":\"Es una buena práctica ejecutar múltiples aplicaciones (ej. base de datos y backend web) dentro del mismo contenedor Docker.\",\"points\":1,\"order\":12,\"correctAnswer\":false,\"explanation\":\"Falso. La convención de Docker es \\\"un proceso/servicio por contenedor\\\" para mayor modularidad.\"},{\"id\":\"qa-13\",\"type\":\"multiple-choice\",\"question\":\"¿Qué comando permite ver los logs generados por un contenedor en ejecución?\",\"points\":1,\"order\":13,\"options\":[{\"id\":\"a\",\"text\":\"docker view\"},{\"id\":\"b\",\"text\":\"docker inspect\"},{\"id\":\"c\",\"text\":\"docker logs\"},{\"id\":\"d\",\"text\":\"docker monitor\"}],\"correctAnswers\":[\"c\"],\"explanation\":\"`docker logs <id_contenedor>` muestra la salida estándar y de error del contenedor.\"},{\"id\":\"qa-14\",\"type\":\"true-false\",\"question\":\"Los volúmenes de Docker (volumes) permiten persistir datos incluso si el contenedor es destruido.\",\"points\":1,\"order\":14,\"correctAnswer\":true,\"explanation\":\"Correcto. Los volúmenes almacenan datos fuera del ciclo de vida del contenedor.\"},{\"id\":\"qa-15\",\"type\":\"multiple-choice\",\"question\":\"¿Qué instrucción del Dockerfile se usa para copiar archivos desde el host al contenedor?\",\"points\":1,\"order\":15,\"options\":[{\"id\":\"a\",\"text\":\"TRANSFER\"},{\"id\":\"b\",\"text\":\"COPY\"},{\"id\":\"c\",\"text\":\"MOVE\"},{\"id\":\"d\",\"text\":\"CLONE\"}],\"correctAnswers\":[\"b\"],\"explanation\":\"COPY y ADD son las instrucciones utilizadas para copiar archivos. COPY es preferida para tareas sencillas.\"}]}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Producción y buenas prácticas",
+        "orderIndex": 2,
+        "lessons": [
+          {
+            "title": "Optimización de imágenes y seguridad",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Multi-stage builds y reducción de tamaño\",\"duration\":25,\"minTimeSeconds\":20,\"isRequired\":true,\"description\":\"Técnicas avanzadas para imágenes más pequeñas y seguras.\",\"url\":\"https://www.youtube.com/watch?v=yyRoFsRMGpQ\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "assignment",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Proyecto final: Conteneriza tu aplicación\",\"duration\":15,\"isRequired\":true,\"maxScore\":100,\"assignmentInstructions\":\"## Proyecto final\\n\\nConteneriza una aplicación web completa con Docker Compose.\\n\\n### Requisitos\\n\\n1. Crea un `Dockerfile` para el backend (Node.js o Python)\\n2. Crea un `docker-compose.yml` que incluya:\\n   - Backend\\n   - Base de datos (PostgreSQL o MongoDB)\\n   - (Opcional) Frontend\\n3. La app debe arrancar con `docker compose up`\\n\\n### Entregable\\n\\nSube el enlace a tu repositorio de GitHub con:\\n- `Dockerfile`\\n- `docker-compose.yml`\\n- `README.md` con instrucciones de ejecución\\n\\n### Criterios\\n\\n| Criterio | Puntos |\\n|----------|--------|\\n| Dockerfile funcional | 40 |\\n| docker-compose.yml correcto | 40 |\\n| README claro | 20 |\\n\"}"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "Git y GitHub para Desarrolladores",
+    "description": "Domina el control de versiones con Git: ramas, merges, resolución de conflictos, pull requests y flujos de trabajo colaborativos con GitHub.",
+    "status": "published",
+    "difficulty": "beginner",
+    "tags": [
+      "Git",
+      "GitHub",
+      "DevOps"
+    ],
+    "thumbnailUrl": "https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=600&q=80",
+    "instructorName": "Sebastián Molina",
+    "institutionId": "inst-1",
+    "modules": [
+      {
+        "title": "Fundamentos de Git",
+        "orderIndex": 1,
+        "lessons": [
+          {
+            "title": "Introducción al control de versiones",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"¿Qué es Git y por qué usarlo?\",\"duration\":20,\"isRequired\":true,\"description\":\"Historia del control de versiones y por qué Git se convirtió en el estándar.\",\"url\":\"https://www.youtube.com/watch?v=hwP7WQkmECE\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Comandos esenciales de Git\",\"duration\":15,\"isRequired\":true,\"markdownContent\":\"# Comandos esenciales de Git\\n\\nEsta guía cubre los comandos más usados en el día a día.\\n\\n## Configuración inicial\\n\\n```bash\\ngit config --global user.name \\\"Tu Nombre\\\"\\ngit config --global user.email \\\"tu@email.com\\\"\\n```\\n\\n## Flujo básico\\n\\n| Comando | Descripción |\\n|---------|-------------|\\n| `git init` | Inicializar repositorio |\\n| `git add .` | Agregar al staging |\\n| `git commit -m \\\"msg\\\"` | Crear commit |\\n| `git push` | Subir cambios |\\n\\n## Estados de un archivo\\n\\n1. **Untracked** — archivo nuevo sin seguimiento\\n2. **Staged** — listo para commit\\n3. **Committed** — guardado en el historial\\n\"}"
+              }
+            ]
+          },
+          {
+            "title": "Ramas y trabajo en equipo",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Branching y Merging\",\"duration\":25,\"isRequired\":true,\"description\":\"Aprende a crear ramas, hacer merges y resolver conflictos de forma efectiva.\",\"url\":\"https://www.youtube.com/watch?v=e2IbNHi4uCI\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "quiz",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Quiz: Fundamentos de Git\",\"duration\":15,\"isRequired\":true,\"timeLimit\":10,\"passingScore\":70,\"questions\":[{\"id\":\"qd-1\",\"type\":\"multiple-choice\",\"question\":\"¿Qué comando crea una nueva rama y cambia a ella?\",\"points\":1,\"order\":1,\"options\":[{\"id\":\"a\",\"text\":\"git branch nueva\"},{\"id\":\"b\",\"text\":\"git checkout -b nueva\"},{\"id\":\"c\",\"text\":\"git switch nueva\"},{\"id\":\"d\",\"text\":\"git new nueva\"}],\"correctAnswers\":[\"b\"],\"explanation\":\"git checkout -b crea la rama y hace switch inmediatamente.\"},{\"id\":\"qd-2\",\"type\":\"true-false\",\"question\":\"git merge integra los cambios de una rama en la rama actual.\",\"points\":1,\"order\":2,\"correctAnswer\":true,\"explanation\":\"Correcto. git merge une el historial de la rama indicada.\"},{\"id\":\"qd-3\",\"type\":\"multiple-choice\",\"question\":\"¿Cuál es el propósito de git stash?\",\"points\":1,\"order\":3,\"options\":[{\"id\":\"a\",\"text\":\"Eliminar cambios del directorio de trabajo\"},{\"id\":\"b\",\"text\":\"Guardar cambios temporalmente sin hacer commit\"},{\"id\":\"c\",\"text\":\"Subir cambios al repositorio remoto\"},{\"id\":\"d\",\"text\":\"Ver el historial de commits\"}],\"correctAnswers\":[\"b\"],\"explanation\":\"git stash guarda el trabajo en progreso para recuperarlo después.\"}]}"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "GitHub y colaboración",
+        "orderIndex": 2,
+        "lessons": [
+          {
+            "title": "Pull Requests y Code Review",
+            "orderIndex": 1,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Flujo de trabajo con Pull Requests\",\"duration\":25,\"isRequired\":true,\"description\":\"Aprende el flujo completo: fork, branch, PR, review y merge en GitHub.\",\"url\":\"https://www.youtube.com/watch?v=rgbCcBNZcdQ\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "assignment",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Proyecto: Contribución a repositorio compartido\",\"duration\":20,\"isRequired\":true,\"maxScore\":100,\"assignmentInstructions\":\"## Objetivo\\n\\nContribuye al repositorio de práctica del curso abriendo un Pull Request real.\\n\\n### Pasos\\n\\n1. Haz **fork** del repositorio `gems-git-practice`\\n2. Crea una rama con tu nombre: `feature/tu-nombre`\\n3. Agrega un archivo `tu-nombre.md` con:\\n   - Tu nombre\\n   - Lo que aprendiste en el curso\\n   - Un comando de Git favorito y por qué\\n4. Abre un **Pull Request** con descripción clara\\n\\n### Criterios de evaluación\\n\\n| Criterio | Puntos |\\n|----------|--------|\\n| PR abierto correctamente | 40 |\\n| Descripción del PR completa | 30 |\\n| Archivo markdown bien formateado | 30 |\\n\"}"
+              }
+            ]
+          },
+          {
+            "title": "GitHub Actions y CI/CD básico",
+            "orderIndex": 2,
+            "contents": [
+              {
+                "type": "video",
+                "orderIndex": 1,
+                "value": "{\"title\":\"Introducción a GitHub Actions\",\"duration\":30,\"isRequired\":true,\"description\":\"Automatiza tus flujos de trabajo con GitHub Actions: tests, linting y deploys automáticos.\",\"url\":\"https://www.youtube.com/watch?v=R8_veQiYBjI\",\"videoProvider\":\"youtube\"}"
+              },
+              {
+                "type": "document",
+                "orderIndex": 2,
+                "value": "{\"title\":\"Recursos adicionales y próximos pasos\",\"duration\":15,\"isRequired\":true,\"markdownContent\":\"# ¡Felicitaciones por completar el curso!\\n\\n## Qué aprendiste\\n\\n- ✅ Control de versiones con Git\\n- ✅ Ramas, merges y resolución de conflictos\\n- ✅ Colaboración con GitHub y Pull Requests\\n- ✅ Automatización con GitHub Actions\\n\\n## Próximos pasos recomendados\\n\\n1. **Git avanzado** — rebase interactivo, cherry-pick, bisect\\n2. **GitHub Actions avanzado** — matrices, entornos, secretos\\n3. **GitOps** — ArgoCD, Flux para despliegues\\n\\n## Recursos\\n\\n- [Pro Git Book](https://git-scm.com/book/es/v2) — gratuito y completo\\n- [GitHub Skills](https://skills.github.com/) — cursos interactivos oficiales\\n- [Conventional Commits](https://www.conventionalcommits.org/) — estándar para mensajes de commit\\n\"}"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -60,6 +60,10 @@ Cada microservicio procesa las peticiones a través de una cadena de filtros:
 
 ## 🚀 Guía de Ejecución
 
+> **Atajo para desarrollo local** (back + api-gateway + datos de prueba): `./dev-up.sh --seed`.
+> Ver [docs/integracion-front-back.md](docs/integracion-front-back.md) para la integración con gems-lms-web,
+> las trampas de Windows y la lista de lo que falta.
+
 ### Prerrequisitos
 
 - Java 24
@@ -84,8 +88,8 @@ docker-compose up -d
 ```
 
 Esto iniciará:
-- `postgres-auth` en el puerto **5432**
-- `postgres-admin` en el puerto **5433**
+- `postgres-admin` en el puerto **5432**
+- `postgres-auth` en el puerto **5433**
 - `postgres-education` en el puerto **5434**
 - `redis` en el puerto **6379**
 
@@ -93,13 +97,13 @@ Esto iniciará:
 
 Conectarse a cada instancia de PostgreSQL y ejecutar los scripts `schema.sql` correspondientes.
 
-#### Base de Datos Auth (Puerto 5432)
+#### Base de Datos Auth (Puerto 5433)
 
 ```bash
 docker exec -i gems-postgres-auth psql -U auth_user -d auth_db < ms-auth/src/main/resources/schema.sql
 ```
 
-#### Base de Datos Admin (Puerto 5433)
+#### Base de Datos Admin (Puerto 5432)
 
 ```bash
 docker exec -i gems-postgres-admin psql -U admin_user -d admin_db < ms-admin/src/main/resources/schema.sql
@@ -123,7 +127,7 @@ EDUCATION_PORT=8083
 JWT_SECRET=your-jwt-secret-key-here-change-in-production
 JWT_EXPIRATION=3600000
 
-AUTH_LOGIN_PATH=/api/v1/users/login
+AUTH_LOGIN_PATH=/api/v1/auth/login
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -136,14 +140,14 @@ RATE_LIMIT_KEY_PREFIX=rate_limit:
 AUTH_DB_NAME=auth_db
 AUTH_DB_USER=auth_user
 AUTH_DB_PASSWORD=auth_password
-AUTH_R2DBC_URL=r2dbc:postgresql://localhost:5432/auth_db
+AUTH_R2DBC_URL=r2dbc:postgresql://localhost:5433/auth_db
 AUTH_R2DBC_USERNAME=auth_user
 AUTH_R2DBC_PASSWORD=auth_password
 
 ADMIN_DB_NAME=admin_db
 ADMIN_DB_USER=admin_user
 ADMIN_DB_PASSWORD=admin_password
-ADMIN_R2DBC_URL=r2dbc:postgresql://localhost:5433/admin_db
+ADMIN_R2DBC_URL=r2dbc:postgresql://localhost:5432/admin_db
 ADMIN_R2DBC_USERNAME=admin_user
 ADMIN_R2DBC_PASSWORD=admin_password
 
