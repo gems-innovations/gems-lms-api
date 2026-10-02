@@ -12,10 +12,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+  private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler(StudentAlreadyExistsException.class)
   public Mono<ResponseEntity<ErrorResponse>> handleStudentAlreadyExistsException(StudentAlreadyExistsException ex) {
@@ -137,8 +141,18 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error));
   }
 
+  // Framework errors (unknown route, wrong method, malformed body...) keep their own status
+  // instead of being reported as a 500.
+  @ExceptionHandler(ResponseStatusException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleResponseStatusException(ResponseStatusException ex) {
+    HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+    ErrorResponse error = new ErrorResponse(status.name(), ex.getReason() != null ? ex.getReason() : status.getReasonPhrase(), status.value());
+    return Mono.just(ResponseEntity.status(status).body(error));
+  }
+
   @ExceptionHandler(Exception.class)
   public Mono<ResponseEntity<ErrorResponse>> handleGenericException(Exception ex) {
+    LOG.error("Unhandled exception", ex);
     ErrorResponse error = new ErrorResponse(
       RestConstants.INTERNAL_SERVER_ERROR_CODE,
       RestConstants.INTERNAL_SERVER_ERROR_MESSAGE,

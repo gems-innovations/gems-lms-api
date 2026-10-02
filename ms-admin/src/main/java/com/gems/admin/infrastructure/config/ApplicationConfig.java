@@ -67,8 +67,9 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public DeleteInstitutionUseCase deleteInstitutionUseCase(InstitutionGateway institutionGateway) {
-    return new DeleteInstitutionUseCase(institutionGateway);
+  public DeleteInstitutionUseCase deleteInstitutionUseCase(InstitutionGateway institutionGateway,
+                                                           BrandingGateway brandingGateway) {
+    return new DeleteInstitutionUseCase(institutionGateway, brandingGateway);
   }
 }
 

@@ -1,6 +1,7 @@
 package com.gems.admin.application;
 
 import com.gems.admin.application.exceptions.InstitutionNotFoundException;
+import com.gems.admin.application.gateway.BrandingGateway;
 import com.gems.admin.application.gateway.InstitutionGateway;
 import com.gems.admin.domain.entities.Institution;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,6 +22,9 @@ class DeleteInstitutionUseCaseTest {
 
   @Mock
   private InstitutionGateway institutionGateway;
+
+  @Mock
+  private BrandingGateway brandingGateway;
 
   @InjectMocks
   private DeleteInstitutionUseCase deleteInstitutionUseCase;
@@ -46,6 +50,7 @@ class DeleteInstitutionUseCaseTest {
     // Given
     when(institutionGateway.findById("inst-1")).thenReturn(Mono.just(institution));
     when(institutionGateway.deleteById("inst-1")).thenReturn(Mono.empty());
+    when(brandingGateway.deleteByCompanyId("inst-1")).thenReturn(Mono.empty());
 
     // When
     Mono<Void> result = deleteInstitutionUseCase.execute("inst-1");
@@ -56,6 +61,7 @@ class DeleteInstitutionUseCaseTest {
 
     verify(institutionGateway, times(1)).findById("inst-1");
     verify(institutionGateway, times(1)).deleteById("inst-1");
+    verify(brandingGateway, times(1)).deleteByCompanyId("inst-1");
   }
 
   @Test
@@ -73,5 +79,6 @@ class DeleteInstitutionUseCaseTest {
 
     verify(institutionGateway, times(1)).findById("inst-1");
     verify(institutionGateway, never()).deleteById(anyString());
+    verify(brandingGateway, never()).deleteByCompanyId(anyString());
   }
 }
