@@ -28,6 +28,7 @@ public class EnrollmentRepositoryAdapter implements EnrollmentGateway {
       enrollment.getProgress() != null ? enrollment.getProgress() : 0,
       enrollment.getCompletedAt()
     );
+    entity.setProgressData(enrollment.getProgressData());
     return enrollmentRepository.save(entity)
       .map(this::mapToDomain);
   }
@@ -67,7 +68,7 @@ public class EnrollmentRepositoryAdapter implements EnrollmentGateway {
   }
 
   private Enrollment mapToDomain(EnrollmentEntity entity) {
-    return new Enrollment(
+    Enrollment enrollment = new Enrollment(
       entity.getId(),
       entity.getStudentId(),
       entity.getCourseId(),
@@ -76,5 +77,7 @@ public class EnrollmentRepositoryAdapter implements EnrollmentGateway {
       entity.getProgress(),
       entity.getCompletedAt()
     );
+    enrollment.setProgressData(entity.getProgressData());
+    return enrollment;
   }
 }

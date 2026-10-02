@@ -11,6 +11,9 @@ public class Enrollment {
   private Integer progress;
   private LocalDateTime completedAt;
 
+  // Detailed progress of the student (completed blocks, quiz attempts, submissions...) as JSON.
+  private String progressData;
+
   public Enrollment() {
   }
 
@@ -79,5 +82,13 @@ public class Enrollment {
 
   public void setCompletedAt(LocalDateTime completedAt) {
     this.completedAt = completedAt;
+  }
+
+  public String getProgressData() {
+    return progressData;
+  }
+
+  public void setProgressData(String progressData) {
+    this.progressData = progressData;
   }
 }

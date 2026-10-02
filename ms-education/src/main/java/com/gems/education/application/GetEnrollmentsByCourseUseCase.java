@@ -13,9 +13,6 @@ public class GetEnrollmentsByCourseUseCase {
 
   public Flux<EnrollmentResponse> execute(Long courseId) {
     return enrollmentGateway.findByCourseId(courseId)
-      .map(e -> new EnrollmentResponse(
-        e.getId(), e.getStudentId(), e.getCourseId(), e.getStatus(),
-        e.getEnrolledAt(), e.getProgress(), e.getCompletedAt()
-      ));
+      .map(e -> EnrollmentResponse.from(e));
   }
 }

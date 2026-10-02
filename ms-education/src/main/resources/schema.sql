@@ -126,3 +126,6 @@ CREATE INDEX IF NOT EXISTS idx_questions_quiz ON questions(quiz_id);
 CREATE INDEX IF NOT EXISTS idx_learning_paths_institution ON learning_paths(institution_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_student ON enrollments(student_id);
 CREATE INDEX IF NOT EXISTS idx_enrollments_course ON enrollments(course_id);
+
+-- Detailed per-student progress (JSON) added after the initial schema.
+ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS progress_data TEXT;

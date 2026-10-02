@@ -13,6 +13,7 @@ import com.gems.education.application.response.EnrollmentResponse;
 import com.gems.education.infrastructure.driving.rest.mapper.EnrollmentMapper;
 import com.gems.education.infrastructure.driving.rest.request.BulkEnrollmentRequest;
 import com.gems.education.infrastructure.driving.rest.request.EnrollmentRequest;
+import com.gems.education.infrastructure.driving.rest.request.EnrollmentProgressRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -81,8 +82,12 @@ public class EnrollmentController {
   @PutMapping("/{id}/progress")
   public Mono<ResponseEntity<EnrollmentResponse>> updateEnrollmentProgress(
       @PathVariable Long id,
-      @RequestParam Integer progress) {
-    return updateEnrollmentProgressUseCase.execute(id, progress)
+      @RequestParam(required = false) Integer progress,
+      @Valid @RequestBody(required = false) EnrollmentProgressRequest body) {
+    // Accepts the legacy ?progress= query param or a JSON body with progress + progressData.
+    Integer value = body != null && body.getProgress() != null ? body.getProgress() : progress;
+    String progressData = body != null ? body.getProgressData() : null;
+    return updateEnrollmentProgressUseCase.execute(id, value, progressData)
       .map(ResponseEntity::ok);
   }
 

@@ -38,14 +38,6 @@ public class BulkEnrollStudentsUseCase {
   }
 
   private EnrollmentResponse mapToResponse(Enrollment enrollment) {
-    return new EnrollmentResponse(
-      enrollment.getId(),
-      enrollment.getStudentId(),
-      enrollment.getCourseId(),
-      enrollment.getStatus(),
-      enrollment.getEnrolledAt(),
-      enrollment.getProgress(),
-      enrollment.getCompletedAt()
-    );
+    return EnrollmentResponse.from(enrollment);
   }
 }
