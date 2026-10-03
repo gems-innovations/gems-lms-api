@@ -191,8 +191,16 @@ public class ApplicationConfig {
   @Bean
   public SubmitQuizAttemptUseCase submitQuizAttemptUseCase(EnrollmentGateway enrollmentGateway,
                                                            CourseActivityGateway activityGateway,
-                                                           ContentBlockGateway contentBlockGateway) {
-    return new SubmitQuizAttemptUseCase(enrollmentGateway, activityGateway, contentBlockGateway);
+                                                           ContentBlockGateway contentBlockGateway,
+                                                           QuizComposer quizComposer,
+                                                           QuizSessionGateway quizSessionGateway) {
+    return new SubmitQuizAttemptUseCase(enrollmentGateway, activityGateway, contentBlockGateway, quizComposer,
+      quizSessionGateway, java.time.Clock.systemDefaultZone());
+  }
+
+  @Bean
+  public QuestionBankUseCase questionBankUseCase(QuestionBankGateway questionBankGateway) {
+    return new QuestionBankUseCase(questionBankGateway);
   }
 
   @Bean

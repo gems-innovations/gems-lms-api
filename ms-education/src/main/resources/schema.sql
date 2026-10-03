@@ -305,6 +305,37 @@ CREATE TABLE IF NOT EXISTS gradebook_weights (
 );
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_course ON quiz_attempts(course_id);
 
+-- Question bank: reusable questions per institution, grouped by category. payload is the question
+-- JSON the web client writes in quiz blocks (type, question, options, correctAnswers...).
+CREATE TABLE IF NOT EXISTS question_bank (
+    id BIGSERIAL PRIMARY KEY,
+    institution_id VARCHAR(100) NOT NULL,
+    category VARCHAR(120) NOT NULL,
+    type VARCHAR(30) NOT NULL,
+    payload TEXT NOT NULL,
+    created_by BIGINT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_question_bank_category ON question_bank(institution_id, category);
+
+-- A quiz attempt in progress: the questions drawn and ordered for it (with answer keys, never sent
+-- to the student) and its deadline. Submitting closes it; one open session per enrollment and block.
+CREATE TABLE IF NOT EXISTS quiz_sessions (
+    id BIGSERIAL PRIMARY KEY,
+    enrollment_id BIGINT NOT NULL REFERENCES enrollments(id) ON DELETE CASCADE,
+    student_id BIGINT NOT NULL,
+    course_id BIGINT NOT NULL,
+    block_id BIGINT NOT NULL,
+    questions TEXT NOT NULL,
+    student_questions TEXT NOT NULL,
+    passing_score INT NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP,
+    submitted_at TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_quiz_sessions_open ON quiz_sessions(enrollment_id, block_id) WHERE submitted_at IS NULL;
+
 -- Course counters are derived from enrollments: recomputed on every enrollment change and,
 -- here, once per startup so counters written by older versions are corrected.
 UPDATE courses SET

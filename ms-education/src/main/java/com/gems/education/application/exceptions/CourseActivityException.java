@@ -7,6 +7,9 @@ public class CourseActivityException extends RuntimeException {
   public static final String WRONG_BLOCK_TYPE = "WRONG_BLOCK_TYPE";
   public static final String ATTEMPT_LIMIT_REACHED = "ATTEMPT_LIMIT_REACHED";
   public static final String SUBMISSION_NOT_FOUND = "SUBMISSION_NOT_FOUND";
+  public static final String SESSION_REQUIRED = "SESSION_REQUIRED";
+  public static final String SESSION_NOT_FOUND = "SESSION_NOT_FOUND";
+  public static final String SESSION_CLOSED = "SESSION_CLOSED";
 
   private final String code;
 

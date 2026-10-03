@@ -44,10 +44,27 @@ load_env_file() {
 
 load_env_file ".env"
 
-API_GATEWAY_PORT=${API_GATEWAY_PORT:-""}
+API_GATEWAY_PORT=${API_GATEWAY_PORT:-8080}
 EDUCATION_PORT=${EDUCATION_PORT:-""}
 AUTH_PORT=${AUTH_PORT:-""}
 ADMIN_PORT=${ADMIN_PORT:-""}
+
+# lsof/pkill are not available in Git Bash on Windows: fall back to netstat/taskkill there.
+pids_on_port() {
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -ti:$1 2>/dev/null
+    else
+        netstat -ano 2>/dev/null | awk -v p=":$1" '$2 ~ p"$" && $4 == "LISTENING" { print $5 }' | sort -u
+    fi
+}
+
+kill_pid() {
+    if command -v taskkill >/dev/null 2>&1; then
+        taskkill //PID "$1" //F >/dev/null 2>&1
+    else
+        kill -9 "$1" 2>/dev/null
+    fi
+}
 
 stop_microservice_on_port() {
     local port=$1
@@ -58,7 +75,7 @@ stop_microservice_on_port() {
         return
     fi
     
-    local pids=$(lsof -ti:$port 2>/dev/null)
+    local pids=$(pids_on_port $port)
     
     if [ -z "$pids" ]; then
         echo -e "${YELLOW}No $service_name process found on port $port${NC}"
@@ -68,7 +85,7 @@ stop_microservice_on_port() {
     for pid in $pids; do
         if [ -n "$pid" ]; then
             echo -e "${RED}Killing $service_name on port $port (PID: $pid)${NC}"
-            kill -9 $pid 2>/dev/null
+            kill_pid $pid
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}$service_name stopped successfully${NC}"
             else
@@ -87,8 +104,7 @@ case "${MICROSERVICE,,}" in
         stop_microservice_on_port "$ADMIN_PORT" "Admin Service"
         
         echo -e "\n${CYAN}Killing all remaining Java processes...${NC}"
-        pkill -9 java 2>/dev/null
-        if [ $? -eq 0 ]; then
+        if command -v pkill >/dev/null 2>&1 && pkill -9 java 2>/dev/null; then
             echo -e "${GREEN}All Java processes killed${NC}"
         else
             echo -e "${YELLOW}No Java processes found${NC}"

@@ -42,8 +42,11 @@ public class ContentBlockAdapter implements ContentBlockGateway {
   @Override
   public Mono<BlockInfo> find(Long courseId, Long blockId) {
     return block(courseId, blockId)
-      .map(content -> new BlockInfo(content.getLessonId(), content.getType(),
-        parse(content.getValue()).path("maxAttempts").asInt(0)));
+      .map(content -> {
+        JsonNode value = parse(content.getValue());
+        return new BlockInfo(content.getLessonId(), content.getType(), value.path("maxAttempts").asInt(0),
+          sessionRequired(value));
+      });
   }
 
   @Override
@@ -84,7 +87,15 @@ public class ContentBlockAdapter implements ContentBlockGateway {
     return items;
   }
 
-  private Mono<Content> block(Long courseId, Long blockId) {
+  /** Quizzes that draw from the bank, are timed or shuffled need the server to fix each attempt. */
+  static boolean sessionRequired(JsonNode quiz) {
+    for (JsonNode pool : quiz.path("questionPools")) {
+      if (pool.path("count").asInt(0) > 0) return true;
+    }
+    return quiz.path("timeLimit").asInt(0) > 0 || quiz.path("shuffleQuestions").asBoolean(false);
+  }
+
+  Mono<Content> block(Long courseId, Long blockId) {
     return courseGateway.findById(courseId)
       .flatMap(course -> Mono.justOrEmpty(findContent(course, blockId)));
   }
@@ -143,7 +154,7 @@ public class ContentBlockAdapter implements ContentBlockGateway {
     return false;
   }
 
-  private JsonNode parse(String json) {
+  JsonNode parse(String json) {
     if (json == null || json.isBlank()) return mapper.createObjectNode();
     try {
       return mapper.readTree(json);

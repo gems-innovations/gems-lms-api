@@ -29,7 +29,8 @@ public interface ContentBlockGateway {
   record RubricCriterion(String id, String criterion, int maxPoints) {
   }
 
-  record BlockInfo(Long lessonId, String type, int maxAttempts) {
+  /** sessionRequired: the quiz draws from the bank, is timed or shuffled, so attempts start with a session. */
+  record BlockInfo(Long lessonId, String type, int maxAttempts, boolean sessionRequired) {
   }
 
   /** score is a percentage (0-100); feedback is a JSON array of {questionId, correct, explanation}. */

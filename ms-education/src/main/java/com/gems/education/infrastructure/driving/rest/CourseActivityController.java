@@ -10,6 +10,7 @@ import com.gems.education.application.SubmitAssignmentUseCase;
 import com.gems.education.application.SubmitQuizAttemptUseCase;
 import com.gems.education.domain.entities.AssignmentSubmission;
 import com.gems.education.domain.entities.QuizAttempt;
+import com.gems.education.domain.entities.QuizSession;
 import com.gems.shared.security.CurrentUser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -60,8 +61,22 @@ public class CourseActivityController {
                                                              @Valid @RequestBody AttemptRequest request) {
     return access.readableCourse(courseId)
       .then(CurrentUser.get())
-      .flatMap(caller -> submitQuizAttemptUseCase.execute(caller.userId(), courseId, blockId, request.answers().toString()))
+      .flatMap(caller -> request.sessionId() != null
+        ? submitQuizAttemptUseCase.execute(caller.userId(), courseId, blockId, request.sessionId(), request.answers().toString())
+        : submitQuizAttemptUseCase.execute(caller.userId(), courseId, blockId, request.answers().toString()))
       .map(attempt -> ResponseEntity.status(HttpStatus.CREATED).body(AttemptResponse.from(attempt)));
+  }
+
+  /**
+   * Starts or resumes an attempt: the questions of this attempt (without answer keys) and its
+   * deadline. Answers are then sent to /attempts with the sessionId.
+   */
+  @PostMapping("/courses/{courseId}/blocks/{blockId}/attempts/start")
+  public Mono<ResponseEntity<SessionResponse>> startAttempt(@PathVariable Long courseId, @PathVariable Long blockId) {
+    return access.readableCourse(courseId)
+      .then(CurrentUser.get())
+      .flatMap(caller -> submitQuizAttemptUseCase.start(caller.userId(), courseId, blockId))
+      .map(session -> ResponseEntity.ok(SessionResponse.from(session)));
   }
 
   @PutMapping("/courses/{courseId}/blocks/{blockId}/submission")
@@ -135,7 +150,15 @@ public class CourseActivityController {
   // ── Request / response bodies ──────────────────────────────────────────────
 
   /** answers: [{questionId, answer}] where answer is a string, a list of option ids or a boolean. */
-  public record AttemptRequest(@NotNull(message = "Answers are required") JsonNode answers) {
+  public record AttemptRequest(@NotNull(message = "Answers are required") JsonNode answers, Long sessionId) {
+  }
+
+  /** serverTime lets the client run its countdown against the server clock. */
+  public record SessionResponse(Long sessionId, @JsonRawValue String questions, LocalDateTime startedAt,
+                                LocalDateTime expiresAt, LocalDateTime serverTime) {
+    static SessionResponse from(QuizSession s) {
+      return new SessionResponse(s.id(), s.studentQuestions(), s.startedAt(), s.expiresAt(), LocalDateTime.now());
+    }
   }
 
   public record SubmissionRequest(String textContent, List<String> fileUrls) {
