@@ -20,4 +20,6 @@ public record Notification(
 ) {
   public static final String SUBMISSION = "submission";
   public static final String GRADED = "graded";
+  public static final String ANNOUNCEMENT = "announcement";
+  public static final String FORUM = "forum";
 }

@@ -199,6 +199,13 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public CourseCommunityUseCase courseCommunityUseCase(AnnouncementGateway announcementGateway, ForumGateway forumGateway,
+                                                       EnrollmentGateway enrollmentGateway,
+                                                       NotificationUseCase notificationUseCase) {
+    return new CourseCommunityUseCase(announcementGateway, forumGateway, enrollmentGateway, notificationUseCase);
+  }
+
+  @Bean
   public QuestionBankUseCase questionBankUseCase(QuestionBankGateway questionBankGateway) {
     return new QuestionBankUseCase(questionBankGateway);
   }

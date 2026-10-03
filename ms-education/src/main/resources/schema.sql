@@ -336,6 +336,50 @@ CREATE TABLE IF NOT EXISTS quiz_sessions (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_quiz_sessions_open ON quiz_sessions(enrollment_id, block_id) WHERE submitted_at IS NULL;
 
+-- Course announcements, written by the course staff and pushed to enrolled students as notifications.
+CREATE TABLE IF NOT EXISTS course_announcements (
+    id BIGSERIAL PRIMARY KEY,
+    course_id BIGINT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    author_id BIGINT NOT NULL,
+    author_name VARCHAR(200) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    body TEXT NOT NULL,
+    pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_announcements_course ON course_announcements(course_id, created_at DESC);
+
+-- Course forum: threads and their replies. Author names are copied when writing (users live in ms-auth).
+CREATE TABLE IF NOT EXISTS forum_threads (
+    id BIGSERIAL PRIMARY KEY,
+    course_id BIGINT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    author_id BIGINT NOT NULL,
+    author_name VARCHAR(200) NOT NULL,
+    author_role VARCHAR(30) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    body TEXT NOT NULL,
+    pinned BOOLEAN NOT NULL DEFAULT FALSE,
+    locked BOOLEAN NOT NULL DEFAULT FALSE,
+    reply_count INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_activity_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_forum_threads_course ON forum_threads(course_id, pinned DESC, last_activity_at DESC);
+
+CREATE TABLE IF NOT EXISTS forum_posts (
+    id BIGSERIAL PRIMARY KEY,
+    thread_id BIGINT NOT NULL REFERENCES forum_threads(id) ON DELETE CASCADE,
+    author_id BIGINT NOT NULL,
+    author_name VARCHAR(200) NOT NULL,
+    author_role VARCHAR(30) NOT NULL,
+    body TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_forum_posts_thread ON forum_posts(thread_id, created_at);
+
 -- Course counters are derived from enrollments: recomputed on every enrollment change and,
 -- here, once per startup so counters written by older versions are corrected.
 UPDATE courses SET

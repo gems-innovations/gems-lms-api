@@ -26,6 +26,11 @@ public class LearningDataRepositoryAdapter implements LearningDataGateway {
     "DELETE FROM path_enrollments WHERE student_id = :studentId AND learning_path_id IN " + PATHS,
     "UPDATE student_groups SET student_ids = array_remove(student_ids, :studentId) "
       + "WHERE :institutionId IS NULL OR institution_id = :institutionId",
+    // Forum messages: the student's replies, then their threads (with the replies they received).
+    "DELETE FROM forum_posts WHERE author_id = :studentId AND thread_id IN (SELECT id FROM forum_threads WHERE course_id IN " + COURSES + ")",
+    "DELETE FROM forum_threads WHERE author_id = :studentId AND course_id IN " + COURSES,
+    "UPDATE forum_threads SET reply_count = (SELECT COUNT(*) FROM forum_posts p WHERE p.thread_id = forum_threads.id) "
+      + "WHERE course_id IN " + COURSES,
     "DELETE FROM notification_reads WHERE user_id = :studentId",
     "DELETE FROM notifications WHERE recipient_user_id = :studentId",
     // Counters and ratings of the courses in scope.

@@ -33,6 +33,30 @@ public class NotificationUseCase {
       LocalDateTime.now(), false));
   }
 
+  /** One notification per enrolled student; referenceId is the announcement. */
+  public Mono<Void> announcement(String institutionId, java.util.List<Long> studentIds, Long courseId, String courseTitle,
+                                 Long announcementId, String title) {
+    LocalDateTime now = LocalDateTime.now();
+    return Flux.fromIterable(studentIds).distinct()
+      .concatMap(id -> gateway.save(new Notification(null, institutionId, id, Notification.ANNOUNCEMENT,
+        "Nuevo anuncio en " + courseTitle, title, courseId, announcementId, now, false)))
+      .then();
+  }
+
+  /** Tells the staff of the institution that a student opened a forum thread; referenceId is the thread. */
+  public Mono<Notification> forumThread(String institutionId, Long courseId, String courseTitle, Long threadId,
+                                        String threadTitle) {
+    return gateway.save(new Notification(null, institutionId, null, Notification.FORUM,
+      "Nueva pregunta en el foro", courseTitle + ": " + threadTitle, courseId, threadId, LocalDateTime.now(), false));
+  }
+
+  /** Tells the thread author that someone replied. */
+  public Mono<Notification> forumReply(String institutionId, Long authorId, Long courseId, String courseTitle,
+                                       Long threadId, String threadTitle) {
+    return gateway.save(new Notification(null, institutionId, authorId, Notification.FORUM,
+      "Nueva respuesta en el foro", courseTitle + ": " + threadTitle, courseId, threadId, LocalDateTime.now(), false));
+  }
+
   public Flux<Notification> forUser(Long userId, String institutionId, boolean staff) {
     return gateway.findFor(userId, institutionId, staff, LIMIT);
   }
