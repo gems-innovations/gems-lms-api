@@ -75,10 +75,13 @@ class PathEnrollmentControllerTest extends ControllerTestSupport {
 
   @Test
   void everyoneListsTheirOwnPathEnrollments() {
-    when(useCase.ofStudent(5L)).thenReturn(Flux.just(enrollment(5L)));
+    when(useCase.progressOf(5L)).thenReturn(Flux.just(
+      new PathEnrollmentUseCase.Progress(enrollment(5L), List.of(1L), 2L, 50)));
 
     as(STUDENT).get().uri("/api/v1/learning-paths/enrollments/me").exchange().expectStatus().isOk()
-      .expectBody().jsonPath("$[0].learningPathId").isEqualTo(1);
+      .expectBody().jsonPath("$[0].learningPathId").isEqualTo(1)
+      .jsonPath("$[0].overallPercentage").isEqualTo(50)
+      .jsonPath("$[0].currentCourseId").isEqualTo(2);
   }
 
   @Test

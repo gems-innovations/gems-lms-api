@@ -223,8 +223,10 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public PathEnrollmentUseCase pathEnrollmentUseCase(PathEnrollmentGateway pathEnrollmentGateway) {
-    return new PathEnrollmentUseCase(pathEnrollmentGateway);
+  public PathEnrollmentUseCase pathEnrollmentUseCase(PathEnrollmentGateway pathEnrollmentGateway,
+                                                     LearningPathGateway learningPathGateway,
+                                                     EnrollmentGateway enrollmentGateway) {
+    return new PathEnrollmentUseCase(pathEnrollmentGateway, learningPathGateway, enrollmentGateway);
   }
 
   @Bean

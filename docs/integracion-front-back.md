@@ -129,8 +129,8 @@ Pendiente:
     autor y el staff de su institución).
 9. ~~**Rutas de aprendizaje**~~ **Resuelto**: estado (borrador/publicada/archivada; el estudiante solo ve
     publicadas), etiquetas, miniatura (URL), pasos opcionales con puntaje mínimo y contador de inscritos.
-    Inscripción a rutas en `/learning-paths/{id}/enrollments` y `/learning-paths/enrollments/me`. Falta
-    calcular el avance de la ruta en el back (hoy lo deriva el front de las matrículas de sus cursos).
+    Inscripción a rutas en `/learning-paths/{id}/enrollments` y `/learning-paths/enrollments/me`. El avance
+    (cursos completados, curso actual, % de obligatorios) lo calcula el back y la inscripción pasa a `completed`.
 10. ~~**Encuestas, notificaciones y reseñas**~~ **Resuelto**: encuesta por curso (`/courses/{id}/survey`, respuestas
     de inscritos), reseñas 1–5 (`/courses/{id}/review(s)`) que alimentan `averageRating`/`ratingCount`, y
     notificaciones del servidor (`/notifications`: entrega → staff, calificación → estudiante) con campana en

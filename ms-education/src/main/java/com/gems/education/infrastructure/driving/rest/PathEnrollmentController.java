@@ -38,10 +38,11 @@ public class PathEnrollmentController {
     }).map(list -> ResponseEntity.status(HttpStatus.CREATED).body(list));
   }
 
+  /** The caller's path enrollments with their progress (completed courses, current course, %). */
   @GetMapping("/enrollments/me")
-  public Mono<ResponseEntity<List<PathEnrollment>>> mine() {
+  public Mono<ResponseEntity<List<PathProgressBody>>> mine() {
     return CurrentUser.get()
-      .flatMap(caller -> pathEnrollmentUseCase.ofStudent(caller.userId()).collectList())
+      .flatMap(caller -> pathEnrollmentUseCase.progressOf(caller.userId()).map(PathProgressBody::from).collectList())
       .map(ResponseEntity::ok);
   }
 
@@ -53,5 +54,15 @@ public class PathEnrollmentController {
   }
 
   public record PathEnrollmentRequest(List<Long> studentIds) {
+  }
+
+  public record PathProgressBody(Long id, Long learningPathId, Long studentId, String status,
+                                 java.time.LocalDateTime enrolledAt, java.time.LocalDateTime completedAt,
+                                 List<Long> completedCourseIds, Long currentCourseId, int overallPercentage) {
+    static PathProgressBody from(PathEnrollmentUseCase.Progress p) {
+      PathEnrollment e = p.enrollment();
+      return new PathProgressBody(e.id(), e.learningPathId(), e.studentId(), e.status(), e.enrolledAt(),
+        e.completedAt(), p.completedCourseIds(), p.currentCourseId(), p.overallPercentage());
+    }
   }
 }
