@@ -1,6 +1,9 @@
 package com.gems.education.application.gateway;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 /**
  * Reads content blocks of a course. Blocks are stored as JSON written by the web client, so
@@ -13,6 +16,18 @@ public interface ContentBlockGateway {
 
   /** Grades the answers (JSON array of {questionId, answer}) against a quiz block. */
   Mono<Grading> grade(Long courseId, Long blockId, String answers);
+
+  /** Quiz and assignment blocks of the course, in course order. */
+  Flux<GradableItem> gradableItems(Long courseId);
+
+  /** Rubric criteria of an assignment block; empty list when it has none. */
+  Mono<List<RubricCriterion>> rubric(Long courseId, Long blockId);
+
+  record GradableItem(Long blockId, Long lessonId, String type, String title) {
+  }
+
+  record RubricCriterion(String id, String criterion, int maxPoints) {
+  }
 
   record BlockInfo(Long lessonId, String type, int maxAttempts) {
   }

@@ -15,13 +15,19 @@ public record AssignmentSubmission(
   LocalDateTime submittedAt,
   Integer grade,
   String feedback,
-  String status
+  String status,
+  /** JSON [{criterionId, score, comment}] when graded with the block rubric; null otherwise. */
+  String rubricScores
 ) {
   public static final String PENDING = "pending";
   public static final String GRADED = "graded";
 
   public AssignmentSubmission graded(int newGrade, String newFeedback) {
+    return graded(newGrade, newFeedback, null);
+  }
+
+  public AssignmentSubmission graded(int newGrade, String newFeedback, String newRubricScores) {
     return new AssignmentSubmission(id, enrollmentId, studentId, courseId, blockId, lessonId, textContent,
-      fileUrls, submittedAt, newGrade, newFeedback, GRADED);
+      fileUrls, submittedAt, newGrade, newFeedback, GRADED, newRubricScores);
   }
 }

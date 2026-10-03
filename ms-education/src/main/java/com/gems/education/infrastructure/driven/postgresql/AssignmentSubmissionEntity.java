@@ -29,6 +29,8 @@ public class AssignmentSubmissionEntity {
   private Integer grade;
   private String feedback;
   private String status;
+  @Column("rubric_scores")
+  private String rubricScores;
 
   public AssignmentSubmissionEntity() {
   }
@@ -57,4 +59,6 @@ public class AssignmentSubmissionEntity {
   public void setFeedback(String feedback) { this.feedback = feedback; }
   public String getStatus() { return status; }
   public void setStatus(String status) { this.status = status; }
+  public String getRubricScores() { return rubricScores; }
+  public void setRubricScores(String rubricScores) { this.rubricScores = rubricScores; }
 }

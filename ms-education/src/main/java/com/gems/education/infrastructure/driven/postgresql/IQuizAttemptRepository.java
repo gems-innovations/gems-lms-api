@@ -6,5 +6,6 @@ import reactor.core.publisher.Mono;
 
 public interface IQuizAttemptRepository extends ReactiveCrudRepository<QuizAttemptEntity, Long> {
   Flux<QuizAttemptEntity> findByStudentIdOrderByCompletedAtAsc(Long studentId);
+  Flux<QuizAttemptEntity> findByCourseId(Long courseId);
   Mono<Long> countByEnrollmentIdAndBlockId(Long enrollmentId, Long blockId);
 }

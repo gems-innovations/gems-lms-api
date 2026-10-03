@@ -9,6 +9,7 @@ import reactor.core.publisher.Mono;
 public interface CourseActivityGateway {
   Mono<QuizAttempt> saveAttempt(QuizAttempt attempt);
   Flux<QuizAttempt> findAttemptsByStudent(Long studentId);
+  Flux<QuizAttempt> findAttemptsByCourse(Long courseId);
   Mono<Long> countAttempts(Long enrollmentId, Long blockId);
 
   Mono<AssignmentSubmission> saveSubmission(AssignmentSubmission submission);

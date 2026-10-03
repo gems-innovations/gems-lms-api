@@ -294,6 +294,17 @@ CREATE TABLE IF NOT EXISTS certificates (
 );
 CREATE INDEX IF NOT EXISTS idx_certificates_student ON certificates(student_id, issued_at DESC);
 
+-- Gradebook: rubric scores of a graded submission (JSON [{criterionId, score, comment}]) and the
+-- weight of each gradable block in the course grade (missing = 1).
+ALTER TABLE assignment_submissions ADD COLUMN IF NOT EXISTS rubric_scores TEXT;
+CREATE TABLE IF NOT EXISTS gradebook_weights (
+    course_id BIGINT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    block_id BIGINT NOT NULL,
+    weight INT NOT NULL CHECK (weight >= 0),
+    PRIMARY KEY (course_id, block_id)
+);
+CREATE INDEX IF NOT EXISTS idx_quiz_attempts_course ON quiz_attempts(course_id);
+
 -- Course counters are derived from enrollments: recomputed on every enrollment change and,
 -- here, once per startup so counters written by older versions are corrected.
 UPDATE courses SET

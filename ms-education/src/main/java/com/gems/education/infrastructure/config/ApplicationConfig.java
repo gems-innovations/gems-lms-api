@@ -203,8 +203,15 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public GradeSubmissionUseCase gradeSubmissionUseCase(CourseActivityGateway activityGateway) {
-    return new GradeSubmissionUseCase(activityGateway);
+  public GradeSubmissionUseCase gradeSubmissionUseCase(CourseActivityGateway activityGateway,
+                                                       ContentBlockGateway contentBlockGateway) {
+    return new GradeSubmissionUseCase(activityGateway, contentBlockGateway);
+  }
+
+  @Bean
+  public GradebookUseCase gradebookUseCase(ContentBlockGateway contentBlockGateway, EnrollmentGateway enrollmentGateway,
+                                           CourseActivityGateway activityGateway, GradebookGateway gradebookGateway) {
+    return new GradebookUseCase(contentBlockGateway, enrollmentGateway, activityGateway, gradebookGateway);
   }
 
   @Bean

@@ -9,10 +9,14 @@ import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.domain.entities.Content;
 import com.gems.education.domain.entities.Course;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -45,6 +49,39 @@ public class ContentBlockAdapter implements ContentBlockGateway {
   @Override
   public Mono<Grading> grade(Long courseId, Long blockId, String answers) {
     return block(courseId, blockId).map(content -> grade(parse(content.getValue()), parse(answers)));
+  }
+
+  @Override
+  public Flux<GradableItem> gradableItems(Long courseId) {
+    return courseGateway.findById(courseId).flatMapMany(course -> Flux.fromIterable(gradable(course)));
+  }
+
+  @Override
+  public Mono<List<RubricCriterion>> rubric(Long courseId, Long blockId) {
+    return block(courseId, blockId).map(content -> {
+      List<RubricCriterion> criteria = new ArrayList<>();
+      for (JsonNode r : parse(content.getValue()).path("rubric")) {
+        String id = r.path("id").asText("");
+        if (!id.isEmpty() && r.path("maxPoints").asInt(0) > 0) {
+          criteria.add(new RubricCriterion(id, r.path("criterion").asText(""), r.path("maxPoints").asInt()));
+        }
+      }
+      return criteria;
+    });
+  }
+
+  private List<GradableItem> gradable(Course course) {
+    List<GradableItem> items = new ArrayList<>();
+    if (course.getModules() == null) return items;
+    course.getModules().stream().filter(m -> m.getLessons() != null)
+      .sorted(Comparator.comparing(m -> m.getOrderIndex() == null ? 0 : m.getOrderIndex()))
+      .flatMap(m -> m.getLessons().stream().sorted(Comparator.comparing(l -> l.getOrderIndex() == null ? 0 : l.getOrderIndex())))
+      .filter(l -> l.getContents() != null)
+      .flatMap(l -> l.getContents().stream().sorted(Comparator.comparing(c -> c.getOrderIndex() == null ? 0 : c.getOrderIndex())))
+      .filter(c -> "quiz".equals(c.getType()) || "assignment".equals(c.getType()))
+      .forEach(c -> items.add(new GradableItem(c.getId(), c.getLessonId(), c.getType(),
+        parse(c.getValue()).path("title").asText(""))));
+    return items;
   }
 
   private Mono<Content> block(Long courseId, Long blockId) {

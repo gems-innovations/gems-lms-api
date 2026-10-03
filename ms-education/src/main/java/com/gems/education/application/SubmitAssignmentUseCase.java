@@ -42,7 +42,7 @@ public class SubmitAssignmentUseCase {
             .flatMap(existingId -> activityGateway.saveSubmission(new AssignmentSubmission(
               existingId > 0 ? existingId : null, enrollment.getId(), studentId, courseId, blockId,
               block.lessonId(), textContent, fileUrls, LocalDateTime.now(), null, null,
-              AssignmentSubmission.PENDING)));
+              AssignmentSubmission.PENDING, null)));
         }));
   }
 }

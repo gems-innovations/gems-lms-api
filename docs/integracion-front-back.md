@@ -54,6 +54,8 @@ Usuarios de desarrollo (contraseña: `DEV_PASSWORD` en `seed-dev.sh`):
 | Inscripciones y progreso | `/enrollments`, `/enrollments/bulk`, `PUT /enrollments/{id}/progress` | `studentId` = id de usuario de ms-auth |
 | Panel docente / matrículas | los anteriores | |
 | Auditoría administrativa | `GET /audit/events` | Historial filtrable y paginado; cada admin ve solo su institución |
+| Calificación con rúbrica | `PUT /submissions/{id}/grade` | `{ grade }` (0-100) o `{ rubricScores: [{criterionId, score, comment}] }`: el back valida cada criterio contra la rúbrica del bloque y calcula la nota |
+| Libro de calificaciones | `GET /courses/{id}/gradebook`, `GET /courses/{id}/gradebook/me`, `PUT /courses/{id}/gradebook/weights` | Columnas = quizzes (mejor intento) y tareas (nota); nota actual (solo lo calificado) y final (lo pendiente cuenta 0), ponderadas por pesos 0-100 (por defecto 1). Pestaña "Calificaciones" del curso (con exportación a Excel) y "Mis notas" en el reproductor del estudiante |
 
 Los bloques de contenido del front (video, documento, quiz, tarea…) se guardan en `contents.value`
 como JSON con todos sus campos; `contents.type` lleva el tipo.

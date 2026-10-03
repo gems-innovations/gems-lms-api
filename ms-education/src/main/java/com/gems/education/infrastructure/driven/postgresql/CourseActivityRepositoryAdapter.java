@@ -42,6 +42,11 @@ public class CourseActivityRepositoryAdapter implements CourseActivityGateway {
   }
 
   @Override
+  public Flux<QuizAttempt> findAttemptsByCourse(Long courseId) {
+    return attemptRepository.findByCourseId(courseId).map(this::toAttempt);
+  }
+
+  @Override
   public Mono<Long> countAttempts(Long enrollmentId, Long blockId) {
     return attemptRepository.countByEnrollmentIdAndBlockId(enrollmentId, blockId);
   }
@@ -61,6 +66,7 @@ public class CourseActivityRepositoryAdapter implements CourseActivityGateway {
     e.setGrade(s.grade());
     e.setFeedback(s.feedback());
     e.setStatus(s.status());
+    e.setRubricScores(s.rubricScores());
     return submissionRepository.save(e).map(this::toSubmission);
   }
 
@@ -98,6 +104,6 @@ public class CourseActivityRepositoryAdapter implements CourseActivityGateway {
   private AssignmentSubmission toSubmission(AssignmentSubmissionEntity e) {
     return new AssignmentSubmission(e.getId(), e.getEnrollmentId(), e.getStudentId(), e.getCourseId(),
       e.getBlockId(), e.getLessonId(), e.getTextContent(), e.getFileUrls(), e.getSubmittedAt(), e.getGrade(),
-      e.getFeedback(), e.getStatus());
+      e.getFeedback(), e.getStatus(), e.getRubricScores());
   }
 }

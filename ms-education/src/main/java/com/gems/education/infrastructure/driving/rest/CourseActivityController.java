@@ -12,6 +12,7 @@ import com.gems.education.domain.entities.AssignmentSubmission;
 import com.gems.education.domain.entities.QuizAttempt;
 import com.gems.shared.security.CurrentUser;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
@@ -101,16 +102,26 @@ public class CourseActivityController {
       .map(ResponseEntity::ok);
   }
 
+  /** Either a direct grade (0-100) or rubricScores for every criterion of the block rubric. */
   @PutMapping("/submissions/{id}/grade")
   public Mono<ResponseEntity<SubmissionResponse>> grade(@PathVariable Long id, @Valid @RequestBody GradeRequest request) {
     return gradeSubmissionUseCase.findSubmission(id)
       .flatMap(submission -> access.editableCourse(submission.courseId()))
-      .flatMap(course -> gradeSubmissionUseCase.execute(id, request.grade(), request.feedback())
+      .flatMap(course -> applyGrade(id, request)
         .flatMap(graded -> notifications.submissionGraded(course.getInstitutionId(), graded.studentId(),
-            course.getId(), course.getTitle(), graded.id(), request.grade())
+            course.getId(), course.getTitle(), graded.id(), graded.grade())
           .onErrorResume(e -> Mono.empty())
           .thenReturn(graded)))
       .map(submission -> ResponseEntity.ok(SubmissionResponse.from(submission)));
+  }
+
+  private Mono<AssignmentSubmission> applyGrade(Long id, GradeRequest request) {
+    if (request.rubricScores() != null) {
+      return Mono.fromCallable(() -> mapper.writeValueAsString(request.rubricScores()))
+        .flatMap(json -> gradeSubmissionUseCase.executeWithRubric(id, request.rubricScores(), request.feedback(), json));
+    }
+    if (request.grade() == null) return Mono.error(new IllegalArgumentException("Grade is required"));
+    return gradeSubmissionUseCase.execute(id, request.grade(), request.feedback());
   }
 
   private String toJson(List<String> values) {
@@ -131,8 +142,9 @@ public class CourseActivityController {
   }
 
   public record GradeRequest(
-    @NotNull(message = "Grade is required") @Min(value = 0, message = "Grade cannot be negative") Integer grade,
-    String feedback) {
+    @Min(value = 0, message = "Grade cannot be negative") @Max(value = 100, message = "Grade cannot exceed 100") Integer grade,
+    String feedback,
+    List<GradeSubmissionUseCase.RubricScore> rubricScores) {
   }
 
   public record AttemptResponse(Long id, Long enrollmentId, Long studentId, Long courseId, Long blockId,
@@ -147,11 +159,12 @@ public class CourseActivityController {
 
   public record SubmissionResponse(Long id, Long enrollmentId, Long studentId, Long courseId, Long blockId,
                                    Long lessonId, String textContent, @JsonRawValue String fileUrls,
-                                   LocalDateTime submittedAt, Integer grade, String feedback, String status) {
+                                   LocalDateTime submittedAt, Integer grade, String feedback, String status,
+                                   @JsonRawValue String rubricScores) {
     static SubmissionResponse from(AssignmentSubmission s) {
       return new SubmissionResponse(s.id(), s.enrollmentId(), s.studentId(), s.courseId(), s.blockId(),
         s.lessonId(), s.textContent(), s.fileUrls() != null ? s.fileUrls() : "[]", s.submittedAt(), s.grade(),
-        s.feedback(), s.status());
+        s.feedback(), s.status(), s.rubricScores());
     }
   }
 
