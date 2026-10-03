@@ -20,21 +20,31 @@ import java.time.LocalDateTime;
 public class EnrollStudentUseCase {
   private final EnrollmentGateway enrollmentGateway;
   private final CourseGateway courseGateway;
+  private final EnrollmentRulesUseCase rules;
 
-  public EnrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
+  public EnrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway,
+                              EnrollmentRulesUseCase rules) {
     this.enrollmentGateway = enrollmentGateway;
     this.courseGateway = courseGateway;
+    this.rules = rules;
   }
 
+  /** Staff enrolling a student (see {@link #execute(EnrollmentCommand, boolean)}). */
   public Mono<EnrollmentResponse> execute(EnrollmentCommand command) {
+    return execute(command, true);
+  }
+
+  /**
+   * An existing enrollment is returned as is. A new one must pass the course's enrollment rules:
+   * all of them for a student enrolling themselves, only the capacity when staff enroll them.
+   */
+  public Mono<EnrollmentResponse> execute(EnrollmentCommand command, boolean byStaff) {
     return courseGateway.findById(command.getCourseId())
       .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + command.getCourseId())))
       .flatMap(course -> enrollmentGateway.findByStudentIdAndCourseId(command.getStudentId(), command.getCourseId())
-        .switchIfEmpty(Mono.defer(() -> {
-          Enrollment enrollment = new Enrollment(null, command.getStudentId(), command.getCourseId(), "active",
-            LocalDateTime.now(), 0, null);
-          return enrollmentGateway.save(enrollment);
-        }))
+        .switchIfEmpty(Mono.defer(() -> rules.requireAllowed(command.getStudentId(), command.getCourseId(), byStaff)
+          .then(Mono.defer(() -> enrollmentGateway.save(new Enrollment(null, command.getStudentId(),
+            command.getCourseId(), "active", LocalDateTime.now(), 0, null))))))
       )
       .map(this::mapToResponse);
   }

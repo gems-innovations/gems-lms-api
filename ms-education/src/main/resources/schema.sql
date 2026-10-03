@@ -380,6 +380,31 @@ CREATE TABLE IF NOT EXISTS forum_posts (
 );
 CREATE INDEX IF NOT EXISTS idx_forum_posts_thread ON forum_posts(thread_id, created_at);
 
+-- Academic periods of an institution (terms, semesters, cohorts in time).
+CREATE TABLE IF NOT EXISTS academic_periods (
+    id BIGSERIAL PRIMARY KEY,
+    institution_id VARCHAR(100) NOT NULL,
+    name VARCHAR(120) NOT NULL,
+    starts_on DATE NOT NULL,
+    ends_on DATE NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (ends_on >= starts_on)
+);
+CREATE INDEX IF NOT EXISTS idx_academic_periods_institution ON academic_periods(institution_id, starts_on DESC);
+
+-- Enrollment rules of a course; a course without a row has none. Window bounds are inclusive; when
+-- closes_at is null and the course has a period, enrollment closes when the period ends.
+CREATE TABLE IF NOT EXISTS course_enrollment_rules (
+    course_id BIGINT PRIMARY KEY REFERENCES courses(id) ON DELETE CASCADE,
+    period_id BIGINT REFERENCES academic_periods(id) ON DELETE SET NULL,
+    opens_at TIMESTAMP,
+    closes_at TIMESTAMP,
+    capacity INT CHECK (capacity IS NULL OR capacity > 0),
+    self_enrollment BOOLEAN NOT NULL DEFAULT TRUE,
+    prerequisite_ids BIGINT[] NOT NULL DEFAULT '{}',
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Course counters are derived from enrollments: recomputed on every enrollment change and,
 -- here, once per startup so counters written by older versions are corrected.
 UPDATE courses SET

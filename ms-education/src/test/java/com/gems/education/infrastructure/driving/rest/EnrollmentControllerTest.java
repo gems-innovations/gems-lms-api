@@ -48,12 +48,14 @@ class EnrollmentControllerTest extends ControllerTestSupport {
 
   @Test
   void studentEnrollsThemselves() {
-    when(enrollStudentUseCase.execute(any())).thenReturn(Mono.just(studentEnrollment));
+    when(enrollStudentUseCase.execute(any(), org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(Mono.just(studentEnrollment));
 
     as(STUDENT).post().uri("/api/v1/enrollments").contentType(MediaType.APPLICATION_JSON)
       .bodyValue(new EnrollmentRequest(STUDENT.userId(), 1L))
       .exchange().expectStatus().isCreated()
       .expectBody().jsonPath("$.studentId").isEqualTo(5);
+    // Enrolling themselves: every enrollment rule applies.
+    verify(enrollStudentUseCase).execute(any(), org.mockito.ArgumentMatchers.eq(false));
   }
 
   @Test

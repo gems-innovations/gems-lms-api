@@ -77,7 +77,8 @@ public class EnrollmentController {
         : access.editableCourse(request.getCourseId())
           .flatMap(course -> members.requireMembers(List.of(request.getStudentId()), course.getInstitutionId())
             .thenReturn(course)))
-      .flatMap(course -> enrollStudentUseCase.execute(EnrollmentMapper.toCommand(request)))
+      .flatMap(course -> CurrentUser.get().flatMap(caller ->
+        enrollStudentUseCase.execute(EnrollmentMapper.toCommand(request), !caller.isUser(request.getStudentId()))))
       .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
   }
 

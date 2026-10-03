@@ -155,13 +155,23 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public EnrollStudentUseCase enrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
-    return new EnrollStudentUseCase(enrollmentGateway, courseGateway);
+  public EnrollStudentUseCase enrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway,
+                                                   EnrollmentRulesUseCase enrollmentRulesUseCase) {
+    return new EnrollStudentUseCase(enrollmentGateway, courseGateway, enrollmentRulesUseCase);
   }
 
   @Bean
-  public BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
-    return new BulkEnrollStudentsUseCase(enrollmentGateway, courseGateway);
+  public BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway,
+                                                             EnrollmentRulesUseCase enrollmentRulesUseCase) {
+    return new BulkEnrollStudentsUseCase(enrollmentGateway, courseGateway, enrollmentRulesUseCase);
+  }
+
+  @Bean
+  public EnrollmentRulesUseCase enrollmentRulesUseCase(EnrollmentRulesGateway enrollmentRulesGateway,
+                                                       AcademicPeriodGateway academicPeriodGateway,
+                                                       CourseGateway courseGateway, EnrollmentGateway enrollmentGateway) {
+    return new EnrollmentRulesUseCase(enrollmentRulesGateway, academicPeriodGateway, courseGateway, enrollmentGateway,
+      java.time.Clock.systemDefaultZone());
   }
 
   @Bean

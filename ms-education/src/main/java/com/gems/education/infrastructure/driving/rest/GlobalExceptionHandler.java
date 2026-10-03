@@ -143,6 +143,15 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error));
   }
 
+  /** The rules of the course reject the enrollment; reasons are EnrollmentPolicy codes. */
+  @ExceptionHandler(com.gems.education.application.exceptions.EnrollmentNotAllowedException.class)
+  public Mono<ResponseEntity<java.util.Map<String, Object>>> handleEnrollmentNotAllowed(
+      com.gems.education.application.exceptions.EnrollmentNotAllowedException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of(
+      "code", "ENROLLMENT_NOT_ALLOWED", "message", ex.getMessage(), "status", HttpStatus.CONFLICT.value(),
+      "reasons", ex.getReasons())));
+  }
+
   @ExceptionHandler(CourseActivityException.class)
   public Mono<ResponseEntity<ErrorResponse>> handleCourseActivityException(CourseActivityException ex) {
     HttpStatus status = switch (ex.getCode()) {

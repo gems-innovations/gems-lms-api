@@ -14,23 +14,25 @@ import java.time.LocalDateTime;
 public class BulkEnrollStudentsUseCase {
   private final EnrollmentGateway enrollmentGateway;
   private final CourseGateway courseGateway;
+  private final EnrollmentRulesUseCase rules;
 
-  public BulkEnrollStudentsUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
+  public BulkEnrollStudentsUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway,
+                                   EnrollmentRulesUseCase rules) {
     this.enrollmentGateway = enrollmentGateway;
     this.courseGateway = courseGateway;
+    this.rules = rules;
   }
 
   public Flux<EnrollmentResponse> execute(BulkEnrollmentCommand command) {
     return courseGateway.findById(command.getCourseId())
       .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + command.getCourseId())))
       .flatMapMany(course -> Flux.fromIterable(command.getStudentIds())
-        .flatMap(studentId -> enrollmentGateway.findByStudentIdAndCourseId(studentId, command.getCourseId())
-          .switchIfEmpty(Mono.defer(() -> {
-            Enrollment enrollment = new Enrollment(null, studentId, command.getCourseId(), "active",
-              LocalDateTime.now(), 0, null);
-            return enrollmentGateway.save(enrollment);
-          }))
-          .onErrorResume(e -> Mono.empty()) // Resilient to individual student errors
+        .concatMap(studentId -> enrollmentGateway.findByStudentIdAndCourseId(studentId, command.getCourseId())
+          // Staff enroll: only the capacity applies. One at a time so the capacity holds within the batch.
+          .switchIfEmpty(Mono.defer(() -> rules.requireAllowed(studentId, command.getCourseId(), true)
+            .then(Mono.defer(() -> enrollmentGateway.save(new Enrollment(null, studentId, command.getCourseId(),
+              "active", LocalDateTime.now(), 0, null))))))
+          .onErrorResume(e -> Mono.empty()) // Students that cannot be enrolled are skipped
         )
       )
       .map(this::mapToResponse);

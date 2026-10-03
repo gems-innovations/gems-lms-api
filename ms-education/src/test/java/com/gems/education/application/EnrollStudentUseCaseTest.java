@@ -37,6 +37,15 @@ class EnrollStudentUseCaseTest {
   @Mock
   private CourseGateway courseGateway;
 
+  /** No enrollment rules in these tests. */
+  @Mock(strictness = Mock.Strictness.LENIENT)
+  private EnrollmentRulesUseCase rules;
+
+  @org.junit.jupiter.api.BeforeEach
+  void noRules() {
+    org.mockito.Mockito.lenient().when(rules.requireAllowed(any(), any(), org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(Mono.empty());
+  }
+
   @InjectMocks
   private EnrollStudentUseCase enrollStudentUseCase;
 

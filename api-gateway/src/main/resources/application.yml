@@ -56,7 +56,7 @@ spring:
         - id: ms-education-quizzes
           uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
-            - Path=/api/v1/quizzes/**,/api/v1/question-bank/**
+            - Path=/api/v1/quizzes/**,/api/v1/question-bank/**,/api/v1/academic-periods/**
 
         - id: ms-education-learning-paths
           uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
