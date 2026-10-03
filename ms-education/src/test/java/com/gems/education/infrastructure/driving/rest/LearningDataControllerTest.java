@@ -15,7 +15,7 @@ class LearningDataControllerTest extends ControllerTestSupport {
   @BeforeEach
   void setUp() {
     when(learningData.purge(anyLong(), any())).thenReturn(Mono.empty());
-    controller = new LearningDataController(learningData);
+    controller = new LearningDataController(learningData, members);
   }
 
   @Test
@@ -31,6 +31,15 @@ class LearningDataControllerTest extends ControllerTestSupport {
   void instructorsAndStudentsCannotPurge() {
     client(controller, INSTRUCTOR).delete().uri("/api/v1/students/5/learning-data").exchange().expectStatus().isForbidden();
     client(controller, STUDENT).delete().uri("/api/v1/students/5/learning-data").exchange().expectStatus().isForbidden();
+    verifyNoInteractions(learningData);
+  }
+
+  @Test
+  void cannotPurgeAnotherInstitutionsUserOrOneself() {
+    when(members.requireMembers(any(), any())).thenReturn(Mono.error(
+      new com.gems.shared.security.ForbiddenException("Another institution")));
+    client(controller, ADMIN).delete().uri("/api/v1/students/7/learning-data").exchange().expectStatus().isForbidden();
+    client(controller, ADMIN).delete().uri("/api/v1/students/2/learning-data").exchange().expectStatus().isForbidden();
     verifyNoInteractions(learningData);
   }
 }

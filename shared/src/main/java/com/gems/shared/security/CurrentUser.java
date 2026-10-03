@@ -16,6 +16,13 @@ public final class CurrentUser {
 
   /** The caller, or a 403 when the request carries no authenticated user. */
   public static Mono<AuthenticatedUser> get() {
+    return forPasswordChange().flatMap(user -> user.mustChangePassword()
+      ? Mono.error(new ForbiddenException("Change your temporary password before using the application"))
+      : Mono.just(user));
+  }
+
+  /** Identity available even when the account must replace its temporary password. */
+  public static Mono<AuthenticatedUser> forPasswordChange() {
     return ReactiveSecurityContextHolder.getContext()
       .map(SecurityContext::getAuthentication)
       .map(Authentication::getPrincipal)

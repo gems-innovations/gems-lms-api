@@ -133,8 +133,10 @@ MAIL_FROM=no-reply@tu-dominio.com
 FILES_DIR=./data/uploads
 FILES_MAX_SIZE_BYTES=10485760
 
-# Dónde ms-education consulta a ms-auth (verificar que las personas son de la institución)
+# Dónde los servicios consultan a ms-auth (sesiones y pertenencia institucional)
 AUTH_SERVICE_URL=http://localhost:8081
+# Dónde ms-auth elimina los datos de aprendizaje antes de borrar una cuenta
+EDUCATION_SERVICE_URL=http://localhost:8083
 ```
 
 **Importante**: usar valores propios y seguros en producción. Nunca subir el `.env` al repositorio.
@@ -180,6 +182,12 @@ El gateway se inicia con `./gradlew :api-gateway:bootRun` (dev-up.sh ya lo hace)
 
 Las rutas de Swagger no requieren token.
 
+Cada petición protegida comprueba la cuenta actual en ms-auth. Configurar `AUTH_SERVICE_URL` en el
+gateway, ms-admin y ms-education; dentro de Docker usar el nombre `ms-auth` (el compose ya lo configura).
+Si ms-auth no responde, el acceso protegido devuelve 503. Cambiar contraseña, permisos o estado de la
+cuenta invalida los tokens existentes; los tokens emitidos antes de esta comprobación requieren nuevo login.
+`JWT_EXPIRATION` está en milisegundos: 3600000 corresponde a una hora.
+
 ### 6. Verificar que Todo Funciona
 
 ```bash
@@ -190,6 +198,15 @@ curl http://localhost:8083/actuator/health
 ```
 
 Si todos responden `{"status":"UP"}`, el sistema está funcionando. El health es público.
+
+### Despliegue con Docker
+
+El compose de producción incluye el gateway y conserva los archivos en el volumen `uploaded_files`.
+Nginx dirige `api.auth.gemsinnovations.com` al gateway (una sola base para el front:
+`https://api.auth.gemsinnovations.com/api/v1`). Los dominios separados anteriores se conservan para
+compatibilidad. Adaptar dominios, certificados, `FRONTEND_URL` y CORS al entorno elegido.
+Las imágenes compilan únicamente `bootJar`; los tests se ejecutan en el paso de CI. El contexto Docker
+excluye `.env`, logs, archivos subidos y salidas de compilación. No se ha realizado ningún despliegue.
 
 ## 📋 Tecnologías Utilizadas
 

@@ -51,7 +51,7 @@ public class AuthController {
   @Operation(summary = "Change the signed-in user's password")
   @SecurityRequirement(name = "bearerAuth")
   public Mono<ResponseEntity<Void>> changePassword(@RequestBody ChangePasswordRequest request) {
-    return CurrentUser.get()
+    return CurrentUser.forPasswordChange()
       .flatMap(caller -> changePasswordUseCase.execute(caller.userId(), request.currentPassword(), request.newPassword()))
       .thenReturn(ResponseEntity.noContent().<Void>build());
   }

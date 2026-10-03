@@ -14,7 +14,7 @@ class JwtAdapterTest {
   void setUp() {
     jwtAdapter = new JwtAdapter();
     ReflectionTestUtils.setField(jwtAdapter, "jwtSecret", "mySecretKeyForTestingPurposesThisIsALongSecretKeyToEnsureItMeetsTheMinimumLengthRequirement");
-    ReflectionTestUtils.setField(jwtAdapter, "jwtExpiration", 3600); // 1 hour
+    ReflectionTestUtils.setField(jwtAdapter, "jwtExpiration", 3600000); // 1 hour in milliseconds
   }
 
   @Test
@@ -30,6 +30,19 @@ class JwtAdapterTest {
     assertNotNull(token);
     assertFalse(token.isEmpty());
     assertEquals(3, token.split("\\.").length); // JWT has 3 parts
+  }
+
+  @Test
+  void tokenLifetimeUsesMillisecondsAndIncludesTheAccountRevision() {
+    String token = jwtAdapter.generateToken(123L, "STUDENT", "inst-1", "revision-1");
+    String payload = new String(java.util.Base64.getUrlDecoder().decode(token.split("\\.")[1]),
+      java.nio.charset.StandardCharsets.UTF_8);
+    assertTrue(payload.contains("\"sessionRevision\":\"revision-1\""));
+    var claims = io.jsonwebtoken.Jwts.parserBuilder()
+      .setSigningKey(io.jsonwebtoken.security.Keys.hmacShaKeyFor(
+        "mySecretKeyForTestingPurposesThisIsALongSecretKeyToEnsureItMeetsTheMinimumLengthRequirement".getBytes()))
+      .build().parseClaimsJws(token).getBody();
+    assertEquals(3600000, claims.getExpiration().getTime() - claims.getIssuedAt().getTime());
   }
 
   @Test

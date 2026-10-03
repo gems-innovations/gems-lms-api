@@ -19,67 +19,67 @@ spring:
         - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Expose-Headers Vary X-Content-Type-Options X-Frame-Options X-XSS-Protection Strict-Transport-Security Content-Security-Policy Referrer-Policy Permissions-Policy X-Permitted-Cross-Domain-Policies, RETAIN_UNIQUE
       routes:
         - id: ms-auth-auth
-          uri: http://localhost:${AUTH_PORT:8081}
+          uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
           predicates:
             - Path=/api/v1/auth/**
 
         - id: ms-auth-users
-          uri: http://localhost:${AUTH_PORT:8081}
+          uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
           predicates:
             - Path=/api/v1/users/**
 
         - id: ms-admin-institutions
-          uri: http://localhost:${ADMIN_PORT:8082}
+          uri: ${ADMIN_SERVICE_URL:http://localhost:${ADMIN_PORT:8082}}
           predicates:
             - Path=/api/v1/institutions/**
 
         - id: ms-admin-branding
-          uri: http://localhost:${ADMIN_PORT:8082}
+          uri: ${ADMIN_SERVICE_URL:http://localhost:${ADMIN_PORT:8082}}
           predicates:
             - Path=/api/v1/branding/**
 
         - id: ms-education-courses
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/courses/**
 
         - id: ms-education-students
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/students/**
 
         - id: ms-education-quizzes
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/quizzes/**
 
         - id: ms-education-learning-paths
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/learning-paths/**
 
         - id: ms-education-activity
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/activity/**,/api/v1/submissions/**
 
         - id: ms-education-notifications
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/notifications/**
 
         - id: ms-education-files
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/files/**
 
         - id: ms-education-groups
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/groups/**
 
         - id: ms-education-enrollments
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/enrollments/**
 

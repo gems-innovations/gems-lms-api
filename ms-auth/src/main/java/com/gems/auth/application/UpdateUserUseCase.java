@@ -41,6 +41,7 @@ public class UpdateUserUseCase {
           LocalDateTime.now(),
           existing.isActive()
         );
+        updated.setMustChangePassword(existing.mustChangePassword());
         return userGateway.save(updated);
       })
       .map(user -> new UserResponse(

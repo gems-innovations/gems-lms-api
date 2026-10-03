@@ -9,6 +9,8 @@ public interface CourseGateway {
 
   Mono<Course> findById(Long id);
 
+  Mono<Long> findCourseIdByLessonId(Long lessonId);
+
   Flux<Course> findByInstitutionId(String institutionId);
 
   Flux<Course> findAll();

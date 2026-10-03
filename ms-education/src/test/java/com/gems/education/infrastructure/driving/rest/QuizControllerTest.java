@@ -1,6 +1,8 @@
 package com.gems.education.infrastructure.driving.rest;
 
 import com.gems.education.application.*;
+import com.gems.education.application.gateway.CourseGateway;
+import com.gems.education.application.gateway.EnrollmentGateway;
 import com.gems.education.application.response.QuestionResponse;
 import com.gems.education.application.response.QuizGradingResponse;
 import com.gems.education.application.response.QuizResponse;
@@ -27,15 +29,21 @@ class QuizControllerTest extends ControllerTestSupport {
   private final DeleteQuizUseCase deleteQuizUseCase = mock(DeleteQuizUseCase.class);
   private final SubmitQuizUseCase submitQuizUseCase = mock(SubmitQuizUseCase.class);
   private QuizController controller;
+  private final CourseGateway courses = mock(CourseGateway.class);
+  private final EnrollmentGateway enrollments = mock(EnrollmentGateway.class);
 
   private final QuizResponse quiz = new QuizResponse(1L, 100L, "Docker", 60,
     List.of(new QuestionResponse(1L, 1L, "¿Qué es una imagen?", List.of("A", "B"), "A")));
 
   @BeforeEach
   void setUp() {
+    givenCourses();
+    when(courses.findCourseIdByLessonId(100L)).thenReturn(Mono.just(1L));
+    when(enrollments.existsByStudentIdAndCourseId(STUDENT.userId(), 1L)).thenReturn(Mono.just(true));
     when(getQuizByIdUseCase.execute(1L)).thenReturn(Mono.just(quiz));
     controller = new QuizController(createQuizUseCase, getQuizByLessonUseCase, getQuizByIdUseCase,
-      updateQuizUseCase, deleteQuizUseCase, submitQuizUseCase, access, studentView);
+      updateQuizUseCase, deleteQuizUseCase, submitQuizUseCase, access, studentView,
+      new LessonAccess(courses, enrollments, access));
   }
 
   private WebTestClient as(AuthenticatedUser caller) {
@@ -77,5 +85,35 @@ class QuizControllerTest extends ControllerTestSupport {
     as(STUDENT).post().uri("/api/v1/quizzes/1/submit").contentType(MediaType.APPLICATION_JSON)
       .bodyValue(new QuizSubmissionRequest(99L, answers))
       .exchange().expectStatus().isForbidden();
+  }
+
+  @Test
+  void staffOfAnotherInstitutionCannotReadWriteOrDeleteQuizzes() {
+    QuizRequest request = new QuizRequest(100L, "Docker", 60, List.of());
+    as(OTHER_ADMIN).get().uri("/api/v1/quizzes/1").exchange().expectStatus().isForbidden();
+    as(OTHER_ADMIN).post().uri("/api/v1/quizzes").bodyValue(request).exchange().expectStatus().isForbidden();
+    as(OTHER_ADMIN).put().uri("/api/v1/quizzes/1").bodyValue(request).exchange().expectStatus().isForbidden();
+    as(OTHER_ADMIN).delete().uri("/api/v1/quizzes/1").exchange().expectStatus().isForbidden();
+    verifyNoInteractions(createQuizUseCase, updateQuizUseCase, deleteQuizUseCase);
+  }
+
+  @Test
+  void aStudentMustBeEnrolledToSubmit() {
+    when(enrollments.existsByStudentIdAndCourseId(STUDENT.userId(), 1L)).thenReturn(Mono.just(false));
+    as(STUDENT).post().uri("/api/v1/quizzes/1/submit")
+      .bodyValue(new QuizSubmissionRequest(STUDENT.userId(),
+        List.of(new QuizSubmissionRequest.AnswerRequest(1L, "A"))))
+      .exchange().expectStatus().isForbidden();
+    verifyNoInteractions(submitQuizUseCase);
+  }
+
+  @Test
+  void updatingCannotMoveAQuizToAnotherInstitution() {
+    when(courses.findCourseIdByLessonId(200L)).thenReturn(Mono.just(2L));
+    when(getCourseByIdUseCase.execute(2L)).thenReturn(Mono.just(course(2L, "published", "inst-2")));
+    as(INSTRUCTOR).put().uri("/api/v1/quizzes/1")
+      .bodyValue(new QuizRequest(200L, "Docker", 60, List.of()))
+      .exchange().expectStatus().isForbidden();
+    verifyNoInteractions(updateQuizUseCase);
   }
 }

@@ -19,9 +19,11 @@ public class LearningPathRequest {
   private List<String> tags;
   private String thumbnailUrl;
   /** Ordered courses with their settings; when present it replaces courseIds. */
+  @jakarta.validation.Valid
   private List<StepRequest> steps;
 
-  public record StepRequest(Long courseId, Boolean required, Integer minimumScore) {
+  public record StepRequest(Long courseId, Boolean required,
+                            @jakarta.validation.constraints.Min(0) @jakarta.validation.constraints.Max(100) Integer minimumScore) {
   }
 
   public LearningPathRequest() {

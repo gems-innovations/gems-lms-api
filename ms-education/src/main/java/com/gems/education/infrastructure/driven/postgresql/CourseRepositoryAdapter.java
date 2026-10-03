@@ -59,6 +59,14 @@ public class CourseRepositoryAdapter implements CourseGateway {
       });
   }
 
+  @Override
+  public Mono<Long> findCourseIdByLessonId(Long lessonId) {
+    return template.getDatabaseClient().sql("""
+      SELECT m.course_id FROM lessons l JOIN modules m ON m.id = l.module_id WHERE l.id = :lessonId
+      """).bind("lessonId", lessonId)
+      .map((row, metadata) -> row.get("course_id", Long.class)).one();
+  }
+
   private Mono<List<Module>> syncModules(Long courseId, List<Module> modules) {
     return moduleRepository.findByCourseId(courseId).collectList()
       .flatMap(existing -> {

@@ -45,7 +45,8 @@ public class LoginUseCase {
           return Mono.error(new InvalidCredentialsException(AuthAppConstants.INVALID_CREDENTIALS_MESSAGE));
         }
 
-        String token = jwtGateway.generateToken(user.getId().getValue(), user.getRole().name(), user.getInstitutionId());
+        String token = jwtGateway.generateToken(user.getId().getValue(), user.getRole().name(), user.getInstitutionId(),
+          user.getUpdatedAt().toString());
 
         return Mono.just(new LoginResponse(
           user.getId().getValue(),

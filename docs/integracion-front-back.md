@@ -1,6 +1,6 @@
 # Integración gems-lms-web ↔ gems-lms-api
 
-Estado a 2026-10-02 (ramas `feature/integracion-front` en este repo y `feature/integracion-back` en gems-lms-web).
+Estado a 2026-10-03 (ramas `feature/integracion-front` en este repo y `feature/integracion-back` en gems-lms-web).
 
 ## Cómo levantar todo en local
 
@@ -47,7 +47,7 @@ Usuarios de desarrollo (contraseña: `DEV_PASSWORD` en `seed-dev.sh`):
 |---|---|---|
 | Login / sesión | `POST /auth/login` | JWT guardado en la sesión; interceptor añade `Authorization` y cierra sesión ante 401 |
 | Branding | `GET /institutions/{id}` | Se carga al iniciar sesión y se guarda en la sesión |
-| Gestión de usuarios | `GET /users/institution/{id}`, `POST /auth/register`, `PATCH /users/{id}/status`, `DELETE /users/{id}` | Alta sin contraseña → el back devuelve una temporal y se muestra al admin |
+| Gestión de usuarios | `GET /users/institution/{id}`, `POST /auth/register`, `PUT /users/{id}/status`, `DELETE /users/{id}` | Alta sin contraseña → el back devuelve una temporal y se muestra al admin |
 | Instituciones | `GET/POST/PUT/DELETE /institutions` | PUT exige `name` y `type`; el front los completa desde el registro actual |
 | Cursos y editor | `GET/POST/PUT/DELETE /courses` | Añadir módulo/lección/contenido = leer curso + PUT del árbol completo |
 | Rutas de aprendizaje | `/learning-paths` | |
@@ -142,8 +142,8 @@ Resuelto también:
     inscripción, avance y borrado (y al arrancar); las rutas calculan inscritos y % que completó sus cursos
     obligatorios; `usersCount` lo da ms-auth (`GET /users/counts`) y el front lo combina. `averageRating`
     sale de las reseñas.
-13. ~~Borrado de usuarios~~ **Resuelto**: `DELETE /users/{id}` borra la cuenta (desactivar es `PUT /users/{id}/status`)
-    y el front borra después sus datos de aprendizaje con `DELETE /students/{id}/learning-data` (matrículas,
+13. ~~Borrado de usuarios~~ **Resuelto**: `DELETE /users/{id}` limpia los datos antes de borrar la cuenta
+    (desactivar es `PUT /users/{id}/status`). ms-auth llama a `DELETE /students/{id}/learning-data` (matrículas,
     intentos, entregas, encuestas, reseñas, rutas, grupos y notificaciones, en una transacción).
 14. ~~**Contraseñas**~~ **Resuelto** (sin correo real): las cuentas creadas con contraseña temporal deben
     cambiarla al entrar (`mustChangePassword`, `POST /auth/change-password`); "olvidé mi contraseña" con
@@ -157,9 +157,49 @@ Resuelto también:
 
 ## Qué falta — front
 
-1. "¿Olvidaste tu contraseña?" y "Regístrate" son enlaces muertos (`href="#"`).
-2. El proyecto no tiene ni un test (`*.spec.ts`: 0).
-3. Las librerías se compilan con `environment.ts` (localhost:8080): para producción hay que definir
-   `globalThis.API_BASE_URL` antes de arrancar la app o compilar las librerías con el entorno de prod.
+1. **Resuelto**: recuperación y cambio de contraseña conectados. Las cuentas las crea el administrador
+   de la institución; se reemplazó el enlace de registro por esa indicación.
+2. **Resuelto**: pruebas de contratos HTTP, sesión, permisos de navegación y contraseñas en shared,
+   auth, education y main. `npm run test:ci` ejecuta las suites con ChromeHeadless; para iterar, ejecutar
+   solo el proyecto afectado. La cobertura del front aún no es exhaustiva.
+3. **Resuelto**: `config.js` se carga antes de la aplicación. El servidor SSR lo genera desde
+   `API_BASE_URL`; el despliegue estático permite editarlo sin recompilar. README del front documenta
+   compilación, `NG_ALLOWED_HOSTS`, puerto, CORS y configuración del gateway.
 4. Corregido de paso: el build de producción fallaba porque `instructor/**` no estaba declarado como
    renderizado en cliente en `app.routes.server.ts`.
+
+## Pendientes de revisión y despliegue
+
+- Configurar SMTP real, dominios, HTTPS y almacenamiento persistente de archivos al desplegar.
+  El compose incluye el gateway, las variables de correo/bootstrap y un volumen persistente de uploads;
+  las imágenes y certificados del entorno real aún necesitan validarse al desplegar.
+- **Resuelto**: ms-auth coordina el borrado: primero limpia los datos en ms-education y después elimina
+  la cuenta. Si la limpieza falla, conserva la cuenta y responde 503 para reintentar. El front muestra
+  ese error. La limpieza es idempotente; no existe una transacción distribuida entre las dos bases.
+  Configurar `EDUCATION_SERVICE_URL` en ms-auth (localhost:8083 en local; nombre del servicio en Docker).
+- **Resuelto**: la API antigua `/quizzes` comprueba el curso dueño de la lección para leer, crear,
+  actualizar y borrar. Para enviar respuestas exige una inscripción; actualizar también valida la lección destino.
+- **Resuelto**: `minimumScore` exige completar el curso y alcanzar el promedio de sus evaluaciones:
+  mejor intento por quiz y calificación vigente por tarea, con el mismo peso por bloque. Una evaluación
+  pendiente o un curso sin evaluaciones no satisface un umbral positivo. El rango permitido es 0–100.
+- **Resuelto**: cada petición autenticada valida la cuenta vigente en ms-auth. Desactivar, borrar,
+  cambiar permisos o contraseña invalida la sesión anterior. Las contraseñas temporales bloquean
+  operaciones de aplicación también en el back; permiten consultar la sesión y cambiar la contraseña.
+  El front renueva el token tras cambiarla. Los tokens antiguos requieren iniciar sesión de nuevo.
+  `JWT_EXPIRATION` se interpreta en milisegundos (3600000 = 1 h), como indica la configuración predeterminada.
+  Todos los servicios necesitan alcanzar ms-auth mediante `AUTH_SERVICE_URL`; si no está disponible,
+  el acceso protegido falla con 503, sin permitir sesiones que no puedan verificarse.
+
+Estos puntos requieren verificación antes de afirmar que todas las brechas están cerradas.
+
+Validación del cierre local: 374 pruebas del back sin fallos y build completo con cobertura al 50%;
+30 pruebas del front (shared 2, auth 14, education 10, main 4) y build de producción. Smoke en servicios
+activos: contraseñas temporales, renovación/revocación y aislamiento de quizzes. Compose validado;
+imágenes Docker y despliegue remoto aún no ejecutados.
+
+### Verificación local reproducible
+
+`./gradlew build -x bootJar` comprueba tests y cobertura; para iterar usar `./gradlew :ms-education:test`
+o el módulo afectado. `smoke-security.ps1` (PowerShell 7, con datos demo y servicios activos) verifica
+contraseña temporal, cambio, revocación al desactivar/reactivar/borrar y aislamiento de quizzes.
+Crea una cuenta y un quiz temporales, y los elimina al terminar. No imprime contraseñas ni tokens.

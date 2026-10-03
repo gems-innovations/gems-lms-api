@@ -144,4 +144,10 @@ public class GlobalExceptionHandler {
     );
     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error));
   }
+
+  @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleStatus(org.springframework.web.server.ResponseStatusException ex) {
+    return Mono.just(ResponseEntity.status(ex.getStatusCode()).body(new ErrorResponse(
+      "SERVICE_ERROR", ex.getReason(), ex.getStatusCode().value())));
+  }
 }

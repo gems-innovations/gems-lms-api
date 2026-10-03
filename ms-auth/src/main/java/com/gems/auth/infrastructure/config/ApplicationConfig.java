@@ -34,8 +34,9 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public DeleteUserUseCase deleteUserUseCase(UserGateway userGateway) {
-    return new DeleteUserUseCase(userGateway);
+  public DeleteUserUseCase deleteUserUseCase(UserGateway userGateway,
+      com.gems.auth.application.gateway.LearningDataRemovalGateway learningData) {
+    return new DeleteUserUseCase(userGateway, learningData);
   }
 
   @Bean

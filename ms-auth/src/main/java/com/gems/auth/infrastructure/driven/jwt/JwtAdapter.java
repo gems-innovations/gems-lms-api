@@ -22,8 +22,13 @@ public class JwtAdapter implements JwtGateway {
 
   @Override
   public String generateToken(Long userId, String role, String institutionId) {
+    return generateToken(userId, role, institutionId, null);
+  }
+
+  @Override
+  public String generateToken(Long userId, String role, String institutionId, String sessionRevision) {
     Date now = new Date();
-    Date expiryDate = new Date(now.getTime() + jwtExpiration * 1000L);
+    Date expiryDate = new Date(now.getTime() + jwtExpiration);
 
     SecretKey key = getSigningKey();
 
@@ -31,6 +36,7 @@ public class JwtAdapter implements JwtGateway {
       .setSubject(userId.toString())
       .claim("role", role)
       .claim("institutionId", institutionId)
+      .claim("sessionRevision", sessionRevision)
       .setIssuedAt(now)
       .setExpiration(expiryDate)
       .signWith(key, SignatureAlgorithm.HS512)

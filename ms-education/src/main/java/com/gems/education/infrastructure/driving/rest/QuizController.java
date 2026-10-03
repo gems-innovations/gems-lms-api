@@ -29,6 +29,7 @@ public class QuizController {
   private final SubmitQuizUseCase submitQuizUseCase;
   private final EducationAccess access;
   private final StudentView studentView;
+  private final LessonAccess lessonAccess;
 
   public QuizController(CreateQuizUseCase createQuizUseCase,
                         GetQuizByLessonUseCase getQuizByLessonUseCase,
@@ -37,7 +38,8 @@ public class QuizController {
                         DeleteQuizUseCase deleteQuizUseCase,
                         SubmitQuizUseCase submitQuizUseCase,
                         EducationAccess access,
-                        StudentView studentView) {
+                        StudentView studentView,
+                        LessonAccess lessonAccess) {
     this.createQuizUseCase = createQuizUseCase;
     this.getQuizByLessonUseCase = getQuizByLessonUseCase;
     this.getQuizByIdUseCase = getQuizByIdUseCase;
@@ -46,11 +48,12 @@ public class QuizController {
     this.submitQuizUseCase = submitQuizUseCase;
     this.access = access;
     this.studentView = studentView;
+    this.lessonAccess = lessonAccess;
   }
 
   @PostMapping
   public Mono<ResponseEntity<QuizResponse>> createQuiz(@Valid @RequestBody QuizRequest request) {
-    return access.staff()
+    return lessonAccess.editable(request.getLessonId())
       .flatMap(caller -> createQuizUseCase.execute(QuizMapper.toCommand(request)))
       .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
   }
@@ -58,7 +61,8 @@ public class QuizController {
   @GetMapping("/{id}")
   public Mono<ResponseEntity<QuizResponse>> getQuizById(@PathVariable Long id) {
     return CurrentUser.get()
-      .flatMap(caller -> getQuizByIdUseCase.execute(id).map(quiz -> studentView.quiz(caller, quiz)))
+      .flatMap(caller -> getQuizByIdUseCase.execute(id).flatMap(quiz ->
+        lessonAccess.readable(quiz.getLessonId()).thenReturn(studentView.quiz(caller, quiz))))
       .map(ResponseEntity::ok)
       .onErrorResume(ex -> ex.getMessage() != null && ex.getMessage().contains("not found"),
         ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
@@ -67,7 +71,8 @@ public class QuizController {
   @GetMapping("/lesson/{lessonId}")
   public Mono<ResponseEntity<QuizResponse>> getQuizByLesson(@PathVariable Long lessonId) {
     return CurrentUser.get()
-      .flatMap(caller -> getQuizByLessonUseCase.execute(lessonId).map(quiz -> studentView.quiz(caller, quiz)))
+      .flatMap(caller -> lessonAccess.readable(lessonId)
+        .then(getQuizByLessonUseCase.execute(lessonId)).map(quiz -> studentView.quiz(caller, quiz)))
       .map(ResponseEntity::ok);
   }
 
@@ -75,7 +80,10 @@ public class QuizController {
   public Mono<ResponseEntity<QuizResponse>> updateQuiz(@PathVariable Long id,
                                                        @Valid @RequestBody QuizRequest request) {
     return access.staff()
-      .flatMap(caller -> updateQuizUseCase.execute(id, QuizMapper.toCommand(request)))
+      .then(getQuizByIdUseCase.execute(id))
+      .flatMap(quiz -> lessonAccess.editable(quiz.getLessonId())
+        .then(lessonAccess.editable(request.getLessonId()))
+        .then(Mono.defer(() -> updateQuizUseCase.execute(id, QuizMapper.toCommand(request)))))
       .map(ResponseEntity::ok)
       .onErrorResume(ex -> ex.getMessage() != null && ex.getMessage().contains("not found"),
         ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
@@ -84,7 +92,9 @@ public class QuizController {
   @DeleteMapping("/{id}")
   public Mono<ResponseEntity<Void>> deleteQuiz(@PathVariable Long id) {
     return access.staff()
-      .flatMap(caller -> deleteQuizUseCase.execute(id))
+      .then(getQuizByIdUseCase.execute(id))
+      .flatMap(quiz -> lessonAccess.editable(quiz.getLessonId())
+        .then(Mono.defer(() -> deleteQuizUseCase.execute(id))))
       .then(Mono.just(ResponseEntity.noContent().<Void>build()))
       .onErrorResume(ex -> ex.getMessage() != null && ex.getMessage().contains("not found"),
         ex -> Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).build()));
@@ -95,7 +105,9 @@ public class QuizController {
       @PathVariable Long id,
       @Valid @RequestBody QuizSubmissionRequest request) {
     return CurrentUser.require(caller -> caller.isUser(request.getStudentId()), "You can only submit your own answers")
-      .flatMap(caller -> submitQuizUseCase.execute(id, QuizMapper.toCommand(request)))
+      .then(getQuizByIdUseCase.execute(id))
+      .flatMap(quiz -> lessonAccess.enrolled(quiz.getLessonId())
+        .then(Mono.defer(() -> submitQuizUseCase.execute(id, QuizMapper.toCommand(request)))))
       .map(ResponseEntity::ok);
   }
 }

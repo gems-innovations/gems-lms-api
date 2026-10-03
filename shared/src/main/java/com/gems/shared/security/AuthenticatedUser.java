@@ -4,7 +4,11 @@ package com.gems.shared.security;
  * Caller identity taken from a validated JWT. It is the principal of every authenticated
  * request in the services that use {@link JwtReactiveAuthenticationManager}.
  */
-public record AuthenticatedUser(Long userId, String role, String institutionId) {
+public record AuthenticatedUser(Long userId, String role, String institutionId, boolean mustChangePassword) {
+
+  public AuthenticatedUser(Long userId, String role, String institutionId) {
+    this(userId, role, institutionId, false);
+  }
 
   public static final String SUPER_ADMIN = "SUPER_ADMIN";
   public static final String ADMIN = "ADMIN";

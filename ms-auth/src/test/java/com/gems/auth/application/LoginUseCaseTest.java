@@ -85,7 +85,7 @@ class LoginUseCaseTest {
     String generatedToken = "jwt.token.value";
     when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(activeUser));
     when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-    when(jwtGateway.generateToken(anyLong(), anyString(), any())).thenReturn(generatedToken);
+    when(jwtGateway.generateToken(anyLong(), anyString(), any(), any())).thenReturn(generatedToken);
 
     // When
     Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
@@ -106,7 +106,7 @@ class LoginUseCaseTest {
 
     verify(userGateway, times(1)).findByEmail(any(Email.class));
     verify(passwordEncoderGateway, times(1)).matches(anyString(), anyString());
-    verify(jwtGateway, times(1)).generateToken(eq(1L), eq("STUDENT"), any());
+    verify(jwtGateway, times(1)).generateToken(eq(1L), eq("STUDENT"), any(), any());
   }
 
   @Test
@@ -124,7 +124,7 @@ class LoginUseCaseTest {
 
     verify(userGateway, times(1)).findByEmail(any(Email.class));
     verify(passwordEncoderGateway, never()).matches(anyString(), anyString());
-    verify(jwtGateway, never()).generateToken(anyLong(), anyString(), any());
+    verify(jwtGateway, never()).generateToken(anyLong(), anyString(), any(), any());
   }
 
   @Test
@@ -142,7 +142,7 @@ class LoginUseCaseTest {
 
     verify(userGateway, times(1)).findByEmail(any(Email.class));
     verify(passwordEncoderGateway, never()).matches(anyString(), anyString());
-    verify(jwtGateway, never()).generateToken(anyLong(), anyString(), any());
+    verify(jwtGateway, never()).generateToken(anyLong(), anyString(), any(), any());
   }
 
   @Test
@@ -161,7 +161,7 @@ class LoginUseCaseTest {
 
     verify(userGateway, times(1)).findByEmail(any(Email.class));
     verify(passwordEncoderGateway, times(1)).matches(anyString(), anyString());
-    verify(jwtGateway, never()).generateToken(anyLong(), anyString(), any());
+    verify(jwtGateway, never()).generateToken(anyLong(), anyString(), any(), any());
   }
 
   @Test
@@ -172,7 +172,7 @@ class LoginUseCaseTest {
 
     when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(activeUser));
     when(passwordEncoderGateway.matches(rawPassword, encodedPassword)).thenReturn(true);
-    when(jwtGateway.generateToken(anyLong(), anyString(), any())).thenReturn("token");
+    when(jwtGateway.generateToken(anyLong(), anyString(), any(), any())).thenReturn("token");
 
     // When
     Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
@@ -190,7 +190,7 @@ class LoginUseCaseTest {
     // Given
     when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(activeUser));
     when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-    when(jwtGateway.generateToken(eq(1L), eq("STUDENT"), any())).thenReturn("specific.token");
+    when(jwtGateway.generateToken(eq(1L), eq("STUDENT"), any(), any())).thenReturn("specific.token");
 
     // When
     Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
@@ -200,7 +200,7 @@ class LoginUseCaseTest {
       .expectNextMatches(response -> response.token().equals("specific.token"))
       .verifyComplete();
 
-    verify(jwtGateway, times(1)).generateToken(eq(1L), eq("STUDENT"), any());
+    verify(jwtGateway, times(1)).generateToken(eq(1L), eq("STUDENT"), any(), any());
   }
 
   @Test
@@ -224,7 +224,7 @@ class LoginUseCaseTest {
 
     when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(instructor));
     when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-    when(jwtGateway.generateToken(anyLong(), anyString(), any())).thenReturn("instructor.token");
+    when(jwtGateway.generateToken(anyLong(), anyString(), any(), any())).thenReturn("instructor.token");
 
     // When
     Mono<LoginResponse> result = loginUseCase.execute(instructorCommand);
@@ -244,7 +244,7 @@ class LoginUseCaseTest {
     // Given
     when(userGateway.findByEmail(any(Email.class))).thenReturn(Mono.just(activeUser));
     when(passwordEncoderGateway.matches(anyString(), anyString())).thenReturn(true);
-    when(jwtGateway.generateToken(anyLong(), anyString(), any())).thenReturn("jwt.token");
+    when(jwtGateway.generateToken(anyLong(), anyString(), any(), any())).thenReturn("jwt.token");
 
     // When
     Mono<LoginResponse> result = loginUseCase.execute(validLoginCommand);
