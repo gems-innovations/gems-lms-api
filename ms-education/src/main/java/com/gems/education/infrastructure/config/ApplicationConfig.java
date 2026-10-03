@@ -240,6 +240,12 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public InstitutionReportUseCase institutionReportUseCase(CourseGateway courseGateway, EnrollmentGateway enrollmentGateway,
+                                                          CourseActivityGateway activityGateway) {
+    return new InstitutionReportUseCase(courseGateway, enrollmentGateway, activityGateway);
+  }
+
+  @Bean
   public GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase(EnrollmentGateway enrollmentGateway) {
     return new GetEnrollmentsByInstitutionUseCase(enrollmentGateway);
   }
