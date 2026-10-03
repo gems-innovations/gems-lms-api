@@ -217,7 +217,7 @@ Resuelto también:
 Estos puntos requieren verificación antes de afirmar que todas las brechas están cerradas.
 
 Validación del cierre local: build completo del back sin fallos y cobertura mínima al 50%;
-Las pruebas del front cubren shared, auth, education, admin, instructor y main; el módulo admin incluye el servicio de reportes. Build de producción. Smoke en servicios
+Las pruebas del front cubren shared, auth, education, admin, instructor y main; el módulo admin incluye el servicio de reportes. Playwright cubre el acceso anónimo y el flujo administrador de reportes, incluida la descarga CSV. Build de producción. Smoke en servicios
 activos: contraseñas temporales, renovación/revocación, aislamiento de quizzes y auditoría por institución. Compose validado;
 imágenes Docker y despliegue remoto aún no ejecutados.
 
@@ -227,3 +227,7 @@ imágenes Docker y despliegue remoto aún no ejecutados.
 o el módulo afectado. `smoke-security.ps1` (PowerShell 7, con datos demo y servicios activos) verifica
 contraseña temporal, cambio, revocación al desactivar/reactivar/borrar y aislamiento de quizzes.
 Crea una cuenta y un quiz temporales, y los elimina al terminar. No imprime contraseñas ni tokens.
+
+Para pruebas E2E: `npm run test:e2e` en `gems-lms-web` compila las librerías, inicia Angular y ejecuta
+Playwright. El flujo autenticado requiere `E2E_ADMIN_EMAIL` y `E2E_ADMIN_PASSWORD` en el entorno; no se
+guardan credenciales en el repositorio. El gateway y los servicios deben estar levantados.
