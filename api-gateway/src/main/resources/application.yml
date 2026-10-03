@@ -68,6 +68,11 @@ spring:
           predicates:
             - Path=/api/v1/notifications/**
 
+        - id: ms-education-files
+          uri: http://localhost:${EDUCATION_PORT:8083}
+          predicates:
+            - Path=/api/v1/files/**
+
         - id: ms-education-groups
           uri: http://localhost:${EDUCATION_PORT:8083}
           predicates:

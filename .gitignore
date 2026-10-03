@@ -40,3 +40,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Local uploads (LocalFileStorage)
+data/uploads/
+**/data/uploads/

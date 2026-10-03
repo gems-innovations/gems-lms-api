@@ -258,6 +258,18 @@ CREATE TABLE IF NOT EXISTS notification_reads (
     PRIMARY KEY (notification_id, user_id)
 );
 
+-- Uploaded files (bytes in the configured storage, metadata here).
+CREATE TABLE IF NOT EXISTS stored_files (
+    id VARCHAR(36) PRIMARY KEY,
+    owner_id BIGINT NOT NULL,
+    institution_id VARCHAR(100),
+    scope VARCHAR(10) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    content_type VARCHAR(150) NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Course counters are derived from enrollments: recomputed on every enrollment change and,
 -- here, once per startup so counters written by older versions are corrected.
 UPDATE courses SET

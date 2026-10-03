@@ -155,6 +155,13 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(status).body(new ErrorResponse(ex.getCode(), ex.getMessage(), status.value())));
   }
 
+  /** An upload bigger than spring.webflux.multipart.max-disk-usage-per-part. */
+  @ExceptionHandler(org.springframework.core.io.buffer.DataBufferLimitException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleTooLarge(org.springframework.core.io.buffer.DataBufferLimitException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+      .body(new ErrorResponse("FILE_TOO_LARGE", "The file is too large", HttpStatus.PAYLOAD_TOO_LARGE.value())));
+  }
+
   @ExceptionHandler(GroupNotFoundException.class)
   public Mono<ResponseEntity<ErrorResponse>> handleGroupNotFound(GroupNotFoundException ex) {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)

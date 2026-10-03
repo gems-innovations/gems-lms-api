@@ -114,7 +114,8 @@ Pendiente:
    Subirlo a medida que crezca la cobertura. `./gradlew test` ya no genera el reporte de cobertura.
 4. La capa `application` de ms-education importa excepciones de `infrastructure.driving.rest`
    (rompe la arquitectura limpia que pide el README).
-5. `/actuator/health` responde 401 (no está en las rutas públicas); el README dice lo contrario.
+5. ~~Health~~ **Resuelto**: faltaba `spring-boot-starter-actuator`; `/actuator/health` responde `UP` sin token en
+   los cuatro servicios.
 6. README desactualizado (puertos, gateway, compose local); scripts de arranque no portables a Windows.
 
 ### Funcionalidad que el front ya tiene y el back no
@@ -122,7 +123,10 @@ Pendiente:
 7. ~~**Grupos/cohortes**~~ **Resuelto**: API `/api/v1/groups` (GET/POST/PUT parcial/DELETE, solo staff de
     la institución; cursos y rutas del grupo deben ser de la misma institución). El front migra una vez
     los grupos que tenía en el navegador. Sigue el grupo automático "Todos los inscritos" por curso.
-8. **Archivos**: no hay almacenamiento para entregas de tareas, miniaturas ni logos (solo URLs).
+8. ~~**Archivos**~~ **Resuelto**: `POST /files` (multipart, 10 MB) guarda en disco (`FILES_DIR`, `LocalFileStorage`;
+    para S3 basta otra implementación de `FileStorage`). Imágenes públicas (`/files/public/{id}`: miniaturas de
+    cursos/rutas y logos, con botón de subida en los editores) y archivos privados (entregas de tareas: solo el
+    autor y el staff de su institución).
 9. ~~**Rutas de aprendizaje**~~ **Resuelto**: estado (borrador/publicada/archivada; el estudiante solo ve
     publicadas), etiquetas, miniatura (URL), pasos opcionales con puntaje mínimo y contador de inscritos.
     Inscripción a rutas en `/learning-paths/{id}/enrollments` y `/learning-paths/enrollments/me`. Falta
