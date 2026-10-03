@@ -160,6 +160,11 @@ Resuelto también:
     y fecha. `GET /audit/events` permite filtrar por texto, acción y fechas, con paginación. Un administrador solo ve
     su institución y el super administrador puede consultar el historial global. Un fallo al guardar la auditoría se
     registra en los logs y no altera la operación original.
+17. **Certificados verificables resueltos**: al abrir "Mis certificaciones", el servidor emite de forma idempotente
+    una credencial para cada curso o ruta cuya finalización esté confirmada. Conserva el nombre, institución, título,
+    docente y fechas como fotografía histórica, asigna un código `GEMS-*` único y permite comprobarlo públicamente en
+    `GET /certificates/verify/{code}` o en `/certificates/verify/{code}` del front. Al eliminar los datos de aprendizaje
+    de una cuenta también se eliminan sus credenciales.
 
 ## Qué falta — front
 
@@ -175,6 +180,8 @@ Resuelto también:
    renderizado en cliente en `app.routes.server.ts`.
 5. **Resuelto**: nueva vista **Auditoría** para administradores y super administradores, con filtros por recurso,
    usuario, acción y rango de fechas, estados de carga/error y paginación.
+6. **Resuelto**: "Mis certificaciones" usa credenciales persistentes del servidor, conserva la descarga en PDF y
+   dispone de una página pública para comprobar código, titular, contenido, institución y fechas.
 
 ## Pendientes de revisión y despliegue
 

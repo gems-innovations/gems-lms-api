@@ -275,6 +275,25 @@ ALTER TABLE modules ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE lessons ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE lessons ADD COLUMN IF NOT EXISTS is_free BOOLEAN NOT NULL DEFAULT false;
 
+-- Durable, publicly verifiable credentials. Names and titles are snapshots so an issued
+-- certificate remains stable if the account or learning content changes later.
+CREATE TABLE IF NOT EXISTS certificates (
+    id BIGSERIAL PRIMARY KEY,
+    code VARCHAR(40) NOT NULL UNIQUE,
+    student_id BIGINT NOT NULL,
+    student_name VARCHAR(200) NOT NULL,
+    institution_id VARCHAR(100) NOT NULL,
+    resource_type VARCHAR(30) NOT NULL CHECK (resource_type IN ('COURSE', 'LEARNING_PATH')),
+    resource_id BIGINT NOT NULL,
+    resource_title VARCHAR(300) NOT NULL,
+    instructor_name VARCHAR(200),
+    completed_at TIMESTAMP NOT NULL,
+    issued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    revoked_at TIMESTAMP,
+    UNIQUE (student_id, resource_type, resource_id)
+);
+CREATE INDEX IF NOT EXISTS idx_certificates_student ON certificates(student_id, issued_at DESC);
+
 -- Course counters are derived from enrollments: recomputed on every enrollment change and,
 -- here, once per startup so counters written by older versions are corrected.
 UPDATE courses SET

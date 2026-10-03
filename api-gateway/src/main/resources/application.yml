@@ -88,6 +88,11 @@ spring:
           predicates:
             - Path=/api/v1/enrollments/**
 
+        - id: ms-education-certificates
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+          predicates:
+            - Path=/api/v1/certificates/**
+
 jwt:
   secret: "${JWT_SECRET}"
   expiration: 86400000

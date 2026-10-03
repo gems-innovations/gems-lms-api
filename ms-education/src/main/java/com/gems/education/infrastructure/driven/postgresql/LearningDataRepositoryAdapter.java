@@ -17,6 +17,7 @@ public class LearningDataRepositoryAdapter implements LearningDataGateway {
   private static final String PATHS = "(SELECT id FROM learning_paths WHERE :institutionId IS NULL OR institution_id = :institutionId)";
 
   private static final List<String> DELETES = List.of(
+    "DELETE FROM certificates WHERE student_id = :studentId AND (:institutionId IS NULL OR institution_id = :institutionId)",
     "DELETE FROM quiz_attempts WHERE student_id = :studentId AND course_id IN " + COURSES,
     "DELETE FROM assignment_submissions WHERE student_id = :studentId AND course_id IN " + COURSES,
     "DELETE FROM survey_responses WHERE student_id = :studentId AND course_id IN " + COURSES,

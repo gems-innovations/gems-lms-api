@@ -79,6 +79,7 @@ public class JwtAuthenticationFilter implements WebFilter {
         
         return path.equals("/actuator/health") ||
                path.startsWith("/api/v1/files/public/") ||
+               path.startsWith("/api/v1/certificates/verify/") ||
                path.startsWith("/swagger-ui") ||
                path.startsWith("/api-docs") ||
                path.startsWith("/v3/api-docs") ||

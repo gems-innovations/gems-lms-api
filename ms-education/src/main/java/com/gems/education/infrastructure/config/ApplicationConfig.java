@@ -240,4 +240,13 @@ public class ApplicationConfig {
   public NotificationUseCase notificationUseCase(NotificationGateway notificationGateway) {
     return new NotificationUseCase(notificationGateway);
   }
+
+  @Bean
+  public CertificateUseCase certificateUseCase(CertificateGateway certificateGateway,
+      EnrollmentGateway enrollmentGateway, PathEnrollmentGateway pathEnrollmentGateway,
+      CourseGateway courseGateway, LearningPathGateway learningPathGateway,
+      UserDirectory userDirectory) {
+    return new CertificateUseCase(certificateGateway, enrollmentGateway, pathEnrollmentGateway,
+      courseGateway, learningPathGateway, userDirectory);
+  }
 }

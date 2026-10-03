@@ -14,7 +14,7 @@ El proyecto sigue una **arquitectura de microservicios** basada en **Clean Archi
   - `ms-auth` (8081): autenticación, usuarios, contraseñas (cambio, recuperación por correo) y auditoría
   - `ms-admin` (8082): instituciones y branding
   - `ms-education` (8083): cursos, rutas, inscripciones, quizzes y entregas calificados en el servidor,
-    grupos, encuestas, reseñas, notificaciones y archivos
+    grupos, encuestas, reseñas, notificaciones, archivos y certificados verificables
 - **Bases de Datos**: una base PostgreSQL independiente por microservicio
 - **Redis**: rate limiting
 - **Shared Module**: seguridad (JWT, autorización por rol e institución), filtros y utilidades comunes
