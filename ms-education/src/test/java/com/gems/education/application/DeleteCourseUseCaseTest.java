@@ -3,7 +3,7 @@ package com.gems.education.application;
 import com.gems.education.TestData;
 import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.domain.entities.Course;
-import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
+import com.gems.education.application.exceptions.CourseNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

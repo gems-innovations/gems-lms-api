@@ -8,13 +8,16 @@ Sistema de gestión de aprendizaje (LMS) basado en arquitectura de microservicio
 
 El proyecto sigue una **arquitectura de microservicios** basada en **Clean Architecture + DDD (Domain-Driven Design)**:
 
-- **Microservicios**: 
-  - `ms-auth`: Gestión de autenticación y usuarios
-  - `ms-admin`: Gestión administrativa
-  - `ms-education`: Gestión educativa
-- **Bases de Datos**: Una base de datos PostgreSQL independiente por microservicio
-- **Redis**: Servicio de caché y rate limiting
-- **Shared Module**: Componentes compartidos entre microservicios
+- **api-gateway** (puerto **8080**): punto de entrada único para el front (`http://localhost:8080/api/v1`).
+  Enruta a cada microservicio, aplica CORS y valida el JWT.
+- **Microservicios**:
+  - `ms-auth` (8081): autenticación, usuarios, contraseñas (cambio, recuperación por correo)
+  - `ms-admin` (8082): instituciones y branding
+  - `ms-education` (8083): cursos, rutas, inscripciones, quizzes y entregas calificados en el servidor,
+    grupos, encuestas, reseñas, notificaciones y archivos
+- **Bases de Datos**: una base PostgreSQL independiente por microservicio
+- **Redis**: rate limiting
+- **Shared Module**: seguridad (JWT, autorización por rol e institución), filtros y utilidades comunes
 
 ### Estructura de Microservicios
 
@@ -22,115 +25,71 @@ Cada microservicio sigue la estructura de Clean Architecture:
 
 ```
 ms-[nombre]/
-├── domain/              # Capa de dominio (entidades, value objects, excepciones)
-├── application/         # Capa de aplicación (use cases, gateways, commands/queries)
+├── domain/              # Capa de dominio (entidades, value objects)
+├── application/         # Capa de aplicación (use cases, gateways, commands, excepciones)
 └── infrastructure/      # Capa de infraestructura (repositorios, controladores, config)
 ```
 
+`application` y `domain` no dependen de `infrastructure`.
+
 ## 📊 Flujo de Información
 
-### 1. Entrada de Petición
-
-Cuando una petición HTTP llega a un microservicio, el flujo es el siguiente:
-
 ```
-Cliente → Microservicio (Puerto específico)
+Front → api-gateway (8080) → ms-auth | ms-admin | ms-education
 ```
 
-### 2. Procesamiento en el Microservicio
+### Filtros Aplicados (en orden)
 
-Cada microservicio procesa las peticiones a través de una cadena de filtros:
+1. **SecurityHeadersFilter**: agrega headers de seguridad HTTP
+2. **RateLimitFilter**: limita las peticiones por cliente usando Redis
+3. **JwtAuthenticationFilter**: valida el token JWT del header `Authorization`
+   - Rutas públicas: login, `forgot-password`, `reset-password`, `/actuator/health`, Swagger y las imágenes
+     públicas (`/api/v1/files/public/**`)
+   - Si el token no es válido, retorna `401 Unauthorized`
 
-#### Filtros Aplicados (en orden):
+### Procesamiento de la Petición
 
-1. **SecurityHeadersFilter**: Agrega headers de seguridad HTTP
-2. **RateLimitFilter**: Controla el límite de peticiones por cliente usando Redis
-3. **JwtAuthenticationFilter**: Valida el token JWT
-   - Si la ruta es de login o Swagger, permite el acceso sin token
-   - Para otras rutas, extrae y valida el token JWT del header `Authorization`
-   - Si es válido, agrega headers internos: `X-User-Id` y `X-User-Role`
-   - Si no es válido, retorna `401 Unauthorized`
-
-### 3. Procesamiento de la Petición
-
-1. **Controlador REST**: Recibe la petición y utiliza los **Use Cases** para procesar la lógica de negocio
-2. **Use Case**: Ejecuta la lógica de negocio utilizando los **Gateways** (interfaces)
-3. **Repositorio Adapter**: Implementa los gateways y accede a la base de datos usando R2DBC (programación reactiva)
-4. **Respuesta**: Retorna la respuesta al cliente
+1. **Controlador REST**: comprueba permisos (rol e institución del JWT) y usa los **Use Cases**
+2. **Use Case**: ejecuta la lógica de negocio a través de **Gateways** (interfaces)
+3. **Repositorio Adapter**: implementa los gateways con R2DBC (programación reactiva)
 
 ## 🚀 Guía de Ejecución
 
-> **Atajo para desarrollo local** (back + api-gateway + datos de prueba): `./dev-up.sh --seed`.
-> Ver [docs/integracion-front-back.md](docs/integracion-front-back.md) para la integración con gems-lms-web,
-> las trampas de Windows y la lista de lo que falta.
+### Atajo para desarrollo local
+
+```bash
+./dev-up.sh --seed
+```
+
+Levanta las bases y Redis (`docker-compose-local.yml`), los cuatro servicios en segundo plano (logs en
+`logs/ms-*.log`) y carga datos de prueba (usuarios, instituciones y cursos). Ver
+[docs/integracion-front-back.md](docs/integracion-front-back.md) para la integración con gems-lms-web y las
+trampas de Windows.
 
 ### Prerrequisitos
 
 - Java 24
 - Docker y Docker Compose
-- Bash (para ejecutar los scripts en Linux/Mac) o Git Bash/WSL (para Windows)
+- Bash: Linux/Mac, o **Git Bash** en Windows (los scripts ya evitan la conversión de rutas de MSYS)
 
-### 1. Clonar el Repositorio
+### 1. Crear el Archivo .env
 
-```bash
-git clone <repository-url>
-cd gems-lms-api
-```
-
-### 2. Subir Docker Compose
-
-El archivo `docker-compose.yml` contiene las configuraciones de las bases de datos y Redis. **NO modificar este archivo**.
-
-Ejecutar:
-
-```bash
-docker-compose up -d
-```
-
-Esto iniciará:
-- `postgres-admin` en el puerto **5432**
-- `postgres-auth` en el puerto **5433**
-- `postgres-education` en el puerto **5434**
-- `redis` en el puerto **6379**
-
-### 3. Crear las Tablas en PostgreSQL
-
-Conectarse a cada instancia de PostgreSQL y ejecutar los scripts `schema.sql` correspondientes.
-
-#### Base de Datos Auth (Puerto 5433)
-
-```bash
-docker exec -i gems-postgres-auth psql -U auth_user -d auth_db < ms-auth/src/main/resources/schema.sql
-```
-
-#### Base de Datos Admin (Puerto 5432)
-
-```bash
-docker exec -i gems-postgres-admin psql -U admin_user -d admin_db < ms-admin/src/main/resources/schema.sql
-```
-
-#### Base de Datos Education (Puerto 5434)
-
-```bash
-docker exec -i gems-postgres-education psql -U education_user -d education_db < ms-education/src/main/resources/schema.sql
-```
-
-### 4. Crear el Archivo .env
-
-Crear un archivo `.env` en la raíz del proyecto con las siguientes variables de entorno:
+Crear un archivo `.env` en la raíz del proyecto:
 
 ```env
 AUTH_PORT=8081
 ADMIN_PORT=8082
 EDUCATION_PORT=8083
 
-JWT_SECRET=your-jwt-secret-key-here-change-in-production
+# Obligatorio, al menos 64 caracteres aleatorios (HS512). Sin él los servicios no arrancan.
+JWT_SECRET=genera-un-secreto-aleatorio-de-al-menos-64-caracteres-xxxxxxxxxxxxxxxxxxxx
 JWT_EXPIRATION=3600000
 
 AUTH_LOGIN_PATH=/api/v1/auth/login
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
+# Obligatorio
 REDIS_PASSWORD=your-redis-password
 
 RATE_LIMIT_REQUESTS=100
@@ -140,152 +99,107 @@ RATE_LIMIT_KEY_PREFIX=rate_limit:
 AUTH_DB_NAME=auth_db
 AUTH_DB_USER=auth_user
 AUTH_DB_PASSWORD=auth_password
-AUTH_R2DBC_URL=r2dbc:postgresql://localhost:5433/auth_db
-AUTH_R2DBC_USERNAME=auth_user
-AUTH_R2DBC_PASSWORD=auth_password
 
 ADMIN_DB_NAME=admin_db
 ADMIN_DB_USER=admin_user
 ADMIN_DB_PASSWORD=admin_password
-ADMIN_R2DBC_URL=r2dbc:postgresql://localhost:5432/admin_db
-ADMIN_R2DBC_USERNAME=admin_user
-ADMIN_R2DBC_PASSWORD=admin_password
 
 EDUCATION_DB_NAME=education_db
 EDUCATION_DB_USER=education_user
 EDUCATION_DB_PASSWORD=education_password
-EDUCATION_R2DBC_URL=r2dbc:postgresql://localhost:5434/education_db
-EDUCATION_R2DBC_USERNAME=education_user
-EDUCATION_R2DBC_PASSWORD=education_password
 
 CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4200
 CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
 CORS_ALLOWED_HEADERS=*
 CORS_ALLOW_CREDENTIALS=true
 CORS_MAX_AGE=3600
+
+# Primer super admin (se crea al arrancar ms-auth si no existe). dev-up.sh trae valores de desarrollo.
+BOOTSTRAP_SUPERADMIN_EMAIL=super@tu-dominio.com
+BOOTSTRAP_SUPERADMIN_PASSWORD=UnaClaveSegura1!
+
+# URL del front, para los enlaces de los correos
+FRONTEND_URL=http://localhost:4200
+
+# Correo (recuperación de contraseña). Sin MAIL_HOST los enlaces se escriben en logs/ms-auth.log.
+MAIL_HOST=
+MAIL_PORT=587
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_STARTTLS=true
+MAIL_FROM=no-reply@tu-dominio.com
+
+# Archivos subidos (ms-education): carpeta local y tamaño máximo (bytes)
+FILES_DIR=./data/uploads
+FILES_MAX_SIZE_BYTES=10485760
+
+# Dónde ms-education consulta a ms-auth (verificar que las personas son de la institución)
+AUTH_SERVICE_URL=http://localhost:8081
 ```
 
-**Importante**: Cambiar los valores de ejemplo por valores seguros en producción.
+**Importante**: usar valores propios y seguros en producción. Nunca subir el `.env` al repositorio.
 
-### 5. Compilar el Proyecto
+### 2. Levantar las bases de datos y Redis
 
-Antes de ejecutar los microservicios, compilar el proyecto:
+```bash
+docker compose -f docker-compose-local.yml up -d
+```
+
+- `postgres-admin` en el puerto **5432**
+- `postgres-auth` en el puerto **5433**
+- `postgres-education` en el puerto **5434**
+- `redis` en el puerto **6379**
+
+Las tablas se crean (y migran) solas al arrancar cada servicio, desde su `schema.sql`.
+
+### 3. Compilar
 
 ```bash
 ./gradlew build -x bootJar
 ```
 
-### 6. Ejecutar los Microservicios
+### 4. Ejecutar los Microservicios
 
-#### Iniciar Todos los Microservicios
-
-Ejecutar el script `start-microservices.sh`:
+Con `dev-up.sh` (recomendado, también en Windows con Git Bash) o con los scripts originales:
 
 ```bash
-chmod +x start-microservices.sh
-./start-microservices.sh
+./start-microservices.sh            # todos en segundo plano
+./start-microservices.sh ms-auth    # uno en primer plano
+./stop-microservices.sh             # detener
 ```
 
-O especificar que se inicien todos:
+El gateway se inicia con `./gradlew :api-gateway:bootRun` (dev-up.sh ya lo hace).
+
+### 5. Documentación Swagger
+
+| Servicio | Swagger UI |
+|---|---|
+| ms-auth | http://localhost:8081/swagger-ui.html |
+| ms-admin | http://localhost:8082/swagger-ui.html |
+| ms-education | http://localhost:8083/swagger-ui.html |
+
+Las rutas de Swagger no requieren token.
+
+### 6. Verificar que Todo Funciona
 
 ```bash
-./start-microservices.sh all
-```
-
-Esto iniciará todos los microservicios en segundo plano:
-- ms-auth (puerto 8081)
-- ms-admin (puerto 8082)
-- ms-education (puerto 8083)
-
-Los logs se guardarán en el directorio `logs/`:
-- `logs/auth.log`
-- `logs/admin.log`
-- `logs/education.log`
-
-#### Iniciar un Microservicio Específico
-
-Para iniciar solo un microservicio en primer plano (ver logs en consola):
-
-```bash
-./start-microservices.sh ms-auth
-./start-microservices.sh ms-admin
-./start-microservices.sh ms-education
-```
-
-**Nota**: Cuando se ejecuta un microservicio individual, los logs se muestran en la consola y se puede detener con `Ctrl+C`.
-
-#### Detener los Microservicios
-
-Para detener todos los microservicios:
-
-```bash
-chmod +x stop-microservices.sh
-./stop-microservices.sh
-```
-
-O para detener uno específico:
-
-```bash
-./stop-microservices.sh ms-auth
-./stop-microservices.sh ms-admin
-./stop-microservices.sh ms-education
-```
-
-**Nota**: Los scripts **NO deben modificarse**.
-
-### 7. Acceder a la Documentación Swagger
-
-Cada microservicio tiene documentación Swagger disponible. Para acceder:
-
-#### ms-auth (Puerto 8081)
-
-- **Swagger UI**: `http://localhost:8081/swagger-ui.html`
-- **API Docs JSON**: `http://localhost:8081/v3/api-docs`
-
-#### ms-admin (Puerto 8082)
-
-- **Swagger UI**: `http://localhost:8082/swagger-ui.html`
-- **API Docs JSON**: `http://localhost:8082/v3/api-docs`
-
-#### ms-education (Puerto 8083)
-
-- **Swagger UI**: `http://localhost:8083/swagger-ui.html`
-- **API Docs JSON**: `http://localhost:8083/v3/api-docs`
-
-**Nota**: Las rutas de Swagger están excluidas de la autenticación JWT, por lo que puedes acceder sin token.
-
-### 8. Verificar que Todo Funciona
-
-Probar los endpoints de health de cada microservicio:
-
-#### ms-auth
-```bash
+curl http://localhost:8080/actuator/health
 curl http://localhost:8081/actuator/health
-```
-
-#### ms-admin
-```bash
 curl http://localhost:8082/actuator/health
-```
-
-#### ms-education
-```bash
 curl http://localhost:8083/actuator/health
 ```
 
-Si todos responden con estado `UP`, el sistema está funcionando correctamente.
+Si todos responden `{"status":"UP"}`, el sistema está funcionando. El health es público.
 
 ## 📋 Tecnologías Utilizadas
 
-- **Spring Boot 3.4.5**: Framework principal
-- **Spring WebFlux**: Programación reactiva
-- **R2DBC**: Acceso reactivo a base de datos
-- **PostgreSQL**: Base de datos relacional
-- **Redis**: Caché y rate limiting
-- **JWT**: Autenticación y autorización
-- **SpringDoc OpenAPI 2.7.0**: Documentación de API (Swagger)
-- **Gradle**: Gestión de dependencias y construcción
-- **Docker & Docker Compose**: Contenedores y orquestación
+- **Spring Boot 3.4.5**, **Spring WebFlux** y **Spring Cloud Gateway**
+- **R2DBC** + **PostgreSQL**
+- **Redis**: rate limiting
+- **JWT** (jjwt, HS512): autenticación; el token lleva `role` e `institutionId`
+- **SpringDoc OpenAPI 2.7.0**: Swagger
+- **Spring Mail**: correos de recuperación de contraseña (opcional)
+- **Gradle** y **Docker Compose**
 
 ## 🔧 Desarrollo
 
@@ -293,15 +207,16 @@ Si todos responden con estado `UP`, el sistema está funcionando correctamente.
 
 ```
 gems-lms-api/
-├── ms-auth/          # Microservicio de autenticación
-├── ms-admin/         # Microservicio administrativo
-├── ms-education/     # Microservicio educativo
-├── shared/           # Módulo compartido (filtros, configuraciones)
-├── docker-compose.yml
-├── build.gradle
-├── settings.gradle
-├── start-microservices.sh
-└── stop-microservices.sh
+├── api-gateway/      # Entrada única (8080)
+├── ms-auth/          # Autenticación y usuarios
+├── ms-admin/         # Instituciones
+├── ms-education/     # Contenidos y aprendizaje
+├── shared/           # Seguridad y utilidades comunes
+├── seed/             # Datos de prueba (cursos)
+├── docs/             # Integración con el front
+├── docker-compose.yml / docker-compose-local.yml
+├── dev-up.sh / seed-dev.sh
+└── start-microservices.sh / stop-microservices.sh
 ```
 
 ### Compilar y Ejecutar Tests
@@ -320,21 +235,20 @@ Para ejecutar solo los tests (más rápido: sin reporte ni verificación de cobe
 50% por defecto; se puede cambiar con `-PcoverageMinimum=0.7`). Los módulos compilan en paralelo y
 Gradle reutiliza resultados en caché, así que una corrida sin cambios tarda unos segundos.
 
+### Paginación
+
+`GET /users/institution/{id}`, `/learning-paths` y `/enrollments/institution/{id}` aceptan `page` y `limit`
+(máx. 100) y devuelven el total en el header `X-Total-Count`. Sin `page` responden la lista completa.
+
 ### Ver Logs en Tiempo Real
 
-Para ver los logs de un microservicio en tiempo real:
-
 ```bash
-tail -f logs/auth.log
-tail -f logs/admin.log
-tail -f logs/education.log
+tail -f logs/ms-auth.log logs/ms-admin.log logs/ms-education.log logs/api-gateway.log
 ```
 
 ## 📝 Notas Importantes
 
-- **NO modificar** el archivo `docker-compose.yml`
-- **NO modificar** los scripts `start-microservices.sh` y `stop-microservices.sh`
-- Las rutas de Swagger (`/swagger-ui/**`, `/api-docs/**`, `/webjars/**`) están excluidas de la autenticación JWT
 - Cada microservicio tiene su propia base de datos PostgreSQL
-- Redis se usa para rate limiting y caché
+- Los archivos subidos quedan en `FILES_DIR` (fuera de git); para S3 u otro almacenamiento basta otra
+  implementación de `FileStorage` en ms-education
 - El proyecto usa programación reactiva (WebFlux) en todos los microservicios

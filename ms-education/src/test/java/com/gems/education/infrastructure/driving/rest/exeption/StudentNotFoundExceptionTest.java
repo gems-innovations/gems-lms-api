@@ -1,4 +1,4 @@
-package com.gems.education.infrastructure.driving.rest.exeption;
+package com.gems.education.application.exceptions;
 
 import com.gems.education.domain.constants.StudentsConstants;
 import org.junit.jupiter.api.DisplayName;

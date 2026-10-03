@@ -113,11 +113,11 @@ Resuelto también:
 3. **Cobertura**: el gate de jacoco pasó de 100% (inalcanzable) a **50% de líneas** configurable
    (`coverageMinimum` en `gradle.properties`). Línea base: auth 71%, admin 73%, education 52%.
    Subirlo a medida que crezca la cobertura. `./gradlew test` ya no genera el reporte de cobertura.
-4. La capa `application` de ms-education importa excepciones de `infrastructure.driving.rest`
-   (rompe la arquitectura limpia que pide el README).
+4. ~~Capas~~ **Resuelto**: las excepciones pasaron a `application.exceptions`; `application`/`domain` ya no importan
+   `infrastructure` en ningún servicio.
 5. ~~Health~~ **Resuelto**: faltaba `spring-boot-starter-actuator`; `/actuator/health` responde `UP` sin token en
    los cuatro servicios.
-6. README desactualizado (puertos, gateway, compose local); scripts de arranque no portables a Windows.
+6. ~~README~~ **Resuelto**: README actualizado (gateway, `dev-up.sh`, variables nuevas, health, Git Bash en Windows).
 
 ### Funcionalidad que el front ya tiene y el back no
 
@@ -147,9 +147,9 @@ Resuelto también:
     intentos, entregas, encuestas, reseñas, rutas, grupos y notificaciones, en una transacción).
 14. ~~**Contraseñas**~~ **Resuelto** (sin correo real): las cuentas creadas con contraseña temporal deben
     cambiarla al entrar (`mustChangePassword`, `POST /auth/change-password`); "olvidé mi contraseña" con
-    token de un uso y 1 h (`/auth/forgot-password`, `/auth/reset-password`). **Pendiente**: el enlace hoy
-    se escribe en `logs/ms-auth.log` (`LoggingPasswordResetNotifier`); falta un notificador por correo
-    (SMTP/SendGrid/SES) y definir el **auto-registro** (el enlace "Regístrate" del login no hace nada).
+    token de un uso y 1 h (`/auth/forgot-password`, `/auth/reset-password`). El enlace se envía por **SMTP**
+    (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`; sirve SendGrid/SES por SMTP); sin
+    `MAIL_HOST` se escribe en `logs/ms-auth.log`.
 15. ~~Paginación~~ **Resuelto**: `GET /users/institution/{id}` (en SQL, con `search`), `/learning-paths` y
     `/enrollments/institution/{id}` aceptan `page`/`limit` y devuelven el total en `X-Total-Count`; sin `page`
     responden la lista completa como antes. La lista de usuarios del front tiene búsqueda y paginación. El registro

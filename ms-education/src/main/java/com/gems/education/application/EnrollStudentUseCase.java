@@ -5,7 +5,7 @@ import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.application.gateway.EnrollmentGateway;
 import com.gems.education.application.response.EnrollmentResponse;
 import com.gems.education.domain.entities.Enrollment;
-import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
+import com.gems.education.application.exceptions.CourseNotFoundException;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;

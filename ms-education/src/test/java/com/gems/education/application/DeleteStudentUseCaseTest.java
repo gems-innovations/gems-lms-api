@@ -4,7 +4,7 @@ import com.gems.education.application.gateway.StudentGateway;
 import com.gems.education.domain.constants.StudentsConstants;
 import com.gems.education.domain.entities.Student;
 import com.gems.education.domain.values.StudentId;
-import com.gems.education.infrastructure.driving.rest.exeption.StudentNotFoundException;
+import com.gems.education.application.exceptions.StudentNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

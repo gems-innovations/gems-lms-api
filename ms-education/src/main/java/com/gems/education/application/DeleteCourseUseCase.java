@@ -1,7 +1,7 @@
 package com.gems.education.application;
 
 import com.gems.education.application.gateway.CourseGateway;
-import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
+import com.gems.education.application.exceptions.CourseNotFoundException;
 import reactor.core.publisher.Mono;
 
 public class DeleteCourseUseCase {

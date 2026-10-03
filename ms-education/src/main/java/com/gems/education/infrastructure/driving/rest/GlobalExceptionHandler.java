@@ -4,8 +4,8 @@ package com.gems.education.infrastructure.driving.rest;
 import com.gems.education.application.exceptions.CourseActivityException;
 import com.gems.education.application.exceptions.GroupNotFoundException;
 import com.gems.education.infrastructure.driving.rest.constants.RestConstants;
-import com.gems.education.infrastructure.driving.rest.exeption.StudentAlreadyExistsException;
-import com.gems.education.infrastructure.driving.rest.exeption.StudentNotFoundException;
+import com.gems.education.application.exceptions.StudentAlreadyExistsException;
+import com.gems.education.application.exceptions.StudentNotFoundException;
 import com.gems.education.infrastructure.driving.rest.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,8 +43,8 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
-  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException.class)
-  public Mono<ResponseEntity<ErrorResponse>> handleCourseNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException ex) {
+  @ExceptionHandler(com.gems.education.application.exceptions.CourseNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleCourseNotFoundException(com.gems.education.application.exceptions.CourseNotFoundException ex) {
     ErrorResponse error = new ErrorResponse(
       RestConstants.COURSE_NOT_FOUND_CODE,
       ex.getMessage(),
@@ -53,8 +53,8 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
-  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.QuizNotFoundException.class)
-  public Mono<ResponseEntity<ErrorResponse>> handleQuizNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.QuizNotFoundException ex) {
+  @ExceptionHandler(com.gems.education.application.exceptions.QuizNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleQuizNotFoundException(com.gems.education.application.exceptions.QuizNotFoundException ex) {
     ErrorResponse error = new ErrorResponse(
       RestConstants.QUIZ_NOT_FOUND_CODE,
       ex.getMessage(),
@@ -63,8 +63,8 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
-  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException.class)
-  public Mono<ResponseEntity<ErrorResponse>> handleLearningPathNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException ex) {
+  @ExceptionHandler(com.gems.education.application.exceptions.LearningPathNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleLearningPathNotFoundException(com.gems.education.application.exceptions.LearningPathNotFoundException ex) {
     ErrorResponse error = new ErrorResponse(
       RestConstants.LEARNING_PATH_NOT_FOUND_CODE,
       ex.getMessage(),
@@ -73,8 +73,8 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
-  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.EnrollmentNotFoundException.class)
-  public Mono<ResponseEntity<ErrorResponse>> handleEnrollmentNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.EnrollmentNotFoundException ex) {
+  @ExceptionHandler(com.gems.education.application.exceptions.EnrollmentNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleEnrollmentNotFoundException(com.gems.education.application.exceptions.EnrollmentNotFoundException ex) {
     ErrorResponse error = new ErrorResponse(
       RestConstants.ENROLLMENT_NOT_FOUND_CODE,
       ex.getMessage(),

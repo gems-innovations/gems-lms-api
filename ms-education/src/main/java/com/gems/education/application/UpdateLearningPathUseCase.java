@@ -10,8 +10,8 @@ import com.gems.education.application.response.LessonResponse;
 import com.gems.education.application.response.ModuleResponse;
 import com.gems.education.domain.entities.Course;
 import com.gems.education.domain.entities.LearningPath;
-import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
-import com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException;
+import com.gems.education.application.exceptions.CourseNotFoundException;
+import com.gems.education.application.exceptions.LearningPathNotFoundException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

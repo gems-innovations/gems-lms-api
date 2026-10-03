@@ -1,4 +1,4 @@
-package com.gems.education.infrastructure.driving.rest.exeption;
+package com.gems.education.application.exceptions;
 
 public class LearningPathNotFoundException extends RuntimeException {
   public LearningPathNotFoundException(String message) {

@@ -1,0 +1,49 @@
+package com.gems.auth.infrastructure.driven.notification;
+
+import com.gems.auth.application.gateway.PasswordResetNotifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+
+import java.util.Properties;
+
+/**
+ * Picks how password reset links are delivered: by e-mail when MAIL_HOST is set, otherwise to
+ * the log (development).
+ */
+@Configuration
+public class NotificationConfig {
+  private static final Logger log = LoggerFactory.getLogger(NotificationConfig.class);
+
+  @Bean
+  public PasswordResetNotifier passwordResetNotifier(
+      @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
+      @Value("${app.mail.host:}") String host,
+      @Value("${app.mail.port:587}") int port,
+      @Value("${app.mail.username:}") String username,
+      @Value("${app.mail.password:}") String password,
+      @Value("${app.mail.starttls:true}") boolean starttls,
+      @Value("${app.mail.from:no-reply@gems.lms}") String from) {
+    if (host.isBlank()) {
+      log.warn("MAIL_HOST is not set: password reset links will be written to the log instead of e-mailed");
+      return new LoggingPasswordResetNotifier(frontendUrl);
+    }
+    JavaMailSenderImpl sender = new JavaMailSenderImpl();
+    sender.setHost(host);
+    sender.setPort(port);
+    if (!username.isBlank()) {
+      sender.setUsername(username);
+      sender.setPassword(password);
+    }
+    Properties props = sender.getJavaMailProperties();
+    props.put("mail.smtp.auth", String.valueOf(!username.isBlank()));
+    props.put("mail.smtp.starttls.enable", String.valueOf(starttls));
+    props.put("mail.smtp.connectiontimeout", "10000");
+    props.put("mail.smtp.timeout", "10000");
+    props.put("mail.smtp.writetimeout", "10000");
+    return new SmtpPasswordResetNotifier(sender, from, frontendUrl);
+  }
+}

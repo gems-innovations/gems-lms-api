@@ -2,7 +2,7 @@ package com.gems.education.application;
 
 import com.gems.education.application.gateway.EnrollmentGateway;
 import com.gems.education.application.response.EnrollmentResponse;
-import com.gems.education.infrastructure.driving.rest.exeption.EnrollmentNotFoundException;
+import com.gems.education.application.exceptions.EnrollmentNotFoundException;
 import reactor.core.publisher.Mono;
 
 public class GetEnrollmentByIdUseCase {

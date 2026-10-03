@@ -2,7 +2,7 @@ package com.gems.education.application;
 
 import com.gems.education.application.gateway.StudentGateway;
 import com.gems.education.domain.constants.StudentsConstants;
-import com.gems.education.infrastructure.driving.rest.exeption.StudentNotFoundException;
+import com.gems.education.application.exceptions.StudentNotFoundException;
 import com.gems.education.domain.values.StudentId;
 import reactor.core.publisher.Mono;
 
