@@ -1,5 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.infrastructure.driven.auth.InstitutionMembers;
 import com.gems.education.application.PathEnrollmentUseCase;
 import com.gems.education.domain.entities.PathEnrollment;
 import com.gems.shared.security.CurrentUser;
@@ -19,10 +20,13 @@ import java.util.List;
 public class PathEnrollmentController {
   private final PathEnrollmentUseCase pathEnrollmentUseCase;
   private final EducationAccess access;
+  private final InstitutionMembers members;
 
-  public PathEnrollmentController(PathEnrollmentUseCase pathEnrollmentUseCase, EducationAccess access) {
+  public PathEnrollmentController(PathEnrollmentUseCase pathEnrollmentUseCase, EducationAccess access,
+                                  InstitutionMembers members) {
     this.pathEnrollmentUseCase = pathEnrollmentUseCase;
     this.access = access;
+    this.members = members;
   }
 
   /** Without {@code studentIds}, enrolls the caller. */
@@ -32,7 +36,8 @@ public class PathEnrollmentController {
     List<Long> studentIds = request == null || request.studentIds() == null ? List.of() : request.studentIds();
     return CurrentUser.get().flatMap(caller -> {
       boolean self = studentIds.isEmpty() || (studentIds.size() == 1 && caller.isUser(studentIds.get(0)));
-      Mono<?> allowed = self ? access.readablePath(id) : access.editablePath(id);
+      Mono<?> allowed = self ? access.readablePath(id) : access.editablePath(id)
+        .flatMap(path -> members.requireMembers(studentIds, path.getInstitutionId()).thenReturn(path));
       List<Long> targets = studentIds.isEmpty() ? List.of(caller.userId()) : studentIds;
       return allowed.then(Mono.defer(() -> pathEnrollmentUseCase.enroll(id, targets).collectList()));
     }).map(list -> ResponseEntity.status(HttpStatus.CREATED).body(list));

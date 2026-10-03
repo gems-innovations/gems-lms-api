@@ -1,5 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.infrastructure.driven.auth.InstitutionMembers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gems.education.application.GetCourseByIdUseCase;
 import com.gems.education.application.GetEnrollmentByIdUseCase;
@@ -17,6 +18,7 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.lenient;
 
@@ -38,6 +40,12 @@ abstract class ControllerTestSupport {
   final GetLearningPathByIdUseCase getLearningPathByIdUseCase = Mockito.mock(GetLearningPathByIdUseCase.class);
   final EducationAccess access = new EducationAccess(getCourseByIdUseCase, getEnrollmentByIdUseCase, getLearningPathByIdUseCase);
   final StudentView studentView = new StudentView(mapper);
+  /** Every user belongs to the institution unless a test says otherwise. */
+  final InstitutionMembers members = Mockito.mock(InstitutionMembers.class);
+
+  {
+    lenient().when(members.requireMembers(any(), any())).thenReturn(Mono.empty());
+  }
 
   /** Every course lookup resolves to a published course of inst-1 unless a test says otherwise. */
   void givenCourses() {

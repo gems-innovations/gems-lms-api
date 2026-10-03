@@ -36,7 +36,7 @@ class PathEnrollmentControllerTest extends ControllerTestSupport {
     when(getLearningPathByIdUseCase.execute(1L)).thenReturn(Mono.just(path("published")));
     when(useCase.enroll(eq(1L), anyList())).thenAnswer(inv ->
       Flux.fromIterable(inv.<List<Long>>getArgument(1)).map(PathEnrollmentControllerTest::enrollment));
-    controller = new PathEnrollmentController(useCase, access);
+    controller = new PathEnrollmentController(useCase, access, members);
   }
 
   private WebTestClient as(AuthenticatedUser caller) {

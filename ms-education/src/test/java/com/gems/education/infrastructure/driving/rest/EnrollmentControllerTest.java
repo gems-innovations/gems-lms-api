@@ -39,7 +39,7 @@ class EnrollmentControllerTest extends ControllerTestSupport {
     when(getEnrollmentByIdUseCase.execute(20L)).thenReturn(Mono.just(studentEnrollment));
     controller = new EnrollmentController(enrollStudentUseCase, bulkEnrollStudentsUseCase, getStudentEnrollmentsUseCase,
       getEnrollmentsByCourseUseCase, updateEnrollmentProgressUseCase, deleteEnrollmentUseCase, getEnrollmentByIdUseCase,
-      getEnrollmentsByInstitutionUseCase, access);
+      getEnrollmentsByInstitutionUseCase, access, members);
   }
 
   private WebTestClient as(AuthenticatedUser caller) {
@@ -75,6 +75,20 @@ class EnrollmentControllerTest extends ControllerTestSupport {
       .exchange().expectStatus().isForbidden();
     as(OTHER_ADMIN).post().uri("/api/v1/enrollments/bulk").contentType(MediaType.APPLICATION_JSON).bodyValue(request)
       .exchange().expectStatus().isForbidden();
+  }
+
+  @Test
+  void staffCannotEnrollPeopleFromOutsideTheInstitution() {
+    when(members.requireMembers(any(), eq("inst-1"))).thenReturn(Mono.error(
+      new com.gems.shared.security.ForbiddenException("not a member")));
+
+    as(INSTRUCTOR).post().uri("/api/v1/enrollments/bulk").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new BulkEnrollmentRequest(List.of(99L), 1L))
+      .exchange().expectStatus().isForbidden();
+    as(INSTRUCTOR).post().uri("/api/v1/enrollments").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new EnrollmentRequest(99L, 1L))
+      .exchange().expectStatus().isForbidden();
+    verifyNoInteractions(bulkEnrollStudentsUseCase, enrollStudentUseCase);
   }
 
   @Test

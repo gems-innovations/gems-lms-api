@@ -8,7 +8,7 @@ spring:
     redis:
       host: "${REDIS_HOST:localhost}"
       port: ${REDIS_PORT:6379}
-      password: "${REDIS_PASSWORD:redis_password}"
+      password: "${REDIS_PASSWORD}"
   cloud:
     gateway:
       default-filters:
@@ -84,7 +84,7 @@ spring:
             - Path=/api/v1/enrollments/**
 
 jwt:
-  secret: "${JWT_SECRET:mySecretKey123456789012345678901234567890}"
+  secret: "${JWT_SECRET}"
   expiration: 86400000
 
 auth:

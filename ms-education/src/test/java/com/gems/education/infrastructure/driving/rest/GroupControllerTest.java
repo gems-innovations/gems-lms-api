@@ -29,7 +29,7 @@ class GroupControllerTest extends ControllerTestSupport {
   void setUp() {
     givenCourses();
     when(groupUseCase.get(1L)).thenReturn(Mono.just(group(1L, "inst-1")));
-    controller = new GroupController(groupUseCase, access);
+    controller = new GroupController(groupUseCase, access, members);
   }
 
   private WebTestClient as(AuthenticatedUser caller) {

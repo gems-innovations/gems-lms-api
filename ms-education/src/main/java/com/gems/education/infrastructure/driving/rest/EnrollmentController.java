@@ -1,5 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.infrastructure.driven.auth.InstitutionMembers;
 import com.gems.education.application.BulkEnrollStudentsUseCase;
 import com.gems.education.application.DeleteEnrollmentUseCase;
 import com.gems.education.application.EnrollStudentUseCase;
@@ -23,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/enrollments")
 public class EnrollmentController {
@@ -35,6 +38,7 @@ public class EnrollmentController {
   private final GetEnrollmentByIdUseCase getEnrollmentByIdUseCase;
   private final GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase;
   private final EducationAccess access;
+  private final InstitutionMembers members;
 
   public EnrollmentController(EnrollStudentUseCase enrollStudentUseCase,
                                BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase,
@@ -44,7 +48,8 @@ public class EnrollmentController {
                                DeleteEnrollmentUseCase deleteEnrollmentUseCase,
                                GetEnrollmentByIdUseCase getEnrollmentByIdUseCase,
                                GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase,
-                               EducationAccess access) {
+                               EducationAccess access,
+                               InstitutionMembers members) {
     this.enrollStudentUseCase = enrollStudentUseCase;
     this.bulkEnrollStudentsUseCase = bulkEnrollStudentsUseCase;
     this.getStudentEnrollmentsUseCase = getStudentEnrollmentsUseCase;
@@ -54,6 +59,7 @@ public class EnrollmentController {
     this.getEnrollmentByIdUseCase = getEnrollmentByIdUseCase;
     this.getEnrollmentsByInstitutionUseCase = getEnrollmentsByInstitutionUseCase;
     this.access = access;
+    this.members = members;
   }
 
   @GetMapping("/{id}")
@@ -68,7 +74,9 @@ public class EnrollmentController {
     return CurrentUser.get()
       .flatMap(caller -> caller.isUser(request.getStudentId())
         ? access.readableCourse(request.getCourseId())
-        : access.editableCourse(request.getCourseId()))
+        : access.editableCourse(request.getCourseId())
+          .flatMap(course -> members.requireMembers(List.of(request.getStudentId()), course.getInstitutionId())
+            .thenReturn(course)))
       .flatMap(course -> enrollStudentUseCase.execute(EnrollmentMapper.toCommand(request)))
       .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
   }
@@ -76,6 +84,7 @@ public class EnrollmentController {
   @PostMapping("/bulk")
   public Mono<ResponseEntity<Flux<EnrollmentResponse>>> bulkEnrollStudents(@Valid @RequestBody BulkEnrollmentRequest request) {
     return access.editableCourse(request.getCourseId())
+      .flatMap(course -> members.requireMembers(request.getStudentIds(), course.getInstitutionId()).thenReturn(course))
       .map(course -> ResponseEntity.status(HttpStatus.CREATED)
         .body(bulkEnrollStudentsUseCase.execute(EnrollmentMapper.toCommand(request))));
   }

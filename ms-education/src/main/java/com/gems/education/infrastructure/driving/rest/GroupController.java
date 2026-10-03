@@ -1,5 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.infrastructure.driven.auth.InstitutionMembers;
 import com.gems.education.application.GroupUseCase;
 import com.gems.education.domain.entities.Group;
 import com.gems.shared.security.AuthenticatedUser;
@@ -24,10 +25,12 @@ import java.util.List;
 public class GroupController {
   private final GroupUseCase groupUseCase;
   private final EducationAccess access;
+  private final InstitutionMembers members;
 
-  public GroupController(GroupUseCase groupUseCase, EducationAccess access) {
+  public GroupController(GroupUseCase groupUseCase, EducationAccess access, InstitutionMembers members) {
     this.groupUseCase = groupUseCase;
     this.access = access;
+    this.members = members;
   }
 
   /** Groups of the caller's institution; the super admin sees all, or one institution's with the param. */
@@ -58,6 +61,7 @@ public class GroupController {
       }
       return access.staffOf(institutionId)
         .then(checkTargets(request.courseIds(), request.pathIds()))
+        .then(Mono.defer(() -> members.requireMembers(people(request), institutionId)))
         .then(Mono.defer(() -> groupUseCase.create(request.name(), institutionId, request.instructorId(),
           request.studentIds(), request.courseIds(), request.pathIds())));
     }).map(g -> ResponseEntity.status(HttpStatus.CREATED).body(GroupResponse.from(g)));
@@ -70,7 +74,8 @@ public class GroupController {
       .flatMap(g -> request.institutionId() != null && !request.institutionId().equals(g.institutionId())
         ? Mono.error(new ForbiddenException("A group cannot move to another institution"))
         : Mono.just(g))
-      .then(checkTargets(request.courseIds(), request.pathIds()))
+      .flatMap(g -> checkTargets(request.courseIds(), request.pathIds())
+        .then(Mono.defer(() -> members.requireMembers(people(request), g.institutionId()))))
       .then(Mono.defer(() -> groupUseCase.update(id, request.name(), request.instructorId(),
         Boolean.TRUE.equals(request.clearInstructor()),
         request.studentIds(), request.courseIds(), request.pathIds())))
@@ -97,6 +102,13 @@ public class GroupController {
     return Flux.fromIterable(courseIds == null ? List.of() : courseIds).concatMap(access::editableCourse)
       .thenMany(Flux.fromIterable(pathIds == null ? List.of() : pathIds).concatMap(access::editablePath))
       .then();
+  }
+
+  /** The students and the instructor named in the request (they must belong to the institution). */
+  private static List<Long> people(GroupRequest request) {
+    List<Long> ids = new java.util.ArrayList<>(request.studentIds() == null ? List.of() : request.studentIds());
+    if (request.instructorId() != null) ids.add(request.instructorId());
+    return ids;
   }
 
   public record GroupRequest(String name, String institutionId, Long instructorId, Boolean clearInstructor,

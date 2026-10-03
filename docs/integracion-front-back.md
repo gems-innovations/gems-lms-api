@@ -100,12 +100,13 @@ Resuelto (rama `feature/integracion-front`):
   A los estudiantes se les sirven cursos, rutas y quizzes sin `correctAnswers`, `correctAnswer`,
   `sampleAnswer` ni `explanation` (la explicación llega como retroalimentación del intento).
 
-Pendiente:
+Resuelto también:
 
-1. `jwt.secret` y contraseñas tienen valores por defecto en `application.properties`: si falta la
-   variable de entorno, arranca con un secreto conocido.
-2. El staff puede inscribir cualquier `studentId`: ms-education no puede verificar en ms-auth que el
-   usuario pertenezca a la institución.
+1. **Sin secretos por defecto**: `JWT_SECRET` y `REDIS_PASSWORD` son obligatorios; `JwtSecretGuard` impide arrancar
+   con un secreto vacío, de menos de 64 bytes (HS512) o con el valor público que traía el proyecto.
+2. **Inscripciones solo dentro de la institución**: al inscribir (cursos, rutas) o armar grupos, ms-education
+   pregunta a ms-auth, con el token del usuario, si las personas pertenecen a la institución (403 si no;
+   503 si ms-auth no responde). `AUTH_SERVICE_URL` apunta a ms-auth (por defecto localhost:8081).
 
 ### Calidad
 
