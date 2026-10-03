@@ -53,6 +53,7 @@ Usuarios de desarrollo (contraseña: `DEV_PASSWORD` en `seed-dev.sh`):
 | Rutas de aprendizaje | `/learning-paths` | |
 | Inscripciones y progreso | `/enrollments`, `/enrollments/bulk`, `PUT /enrollments/{id}/progress` | `studentId` = id de usuario de ms-auth |
 | Panel docente / matrículas | los anteriores | |
+| Auditoría administrativa | `GET /audit/events` | Historial filtrable y paginado; cada admin ve solo su institución |
 
 Los bloques de contenido del front (video, documento, quiz, tarea…) se guardan en `contents.value`
 como JSON con todos sus campos; `contents.type` lleva el tipo.
@@ -154,6 +155,11 @@ Resuelto también:
     `/enrollments/institution/{id}` aceptan `page`/`limit` y devuelven el total en `X-Total-Count`; sin `page`
     responden la lista completa como antes. La lista de usuarios del front tiene búsqueda y paginación. El registro
     `students` de ms-education queda marcado `@Deprecated` (las cuentas viven en ms-auth).
+16. **Auditoría administrativa resuelta**: el gateway registra automáticamente las operaciones autenticadas de
+    creación, cambio y eliminación, incluyendo usuario, rol, institución, ruta, método, resultado HTTP, IP, navegador
+    y fecha. `GET /audit/events` permite filtrar por texto, acción y fechas, con paginación. Un administrador solo ve
+    su institución y el super administrador puede consultar el historial global. Un fallo al guardar la auditoría se
+    registra en los logs y no altera la operación original.
 
 ## Qué falta — front
 
@@ -167,6 +173,8 @@ Resuelto también:
    compilación, `NG_ALLOWED_HOSTS`, puerto, CORS y configuración del gateway.
 4. Corregido de paso: el build de producción fallaba porque `instructor/**` no estaba declarado como
    renderizado en cliente en `app.routes.server.ts`.
+5. **Resuelto**: nueva vista **Auditoría** para administradores y super administradores, con filtros por recurso,
+   usuario, acción y rango de fechas, estados de carga/error y paginación.
 
 ## Pendientes de revisión y despliegue
 
@@ -192,9 +200,9 @@ Resuelto también:
 
 Estos puntos requieren verificación antes de afirmar que todas las brechas están cerradas.
 
-Validación del cierre local: 374 pruebas del back sin fallos y build completo con cobertura al 50%;
-30 pruebas del front (shared 2, auth 14, education 10, main 4) y build de producción. Smoke en servicios
-activos: contraseñas temporales, renovación/revocación y aislamiento de quizzes. Compose validado;
+Validación del cierre local: build completo del back sin fallos y cobertura mínima al 50%;
+31 pruebas del front (shared 2, auth 14, education 10, admin 1, main 4) y build de producción. Smoke en servicios
+activos: contraseñas temporales, renovación/revocación, aislamiento de quizzes y auditoría por institución. Compose validado;
 imágenes Docker y despliegue remoto aún no ejecutados.
 
 ### Verificación local reproducible

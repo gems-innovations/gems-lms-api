@@ -31,3 +31,23 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
     used_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Immutable audit trail written by the API gateway for authenticated mutations.
+CREATE TABLE IF NOT EXISTS audit_events (
+    id BIGSERIAL PRIMARY KEY,
+    actor_user_id BIGINT NOT NULL,
+    actor_role VARCHAR(50) NOT NULL,
+    institution_id VARCHAR(100),
+    action VARCHAR(30) NOT NULL,
+    http_method VARCHAR(10) NOT NULL,
+    resource_path VARCHAR(500) NOT NULL,
+    response_status INT NOT NULL,
+    client_ip VARCHAR(100),
+    user_agent VARCHAR(500),
+    occurred_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_events_institution_time
+    ON audit_events(institution_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_actor_time
+    ON audit_events(actor_user_id, occurred_at DESC);

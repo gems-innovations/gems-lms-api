@@ -10,6 +10,8 @@ import com.gems.auth.application.PasswordRecoveryUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.ToggleUserStatusUseCase;
 import com.gems.auth.application.UpdateUserUseCase;
+import com.gems.auth.application.AuditUseCase;
+import com.gems.auth.application.gateway.AuditGateway;
 import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
 import com.gems.auth.application.gateway.PasswordResetGateway;
@@ -22,6 +24,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ApplicationConfig {
+
+  @Bean
+  public AuditUseCase auditUseCase(AuditGateway auditGateway) {
+    return new AuditUseCase(auditGateway);
+  }
 
   @Bean
   public UserGateway userGateway(IUserRepository userRepository) {

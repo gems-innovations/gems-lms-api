@@ -28,6 +28,11 @@ spring:
           predicates:
             - Path=/api/v1/users/**
 
+        - id: ms-auth-audit
+          uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
+          predicates:
+            - Path=/api/v1/audit/**
+
         - id: ms-admin-institutions
           uri: ${ADMIN_SERVICE_URL:http://localhost:${ADMIN_PORT:8082}}
           predicates:

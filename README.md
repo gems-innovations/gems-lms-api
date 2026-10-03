@@ -9,9 +9,9 @@ Sistema de gestión de aprendizaje (LMS) basado en arquitectura de microservicio
 El proyecto sigue una **arquitectura de microservicios** basada en **Clean Architecture + DDD (Domain-Driven Design)**:
 
 - **api-gateway** (puerto **8080**): punto de entrada único para el front (`http://localhost:8080/api/v1`).
-  Enruta a cada microservicio, aplica CORS y valida el JWT.
+  Enruta a cada microservicio, aplica CORS, valida el JWT y registra las operaciones autenticadas en la auditoría.
 - **Microservicios**:
-  - `ms-auth` (8081): autenticación, usuarios, contraseñas (cambio, recuperación por correo)
+  - `ms-auth` (8081): autenticación, usuarios, contraseñas (cambio, recuperación por correo) y auditoría
   - `ms-admin` (8082): instituciones y branding
   - `ms-education` (8083): cursos, rutas, inscripciones, quizzes y entregas calificados en el servidor,
     grupos, encuestas, reseñas, notificaciones y archivos
