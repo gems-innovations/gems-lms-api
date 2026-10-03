@@ -6,11 +6,15 @@ import com.gems.auth.application.exceptions.UserNotFoundException;
 import com.gems.auth.domain.values.UserId;
 import reactor.core.publisher.Mono;
 
-public class DisableUserUseCase {
+/**
+ * Deletes the account for good (deactivating is {@link ToggleUserStatusUseCase}). The user's learning
+ * data lives in ms-education and is removed there (DELETE /students/{id}/learning-data).
+ */
+public class DeleteUserUseCase {
 
     private final UserGateway userGateway;
 
-    public DisableUserUseCase(UserGateway userGateway) {
+    public DeleteUserUseCase(UserGateway userGateway) {
         this.userGateway = userGateway;
     }
 
@@ -19,9 +23,6 @@ public class DisableUserUseCase {
                 .switchIfEmpty(Mono.error(new UserNotFoundException(
                         String.format(AuthAppConstants.USER_NOT_FOUND_MESSAGE, userId.getValue())
                 )))
-                .flatMap(user -> {
-                    user.deactivate();
-                    return userGateway.save(user).then();
-                });
+                .flatMap(user -> userGateway.deleteById(user.getId()));
     }
 }

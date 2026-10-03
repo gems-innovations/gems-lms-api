@@ -141,7 +141,9 @@ Pendiente:
     inscripción, avance y borrado (y al arrancar); las rutas calculan inscritos y % que completó sus cursos
     obligatorios; `usersCount` lo da ms-auth (`GET /users/counts`) y el front lo combina. `averageRating`
     sale de las reseñas.
-13. `DELETE /users/{id}` solo desactiva (el usuario reaparece como inactivo al recargar).
+13. ~~Borrado de usuarios~~ **Resuelto**: `DELETE /users/{id}` borra la cuenta (desactivar es `PUT /users/{id}/status`)
+    y el front borra después sus datos de aprendizaje con `DELETE /students/{id}/learning-data` (matrículas,
+    intentos, entregas, encuestas, reseñas, rutas, grupos y notificaciones, en una transacción).
 14. ~~**Contraseñas**~~ **Resuelto** (sin correo real): las cuentas creadas con contraseña temporal deben
     cambiarla al entrar (`mustChangePassword`, `POST /auth/change-password`); "olvidé mi contraseña" con
     token de un uso y 1 h (`/auth/forgot-password`, `/auth/reset-password`). **Pendiente**: el enlace hoy

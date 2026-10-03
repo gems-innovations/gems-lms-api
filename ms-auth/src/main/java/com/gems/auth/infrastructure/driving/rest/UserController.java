@@ -1,6 +1,6 @@
 package com.gems.auth.infrastructure.driving.rest;
 
-import com.gems.auth.application.DisableUserUseCase;
+import com.gems.auth.application.DeleteUserUseCase;
 import com.gems.auth.application.GetAllUsersUseCase;
 import com.gems.auth.application.GetUserByIdUseCase;
 import com.gems.auth.application.GetUsersByInstitutionUseCase;
@@ -30,20 +30,20 @@ import java.util.Map;
 @RestController
 @RequestMapping(RestConstants.USERS_API_BASE_PATH)
 public class UserController {
-  private final DisableUserUseCase disableUserUseCase;
+  private final DeleteUserUseCase deleteUserUseCase;
   private final GetUsersByInstitutionUseCase getUsersByInstitutionUseCase;
   private final GetUserByIdUseCase getUserByIdUseCase;
   private final GetAllUsersUseCase getAllUsersUseCase;
   private final UpdateUserUseCase updateUserUseCase;
   private final ToggleUserStatusUseCase toggleUserStatusUseCase;
 
-  public UserController(DisableUserUseCase disableUserUseCase,
+  public UserController(DeleteUserUseCase deleteUserUseCase,
                         GetUsersByInstitutionUseCase getUsersByInstitutionUseCase,
                         GetUserByIdUseCase getUserByIdUseCase,
                         GetAllUsersUseCase getAllUsersUseCase,
                         UpdateUserUseCase updateUserUseCase,
                         ToggleUserStatusUseCase toggleUserStatusUseCase) {
-    this.disableUserUseCase = disableUserUseCase;
+    this.deleteUserUseCase = deleteUserUseCase;
     this.getUsersByInstitutionUseCase = getUsersByInstitutionUseCase;
     this.getUserByIdUseCase = getUserByIdUseCase;
     this.getAllUsersUseCase = getAllUsersUseCase;
@@ -108,9 +108,9 @@ public class UserController {
   }
 
   @DeleteMapping("/{id}")
-  public Mono<ResponseEntity<Void>> disableUser(@PathVariable("id") Long id) {
+  public Mono<ResponseEntity<Void>> deleteUser(@PathVariable("id") Long id) {
     return manageable(id)
-      .flatMap(target -> disableUserUseCase.execute(new UserId(id)))
+      .flatMap(target -> deleteUserUseCase.execute(new UserId(id)))
       .then(Mono.just(ResponseEntity.noContent().<Void>build()));
   }
 

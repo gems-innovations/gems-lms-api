@@ -1,6 +1,6 @@
 package com.gems.auth.infrastructure.config;
 
-import com.gems.auth.application.DisableUserUseCase;
+import com.gems.auth.application.DeleteUserUseCase;
 import com.gems.auth.application.ChangePasswordUseCase;
 import com.gems.auth.application.GetAllUsersUseCase;
 import com.gems.auth.application.GetUserByIdUseCase;
@@ -34,8 +34,8 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public DisableUserUseCase disableUserUseCase(UserGateway userGateway) {
-    return new DisableUserUseCase(userGateway);
+  public DeleteUserUseCase deleteUserUseCase(UserGateway userGateway) {
+    return new DeleteUserUseCase(userGateway);
   }
 
   @Bean

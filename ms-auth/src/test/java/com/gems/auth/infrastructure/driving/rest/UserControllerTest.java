@@ -1,6 +1,6 @@
 package com.gems.auth.infrastructure.driving.rest;
 
-import com.gems.auth.application.DisableUserUseCase;
+import com.gems.auth.application.DeleteUserUseCase;
 import com.gems.auth.application.GetAllUsersUseCase;
 import com.gems.auth.application.GetUserByIdUseCase;
 import com.gems.auth.application.GetUsersByInstitutionUseCase;
@@ -34,7 +34,7 @@ import static org.mockito.Mockito.*;
 class UserControllerTest {
 
     @Mock
-    private DisableUserUseCase disableUserUseCase;
+    private DeleteUserUseCase deleteUserUseCase;
     @Mock
     private GetUsersByInstitutionUseCase getUsersByInstitutionUseCase;
     @Mock
@@ -51,7 +51,7 @@ class UserControllerTest {
     @BeforeEach
     void setUp() {
         UserController userController = new UserController(
-            disableUserUseCase,
+            deleteUserUseCase,
             getUsersByInstitutionUseCase,
             getUserByIdUseCase,
             getAllUsersUseCase,
@@ -189,20 +189,20 @@ class UserControllerTest {
     }
 
     @Nested
-    @DisplayName("Disable User Tests")
-    class DisableUserTests {
+    @DisplayName("Delete User Tests")
+    class DeleteUserTests {
 
         @Test
-        @DisplayName("Should disable user successfully")
-        void shouldDisableUserSuccessfully() {
-            when(disableUserUseCase.execute(any(UserId.class))).thenReturn(Mono.empty());
+        @DisplayName("Should delete user successfully")
+        void shouldDeleteUserSuccessfully() {
+            when(deleteUserUseCase.execute(any(UserId.class))).thenReturn(Mono.empty());
 
             webTestClient.delete()
                 .uri("/api/v1/users/1")
                 .exchange()
                 .expectStatus().isNoContent();
 
-            verify(disableUserUseCase).execute(any(UserId.class));
+            verify(deleteUserUseCase).execute(any(UserId.class));
         }
     }
 
@@ -235,7 +235,7 @@ class UserControllerTest {
     class AuthorizationTests {
 
         private WebTestClient as(AuthenticatedUser caller) {
-            UserController controller = new UserController(disableUserUseCase, getUsersByInstitutionUseCase,
+            UserController controller = new UserController(deleteUserUseCase, getUsersByInstitutionUseCase,
                 getUserByIdUseCase, getAllUsersUseCase, updateUserUseCase, toggleUserStatusUseCase);
             return WebTestClient.bindToController(controller)
                 .webFilter(TestSecurity.authenticatedAs(caller))
@@ -268,11 +268,11 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("Admin cannot disable users of another institution")
-        void adminCannotDisableOtherInstitutionUser() {
+        @DisplayName("Admin cannot delete users of another institution")
+        void adminCannotDeleteOtherInstitutionUser() {
             as(new AuthenticatedUser(2L, "ADMIN", "inst-999")).delete().uri("/api/v1/users/1")
                 .exchange().expectStatus().isForbidden();
-            verifyNoInteractions(disableUserUseCase);
+            verifyNoInteractions(deleteUserUseCase);
         }
 
         @Test
@@ -283,9 +283,9 @@ class UserControllerTest {
         }
 
         @Test
-        @DisplayName("Admin can disable users of their institution")
-        void adminCanDisableOwnInstitutionUser() {
-            when(disableUserUseCase.execute(any(UserId.class))).thenReturn(Mono.empty());
+        @DisplayName("Admin can delete users of their institution")
+        void adminCanDeleteOwnInstitutionUser() {
+            when(deleteUserUseCase.execute(any(UserId.class))).thenReturn(Mono.empty());
             as(new AuthenticatedUser(2L, "ADMIN", "inst-123")).delete().uri("/api/v1/users/1")
                 .exchange().expectStatus().isNoContent();
         }
