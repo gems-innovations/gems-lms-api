@@ -33,8 +33,7 @@ public class EnrollStudentUseCase {
         .switchIfEmpty(Mono.defer(() -> {
           Enrollment enrollment = new Enrollment(null, command.getStudentId(), command.getCourseId(), "active",
             LocalDateTime.now(), 0, null);
-          return enrollmentGateway.save(enrollment)
-            .flatMap(saved -> courseGateway.incrementEnrolledCount(command.getCourseId()).thenReturn(saved));
+          return enrollmentGateway.save(enrollment);
         }))
       )
       .map(this::mapToResponse);

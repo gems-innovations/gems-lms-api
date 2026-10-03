@@ -130,8 +130,10 @@ Pendiente:
 10. **Encuestas de curso, notificaciones y reseñas**: sin API (encuestas y notificaciones son locales;
     reseñas quedan vacías).
 11. Lecciones y módulos no guardan `description`/`isFree`; los bloques no tienen fecha de entrega.
-12. `usersCount` de instituciones nunca se sincroniza con ms-auth; `completionRate`, `averageRating`
-    nunca se calculan; `enrolledCount` no baja al borrar una inscripción.
+12. ~~**Contadores**~~ **Resuelto**: `enrolledCount` y `completionRate` de cursos se recalculan en cada
+    inscripción, avance y borrado (y al arrancar); las rutas calculan inscritos y % que completó sus cursos
+    obligatorios; `usersCount` lo da ms-auth (`GET /users/counts`) y el front lo combina. `averageRating`
+    sigue vacío hasta que existan reseñas (punto de encuestas/reseñas).
 13. `DELETE /users/{id}` solo desactiva (el usuario reaparece como inactivo al recargar).
 14. Sin flujos de **recuperar contraseña**, **auto-registro** ni **cambio de contraseña temporal**.
 15. Sin paginación en usuarios, rutas e inscripciones; la tabla `students` de ms-education quedó sin uso.

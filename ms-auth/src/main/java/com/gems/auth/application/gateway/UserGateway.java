@@ -6,6 +6,8 @@ import com.gems.auth.domain.values.UserId;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 public interface UserGateway {
   Mono<User> save(User user);
   Mono<User> findById(UserId id);
@@ -15,4 +17,7 @@ public interface UserGateway {
   Mono<Void> deleteById(UserId id);
   Flux<User> findByInstitutionId(String institutionId);
   Flux<User> findAll();
+
+  /** Active users per institution id (institutions without users are absent). */
+  Mono<Map<String, Long>> countActiveUsersByInstitution();
 }

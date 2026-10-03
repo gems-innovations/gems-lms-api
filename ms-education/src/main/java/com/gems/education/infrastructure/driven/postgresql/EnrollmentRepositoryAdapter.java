@@ -30,6 +30,7 @@ public class EnrollmentRepositoryAdapter implements EnrollmentGateway {
     );
     entity.setProgressData(enrollment.getProgressData());
     return enrollmentRepository.save(entity)
+      .flatMap(saved -> enrollmentRepository.refreshCourseStats(saved.getCourseId()).thenReturn(saved))
       .map(this::mapToDomain);
   }
 
@@ -70,7 +71,10 @@ public class EnrollmentRepositoryAdapter implements EnrollmentGateway {
 
   @Override
   public Mono<Void> deleteById(Long id) {
-    return enrollmentRepository.deleteById(id);
+    return enrollmentRepository.findById(id)
+      .flatMap(entity -> enrollmentRepository.deleteById(id)
+        .then(enrollmentRepository.refreshCourseStats(entity.getCourseId())))
+      .then();
   }
 
   private Enrollment mapToDomain(EnrollmentEntity entity) {

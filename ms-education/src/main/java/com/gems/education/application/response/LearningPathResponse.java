@@ -16,6 +16,7 @@ public class LearningPathResponse {
   private LocalDateTime updatedAt;
   private List<StepResponse> steps = List.of();
   private long enrolledCount;
+  private int completionRate;
 
   /** Settings of one course of the path, in path order. */
   public record StepResponse(Long courseId, boolean required, Integer minimumScore) {
@@ -33,6 +34,7 @@ public class LearningPathResponse {
     copy.updatedAt = updatedAt;
     copy.steps = steps;
     copy.enrolledCount = enrolledCount;
+    copy.completionRate = completionRate;
     return copy;
   }
 
@@ -48,6 +50,8 @@ public class LearningPathResponse {
   public void setSteps(List<StepResponse> steps) { this.steps = steps; }
   public long getEnrolledCount() { return enrolledCount; }
   public void setEnrolledCount(long enrolledCount) { this.enrolledCount = enrolledCount; }
+  public int getCompletionRate() { return completionRate; }
+  public void setCompletionRate(int completionRate) { this.completionRate = completionRate; }
 
   public LearningPathResponse(Long id, String title, String description, String institutionId, LocalDateTime createdAt, List<CourseResponse> courses) {
     this.id = id;

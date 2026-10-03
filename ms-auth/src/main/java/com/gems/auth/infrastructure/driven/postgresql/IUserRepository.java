@@ -1,5 +1,6 @@
 package com.gems.auth.infrastructure.driven.postgresql;
 
+import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -14,4 +15,7 @@ public interface IUserRepository extends ReactiveCrudRepository<UserEntity, Long
   Mono<Boolean> existsByUsername(String username);
 
   Flux<UserEntity> findByInstitutionId(String institutionId);
+
+  @Query("SELECT institution_id, COUNT(*) AS total FROM users WHERE active AND institution_id IS NOT NULL GROUP BY institution_id")
+  Flux<InstitutionUserCount> countActiveByInstitution();
 }

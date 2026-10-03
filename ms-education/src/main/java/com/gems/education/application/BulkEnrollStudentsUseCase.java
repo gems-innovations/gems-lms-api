@@ -28,8 +28,7 @@ public class BulkEnrollStudentsUseCase {
           .switchIfEmpty(Mono.defer(() -> {
             Enrollment enrollment = new Enrollment(null, studentId, command.getCourseId(), "active",
               LocalDateTime.now(), 0, null);
-            return enrollmentGateway.save(enrollment)
-              .flatMap(saved -> courseGateway.incrementEnrolledCount(command.getCourseId()).thenReturn(saved));
+            return enrollmentGateway.save(enrollment);
           }))
           .onErrorResume(e -> Mono.empty()) // Resilient to individual student errors
         )

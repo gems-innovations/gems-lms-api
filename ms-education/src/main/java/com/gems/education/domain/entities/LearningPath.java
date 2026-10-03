@@ -18,6 +18,8 @@ public class LearningPath {
   /** Settings of each course in {@link #courses}; a course without an entry is a required step. */
   private List<LearningPathStep> steps = new ArrayList<>();
   private long enrolledCount;
+  /** % of enrolled students that completed every required course. */
+  private int completionRate;
 
   public static final String DRAFT = "draft";
   public static final String PUBLISHED = "published";
@@ -96,6 +98,8 @@ public class LearningPath {
   public void setSteps(List<LearningPathStep> steps) { this.steps = steps == null ? new ArrayList<>() : steps; }
   public long getEnrolledCount() { return enrolledCount; }
   public void setEnrolledCount(long enrolledCount) { this.enrolledCount = enrolledCount; }
+  public int getCompletionRate() { return completionRate; }
+  public void setCompletionRate(int completionRate) { this.completionRate = completionRate; }
 
   /** The settings of a course of this path (required, no minimum score if none were given). */
   public LearningPathStep stepFor(Long courseId) {

@@ -51,7 +51,6 @@ class BulkEnrollStudentsUseCaseTest {
     when(courseGateway.findById(5L)).thenReturn(Mono.just(course));
     when(enrollmentGateway.findByStudentIdAndCourseId(10L, 5L)).thenReturn(Mono.empty());
     when(enrollmentGateway.save(any(Enrollment.class))).thenReturn(Mono.just(enrollment));
-    when(courseGateway.incrementEnrolledCount(5L)).thenReturn(Mono.empty());
 
     Flux<EnrollmentResponse> result = bulkEnrollStudentsUseCase.execute(command);
 

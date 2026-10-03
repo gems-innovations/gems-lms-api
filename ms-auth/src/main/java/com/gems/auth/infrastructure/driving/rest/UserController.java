@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 /**
  * Access rules: the super admin manages every user; an admin manages the non-super-admin
  * users of their institution; staff (admin, instructor) can list their institution; every
@@ -55,6 +57,19 @@ public class UserController {
       .map(caller -> ResponseEntity.ok(getAllUsersUseCase.execute()));
   }
 
+  /**
+   * Active users per institution. The super admin gets every institution; staff only theirs.
+   * Declared before {@code /{id}} so "counts" is never read as an id.
+   */
+  @GetMapping("/counts")
+  public Mono<ResponseEntity<Map<String, Long>>> countByInstitution() {
+    return CurrentUser.require(AuthenticatedUser::isStaff, "Only staff can see user counts")
+      .flatMap(caller -> getAllUsersUseCase.countByInstitution().map(counts -> caller.isSuperAdmin()
+        ? counts
+        : Map.of(caller.institutionId(), counts.getOrDefault(caller.institutionId(), 0L))))
+      .map(ResponseEntity::ok);
+  }
+
   @GetMapping("/{id}")
   public Mono<ResponseEntity<UserResponse>> getUserById(@PathVariable("id") Long id) {
     return CurrentUser.get()
@@ -84,7 +99,8 @@ public class UserController {
       .map(ResponseEntity::ok);
   }
 
-  @PatchMapping("/{id}/status")
+  // PUT as well: browsers go through the gateway, whose CORS policy does not allow PATCH.
+  @RequestMapping(value = "/{id}/status", method = {RequestMethod.PATCH, RequestMethod.PUT})
   public Mono<ResponseEntity<UserResponse>> toggleUserStatus(@PathVariable("id") Long id) {
     return manageable(id)
       .flatMap(target -> toggleUserStatusUseCase.execute(new UserId(id)))

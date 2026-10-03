@@ -27,6 +27,7 @@ final class LearningPathResponses {
       return new LearningPathResponse.StepResponse(c.getId(), step.required(), step.minimumScore());
     }).toList());
     response.setEnrolledCount(lp.getEnrolledCount());
+    response.setCompletionRate(lp.getCompletionRate());
     return response;
   }
 }

@@ -203,3 +203,10 @@ CREATE TABLE IF NOT EXISTS path_enrollments (
     CONSTRAINT fk_path_enrollment_path FOREIGN KEY(learning_path_id) REFERENCES learning_paths(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_path_enrollments_student ON path_enrollments(student_id);
+
+-- Course counters are derived from enrollments: recomputed on every enrollment change and,
+-- here, once per startup so counters written by older versions are corrected.
+UPDATE courses SET
+    enrolled_count = (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = courses.id),
+    completion_rate = COALESCE((SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed') / NULLIF(COUNT(*), 0))
+                                FROM enrollments e WHERE e.course_id = courses.id), 0);

@@ -244,6 +244,22 @@ class UserControllerTest {
         }
 
         @Test
+        @DisplayName("User counts: super admin sees every institution, staff only theirs, students none")
+        void userCountsAreScopedByRole() {
+            when(getAllUsersUseCase.countByInstitution())
+                .thenReturn(Mono.just(java.util.Map.of("inst-123", 4L, "inst-999", 2L)));
+
+            as(new AuthenticatedUser(1L, "SUPER_ADMIN", null)).get().uri("/api/v1/users/counts")
+                .exchange().expectStatus().isOk()
+                .expectBody().jsonPath("$['inst-123']").isEqualTo(4).jsonPath("$['inst-999']").isEqualTo(2);
+            as(new AuthenticatedUser(2L, "ADMIN", "inst-123")).get().uri("/api/v1/users/counts")
+                .exchange().expectStatus().isOk()
+                .expectBody().jsonPath("$['inst-123']").isEqualTo(4).jsonPath("$['inst-999']").doesNotExist();
+            as(new AuthenticatedUser(3L, "STUDENT", "inst-123")).get().uri("/api/v1/users/counts")
+                .exchange().expectStatus().isForbidden();
+        }
+
+        @Test
         @DisplayName("Admin cannot list every user")
         void adminCannotListAllUsers() {
             as(new AuthenticatedUser(2L, "ADMIN", "inst-123")).get().uri("/api/v1/users")

@@ -10,6 +10,8 @@ import com.gems.auth.domain.values.UserRole;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 @Repository
 public class UserRepositoryAdapter implements UserGateway {
   private final IUserRepository userRepository;
@@ -96,5 +98,11 @@ public class UserRepositoryAdapter implements UserGateway {
       user.getCreatedAt(),
       user.getUpdatedAt()
     );
+  }
+
+  @Override
+  public Mono<Map<String, Long>> countActiveUsersByInstitution() {
+    return userRepository.countActiveByInstitution()
+      .collectMap(InstitutionUserCount::institutionId, InstitutionUserCount::total);
   }
 }

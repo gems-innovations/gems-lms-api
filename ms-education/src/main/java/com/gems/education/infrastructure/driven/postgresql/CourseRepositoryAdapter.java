@@ -246,15 +246,6 @@ public class CourseRepositoryAdapter implements CourseGateway {
     return criteria;
   }
 
-  @Override
-  public Mono<Void> incrementEnrolledCount(Long courseId) {
-    return courseRepository.findById(courseId)
-      .flatMap(entity -> {
-        entity.setEnrolledCount((entity.getEnrolledCount() == null ? 0 : entity.getEnrolledCount()) + 1);
-        return courseRepository.save(entity);
-      })
-      .then();
-  }
 
   private List<String> splitTags(String tags) {
     if (tags == null || tags.isBlank()) return new ArrayList<>();

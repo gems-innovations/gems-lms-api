@@ -17,7 +17,5 @@ public interface CourseGateway {
 
   Mono<Long> count(String search, String status, String difficulty, String institutionId);
 
-  Mono<Void> incrementEnrolledCount(Long courseId);
-
   Mono<Void> deleteById(Long id);
 }

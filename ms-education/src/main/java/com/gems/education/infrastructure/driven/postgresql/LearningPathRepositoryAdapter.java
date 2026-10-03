@@ -110,9 +110,11 @@ public class LearningPathRepositoryAdapter implements LearningPathGateway {
   }
 
   private Mono<LearningPath> withEnrolledCount(LearningPath path) {
-    return pathEnrollmentRepository.countByLearningPathId(path.getId())
-      .map(count -> {
-        path.setEnrolledCount(count);
+    return Mono.zip(pathEnrollmentRepository.countByLearningPathId(path.getId()),
+        pathEnrollmentRepository.completionRate(path.getId()))
+      .map(stats -> {
+        path.setEnrolledCount(stats.getT1());
+        path.setCompletionRate(stats.getT2());
         return path;
       });
   }
