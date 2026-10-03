@@ -59,7 +59,8 @@ public class LoginUseCase {
           user.isActive(),
           user.getCreatedAt(),
           user.getUpdatedAt(),
-          token
+          token,
+          user.mustChangePassword()
         ));
       });
   }

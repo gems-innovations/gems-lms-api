@@ -20,4 +20,7 @@ public interface UserGateway {
 
   /** Active users per institution id (institutions without users are absent). */
   Mono<Map<String, Long>> countActiveUsersByInstitution();
+
+  /** Replaces the password hash and clears the "must change password" flag. */
+  Mono<Void> updatePassword(UserId id, String encodedPassword);
 }

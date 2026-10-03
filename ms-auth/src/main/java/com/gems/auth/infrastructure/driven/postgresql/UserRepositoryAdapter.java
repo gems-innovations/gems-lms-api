@@ -67,7 +67,7 @@ public class UserRepositoryAdapter implements UserGateway {
   }
 
   private User mapToDomain(UserEntity userEntity) {
-    return new User(
+    User user = new User(
       new UserId(userEntity.getUserId()),
       new UserName(userEntity.getFirstName()),
       new UserName(userEntity.getLastName()),
@@ -81,10 +81,12 @@ public class UserRepositoryAdapter implements UserGateway {
       userEntity.getUpdatedAt(),
       userEntity.isActive()
     );
+    user.setMustChangePassword(Boolean.TRUE.equals(userEntity.getMustChangePassword()));
+    return user;
   }
 
   private UserEntity mapToEntity(User user) {
-    return new UserEntity(
+    UserEntity entity = new UserEntity(
       user.getId() != null ? user.getId().getValue() : null,
       user.getFirstName().getValue(),
       user.getLastName().getValue(),
@@ -98,11 +100,18 @@ public class UserRepositoryAdapter implements UserGateway {
       user.getCreatedAt(),
       user.getUpdatedAt()
     );
+    entity.setMustChangePassword(user.mustChangePassword());
+    return entity;
   }
 
   @Override
   public Mono<Map<String, Long>> countActiveUsersByInstitution() {
     return userRepository.countActiveByInstitution()
       .collectMap(InstitutionUserCount::institutionId, InstitutionUserCount::total);
+  }
+
+  @Override
+  public Mono<Void> updatePassword(UserId id, String encodedPassword) {
+    return userRepository.updatePassword(id.getValue(), encodedPassword).then();
   }
 }

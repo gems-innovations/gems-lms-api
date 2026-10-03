@@ -1,5 +1,6 @@
 package com.gems.auth.infrastructure.driven.postgresql;
 
+import org.springframework.data.r2dbc.repository.Modifying;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
@@ -18,4 +19,8 @@ public interface IUserRepository extends ReactiveCrudRepository<UserEntity, Long
 
   @Query("SELECT institution_id, COUNT(*) AS total FROM users WHERE active AND institution_id IS NOT NULL GROUP BY institution_id")
   Flux<InstitutionUserCount> countActiveByInstitution();
+
+  @Modifying
+  @Query("UPDATE users SET password = :encodedPassword, must_change_password = false, updated_at = NOW() WHERE user_id = :userId")
+  Mono<Integer> updatePassword(Long userId, String encodedPassword);
 }

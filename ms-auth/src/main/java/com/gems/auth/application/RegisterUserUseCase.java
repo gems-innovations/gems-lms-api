@@ -52,6 +52,7 @@ public class RegisterUserUseCase {
               command.institutionId(),
               null
             );
+            user.setMustChangePassword(passwordWasGenerated);
 
             return userGateway.save(user)
               .map(savedUser -> new UserResponse(

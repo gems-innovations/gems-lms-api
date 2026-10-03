@@ -1,6 +1,7 @@
 package com.gems.auth.infrastructure.driving.rest;
 
 import com.gems.auth.application.exceptions.InvalidCredentialsException;
+import com.gems.auth.application.exceptions.PasswordChangeException;
 import com.gems.auth.application.exceptions.UserAlreadyExistsException;
 import com.gems.auth.application.exceptions.UserDeactivatedException;
 import com.gems.auth.application.exceptions.UserNotFoundException;
@@ -60,6 +61,12 @@ public class GlobalExceptionHandler {
       ex.getMessage(),
       HttpStatus.BAD_REQUEST.value()
     );
+    return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error));
+  }
+
+  @ExceptionHandler(PasswordChangeException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handlePasswordChangeException(PasswordChangeException ex) {
+    ErrorResponse error = new ErrorResponse(ex.getCode(), ex.getMessage(), HttpStatus.BAD_REQUEST.value());
     return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error));
   }
 

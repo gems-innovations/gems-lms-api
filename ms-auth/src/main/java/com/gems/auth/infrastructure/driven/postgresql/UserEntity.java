@@ -30,6 +30,8 @@ public class UserEntity {
   private String avatarUrl;
 
   private Boolean active;
+  @Column("must_change_password")
+  private Boolean mustChangePassword = false;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;
 
@@ -147,5 +149,13 @@ public class UserEntity {
 
   public void setAvatarUrl(String avatarUrl) {
     this.avatarUrl = avatarUrl;
+  }
+
+  public Boolean getMustChangePassword() {
+    return mustChangePassword;
+  }
+
+  public void setMustChangePassword(Boolean mustChangePassword) {
+    this.mustChangePassword = mustChangePassword;
   }
 }

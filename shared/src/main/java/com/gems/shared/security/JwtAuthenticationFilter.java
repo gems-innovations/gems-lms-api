@@ -71,7 +71,9 @@ public class JwtAuthenticationFilter implements WebFilter {
     }
 
     private boolean shouldSkipAuthentication(String path) {
-        if (path.equals(loginPath)) {
+        if (path.equals(loginPath)
+            || path.equals("/api/v1/auth/forgot-password")
+            || path.equals("/api/v1/auth/reset-password")) {
             return true;
         }
         

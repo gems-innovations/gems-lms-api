@@ -1,15 +1,19 @@
 package com.gems.auth.infrastructure.config;
 
 import com.gems.auth.application.DisableUserUseCase;
+import com.gems.auth.application.ChangePasswordUseCase;
 import com.gems.auth.application.GetAllUsersUseCase;
 import com.gems.auth.application.GetUserByIdUseCase;
 import com.gems.auth.application.GetUsersByInstitutionUseCase;
 import com.gems.auth.application.LoginUseCase;
+import com.gems.auth.application.PasswordRecoveryUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.ToggleUserStatusUseCase;
 import com.gems.auth.application.UpdateUserUseCase;
 import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
+import com.gems.auth.application.gateway.PasswordResetGateway;
+import com.gems.auth.application.gateway.PasswordResetNotifier;
 import com.gems.auth.application.gateway.UserGateway;
 import com.gems.auth.infrastructure.driven.postgresql.IUserRepository;
 import com.gems.auth.infrastructure.driven.postgresql.UserRepositoryAdapter;
@@ -64,5 +68,17 @@ public class ApplicationConfig {
   @Bean
   public ToggleUserStatusUseCase toggleUserStatusUseCase(UserGateway userGateway) {
     return new ToggleUserStatusUseCase(userGateway);
+  }
+
+  @Bean
+  public ChangePasswordUseCase changePasswordUseCase(UserGateway userGateway, PasswordEncoderGateway passwordEncoderGateway) {
+    return new ChangePasswordUseCase(userGateway, passwordEncoderGateway);
+  }
+
+  @Bean
+  public PasswordRecoveryUseCase passwordRecoveryUseCase(UserGateway userGateway, PasswordResetGateway resetGateway,
+                                                         PasswordResetNotifier notifier,
+                                                         PasswordEncoderGateway passwordEncoderGateway) {
+    return new PasswordRecoveryUseCase(userGateway, resetGateway, notifier, passwordEncoderGateway);
   }
 }

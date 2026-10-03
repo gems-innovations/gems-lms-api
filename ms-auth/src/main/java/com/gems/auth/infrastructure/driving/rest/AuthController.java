@@ -1,7 +1,9 @@
 package com.gems.auth.infrastructure.driving.rest;
 
 import com.gems.shared.security.CurrentUser;
+import com.gems.auth.application.ChangePasswordUseCase;
 import com.gems.auth.application.LoginUseCase;
+import com.gems.auth.application.PasswordRecoveryUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.command.LoginCommand;
 import com.gems.auth.application.response.LoginResponse;
@@ -33,10 +35,49 @@ import reactor.core.publisher.Mono;
 public class AuthController {
   private final RegisterUserUseCase registerUserUseCase;
   private final LoginUseCase loginUseCase;
+  private final ChangePasswordUseCase changePasswordUseCase;
+  private final PasswordRecoveryUseCase passwordRecoveryUseCase;
 
-  public AuthController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase) {
+  public AuthController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase,
+                        ChangePasswordUseCase changePasswordUseCase, PasswordRecoveryUseCase passwordRecoveryUseCase) {
     this.registerUserUseCase = registerUserUseCase;
     this.loginUseCase = loginUseCase;
+    this.changePasswordUseCase = changePasswordUseCase;
+    this.passwordRecoveryUseCase = passwordRecoveryUseCase;
+  }
+
+  /** The signed-in user replaces their password (required after signing in with a temporary one). */
+  @PostMapping("/change-password")
+  @Operation(summary = "Change the signed-in user's password")
+  @SecurityRequirement(name = "bearerAuth")
+  public Mono<ResponseEntity<Void>> changePassword(@RequestBody ChangePasswordRequest request) {
+    return CurrentUser.get()
+      .flatMap(caller -> changePasswordUseCase.execute(caller.userId(), request.currentPassword(), request.newPassword()))
+      .thenReturn(ResponseEntity.noContent().<Void>build());
+  }
+
+  /** Always 202, whether or not the e-mail has an account, so accounts cannot be discovered. */
+  @PostMapping("/forgot-password")
+  @Operation(summary = "Send a password reset link")
+  public Mono<ResponseEntity<Void>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    return passwordRecoveryUseCase.requestReset(request.email())
+      .thenReturn(ResponseEntity.accepted().<Void>build());
+  }
+
+  @PostMapping("/reset-password")
+  @Operation(summary = "Set a new password with a reset link token")
+  public Mono<ResponseEntity<Void>> resetPassword(@RequestBody ResetPasswordRequest request) {
+    return passwordRecoveryUseCase.reset(request.token(), request.newPassword())
+      .thenReturn(ResponseEntity.noContent().<Void>build());
+  }
+
+  public record ChangePasswordRequest(String currentPassword, String newPassword) {
+  }
+
+  public record ForgotPasswordRequest(String email) {
+  }
+
+  public record ResetPasswordRequest(String token, String newPassword) {
   }
 
   @PostMapping(AuthInfraConstants.REGISTER_ENDPOINT)

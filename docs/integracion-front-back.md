@@ -135,7 +135,11 @@ Pendiente:
     obligatorios; `usersCount` lo da ms-auth (`GET /users/counts`) y el front lo combina. `averageRating`
     sigue vacío hasta que existan reseñas (punto de encuestas/reseñas).
 13. `DELETE /users/{id}` solo desactiva (el usuario reaparece como inactivo al recargar).
-14. Sin flujos de **recuperar contraseña**, **auto-registro** ni **cambio de contraseña temporal**.
+14. ~~**Contraseñas**~~ **Resuelto** (sin correo real): las cuentas creadas con contraseña temporal deben
+    cambiarla al entrar (`mustChangePassword`, `POST /auth/change-password`); "olvidé mi contraseña" con
+    token de un uso y 1 h (`/auth/forgot-password`, `/auth/reset-password`). **Pendiente**: el enlace hoy
+    se escribe en `logs/ms-auth.log` (`LoggingPasswordResetNotifier`); falta un notificador por correo
+    (SMTP/SendGrid/SES) y definir el **auto-registro** (el enlace "Regístrate" del login no hace nada).
 15. Sin paginación en usuarios, rutas e inscripciones; la tabla `students` de ms-education quedó sin uso.
 
 ## Qué falta — front
