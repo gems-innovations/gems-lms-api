@@ -270,6 +270,11 @@ CREATE TABLE IF NOT EXISTS stored_files (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Module and lesson details added after the initial schema.
+ALTER TABLE modules ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS is_free BOOLEAN NOT NULL DEFAULT false;
+
 -- Course counters are derived from enrollments: recomputed on every enrollment change and,
 -- here, once per startup so counters written by older versions are corrected.
 UPDATE courses SET

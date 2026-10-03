@@ -34,4 +34,15 @@ public class ModuleCommand {
   public Long getId() {
     return id;
   }
+
+  /** Optional module description. */
+  private String description;
+
+  public String getDescription() { return description; }
+  public void setDescription(String description) { this.description = description; }
+
+  public ModuleCommand details(String description) {
+    this.description = description;
+    return this;
+  }
 }

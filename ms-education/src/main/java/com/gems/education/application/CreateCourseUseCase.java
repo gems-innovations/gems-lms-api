@@ -57,10 +57,11 @@ public class CreateCourseUseCase {
               lCmd.getContents().forEach(cCmd ->
                 contents.add(new Content(null, null, cCmd.getType(), cCmd.getValue(), cCmd.getOrderIndex())));
             }
-            lessons.add(new Lesson(null, null, lCmd.getTitle(), lCmd.getOrderIndex(), contents));
+            lessons.add(new Lesson(null, null, lCmd.getTitle(), lCmd.getOrderIndex(), contents)
+              .details(lCmd.getDescription(), lCmd.getIsFree()));
           });
         }
-        modules.add(new Module(null, null, mCmd.getTitle(), mCmd.getOrderIndex(), lessons));
+        modules.add(new Module(null, null, mCmd.getTitle(), mCmd.getOrderIndex(), lessons).details(mCmd.getDescription()));
       });
     }
     course.setModules(modules);

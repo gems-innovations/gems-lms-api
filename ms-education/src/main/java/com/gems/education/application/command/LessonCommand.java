@@ -34,4 +34,19 @@ public class LessonCommand {
   public Long getId() {
     return id;
   }
+
+  /** Optional lesson description; isFree lessons can be previewed without enrolling. */
+  private String description;
+  private Boolean isFree = false;
+
+  public String getDescription() { return description; }
+  public void setDescription(String description) { this.description = description; }
+  public Boolean getIsFree() { return isFree; }
+  public void setIsFree(Boolean isFree) { this.isFree = Boolean.TRUE.equals(isFree); }
+
+  public LessonCommand details(String description, Boolean isFree) {
+    this.description = description;
+    this.isFree = Boolean.TRUE.equals(isFree);
+    return this;
+  }
 }

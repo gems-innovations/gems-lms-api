@@ -135,7 +135,8 @@ Pendiente:
     de inscritos), reseñas 1–5 (`/courses/{id}/review(s)`) que alimentan `averageRating`/`ratingCount`, y
     notificaciones del servidor (`/notifications`: entrega → staff, calificación → estudiante) con campana en
     los layouts de estudiante e instructor.
-11. Lecciones y módulos no guardan `description`/`isFree`; los bloques no tienen fecha de entrega.
+11. ~~Detalles de lecciones~~ **Resuelto**: módulos y lecciones guardan `description`, las lecciones `isFree`, y los
+    bloques de tarea llevan `dueDate` (en su JSON) que alimenta el calendario de entregas del estudiante.
 12. ~~**Contadores**~~ **Resuelto**: `enrolledCount` y `completionRate` de cursos se recalculan en cada
     inscripción, avance y borrado (y al arrancar); las rutas calculan inscritos y % que completó sus cursos
     obligatorios; `usersCount` lo da ms-auth (`GET /users/counts`) y el front lo combina. `averageRating`

@@ -51,10 +51,12 @@ public class UpdateCourseUseCase {
                   lCmd.getContents().forEach(cCmd ->
                     contents.add(new Content(cCmd.getId(), null, cCmd.getType(), cCmd.getValue(), cCmd.getOrderIndex())));
                 }
-                lessons.add(new Lesson(lCmd.getId(), null, lCmd.getTitle(), lCmd.getOrderIndex(), contents));
+                lessons.add(new Lesson(lCmd.getId(), null, lCmd.getTitle(), lCmd.getOrderIndex(), contents)
+                  .details(lCmd.getDescription(), lCmd.getIsFree()));
               });
             }
-            modules.add(new Module(mCmd.getId(), null, mCmd.getTitle(), mCmd.getOrderIndex(), lessons));
+            modules.add(new Module(mCmd.getId(), null, mCmd.getTitle(), mCmd.getOrderIndex(), lessons)
+              .details(mCmd.getDescription()));
           });
           existing.setModules(modules);
           existing.setTotalLessons(modules.stream().mapToInt(m -> m.getLessons() == null ? 0 : m.getLessons().size()).sum());

@@ -55,12 +55,13 @@ public class StudentView {
 
   private ModuleResponse module(ModuleResponse m) {
     List<LessonResponse> lessons = m.getLessons() == null ? null : m.getLessons().stream().map(this::lesson).toList();
-    return new ModuleResponse(m.getId(), m.getCourseId(), m.getTitle(), m.getOrderIndex(), lessons);
+    return new ModuleResponse(m.getId(), m.getCourseId(), m.getTitle(), m.getOrderIndex(), lessons).details(m.getDescription());
   }
 
   private LessonResponse lesson(LessonResponse l) {
     List<ContentResponse> contents = l.getContents() == null ? null : l.getContents().stream().map(this::content).toList();
-    return new LessonResponse(l.getId(), l.getModuleId(), l.getTitle(), l.getOrderIndex(), contents);
+    return new LessonResponse(l.getId(), l.getModuleId(), l.getTitle(), l.getOrderIndex(), contents)
+      .details(l.getDescription(), l.getIsFree());
   }
 
   private ContentResponse content(ContentResponse c) {

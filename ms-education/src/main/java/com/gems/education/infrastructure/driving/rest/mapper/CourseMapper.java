@@ -31,10 +31,12 @@ public class CourseMapper {
                 .map(cReq -> new ContentCommand(cReq.getType(), cReq.getValue(), cReq.getOrderIndex()).withId(cReq.getId()))
                 .collect(Collectors.toList());
             }
-            return new LessonCommand(lReq.getTitle(), lReq.getOrderIndex(), contents).withId(lReq.getId());
+            return new LessonCommand(lReq.getTitle(), lReq.getOrderIndex(), contents).withId(lReq.getId())
+              .details(lReq.getDescription(), lReq.getIsFree());
           }).collect(Collectors.toList());
         }
-        return new ModuleCommand(mReq.getTitle(), mReq.getOrderIndex(), lessons).withId(mReq.getId());
+        return new ModuleCommand(mReq.getTitle(), mReq.getOrderIndex(), lessons).withId(mReq.getId())
+          .details(mReq.getDescription());
       }).collect(Collectors.toList());
     }
 

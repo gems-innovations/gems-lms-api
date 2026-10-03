@@ -72,4 +72,16 @@ public class ModuleEntity {
   public void setCreatedAt(LocalDateTime createdAt) {
     this.createdAt = createdAt;
   }
+
+  /** Optional module description. */
+  @org.springframework.data.relational.core.mapping.Column("description")
+  private String description;
+
+  public String getDescription() { return description; }
+  public void setDescription(String description) { this.description = description; }
+
+  public ModuleEntity details(String description) {
+    this.description = description;
+    return this;
+  }
 }

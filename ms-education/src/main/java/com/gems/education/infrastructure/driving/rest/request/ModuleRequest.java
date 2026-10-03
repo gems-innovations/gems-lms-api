@@ -58,4 +58,15 @@ public class ModuleRequest {
   public void setId(Long id) {
     this.id = id;
   }
+
+  /** Optional module description. */
+  private String description;
+
+  public String getDescription() { return description; }
+  public void setDescription(String description) { this.description = description; }
+
+  public ModuleRequest details(String description) {
+    this.description = description;
+    return this;
+  }
 }

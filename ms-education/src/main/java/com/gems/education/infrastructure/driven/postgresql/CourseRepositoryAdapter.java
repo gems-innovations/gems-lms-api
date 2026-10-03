@@ -78,9 +78,11 @@ public class CourseRepositoryAdapter implements CourseGateway {
             ModuleEntity entity = current != null
               ? new ModuleEntity(current.getId(), courseId, module.getTitle(), module.getOrderIndex(), current.getCreatedAt())
               : new ModuleEntity(null, courseId, module.getTitle(), module.getOrderIndex(), LocalDateTime.now());
+            entity.setDescription(module.getDescription());
             return moduleRepository.save(entity)
               .flatMap(saved -> syncLessons(saved.getId(), module.getLessons())
-                .map(lessons -> new Module(saved.getId(), saved.getCourseId(), saved.getTitle(), saved.getOrderIndex(), lessons)));
+                .map(lessons -> new Module(saved.getId(), saved.getCourseId(), saved.getTitle(), saved.getOrderIndex(), lessons)
+                  .details(saved.getDescription())));
           });
 
         return removeMissing.thenMany(upserts).collectList();
@@ -107,9 +109,11 @@ public class CourseRepositoryAdapter implements CourseGateway {
             LessonEntity entity = current != null
               ? new LessonEntity(current.getId(), moduleId, lesson.getTitle(), lesson.getOrderIndex(), current.getCreatedAt())
               : new LessonEntity(null, moduleId, lesson.getTitle(), lesson.getOrderIndex(), LocalDateTime.now());
+            entity.details(lesson.getDescription(), lesson.getIsFree());
             return lessonRepository.save(entity)
               .flatMap(saved -> syncContents(saved.getId(), lesson.getContents())
-                .map(contents -> new Lesson(saved.getId(), saved.getModuleId(), saved.getTitle(), saved.getOrderIndex(), contents)));
+                .map(contents -> new Lesson(saved.getId(), saved.getModuleId(), saved.getTitle(), saved.getOrderIndex(), contents)
+                  .details(saved.getDescription(), saved.getIsFree())));
           });
 
         return removeMissing.thenMany(upserts).collectList();
@@ -185,7 +189,7 @@ public class CourseRepositoryAdapter implements CourseGateway {
                   lessonEntity.getTitle(),
                   lessonEntity.getOrderIndex(),
                   contents
-                );
+                ).details(lessonEntity.getDescription(), lessonEntity.getIsFree());
               })
           )
           .collectList()
@@ -197,7 +201,7 @@ public class CourseRepositoryAdapter implements CourseGateway {
               moduleEntity.getTitle(),
               moduleEntity.getOrderIndex(),
               lessons
-            );
+            ).details(moduleEntity.getDescription());
           })
       )
       .collectList()
