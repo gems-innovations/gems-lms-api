@@ -15,6 +15,7 @@ import com.gems.education.infrastructure.driving.rest.request.EnrollmentRequest;
 import com.gems.education.infrastructure.driving.rest.request.EnrollmentProgressRequest;
 import com.gems.shared.security.CurrentUser;
 import com.gems.shared.security.ForbiddenException;
+import com.gems.shared.web.Paging;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -92,10 +93,13 @@ public class EnrollmentController {
   }
 
   /** Every enrollment in the institution's courses (staff dashboards). */
+  /** Optional page/limit (total in X-Total-Count). */
   @GetMapping("/institution/{institutionId}")
-  public Mono<ResponseEntity<Flux<EnrollmentResponse>>> getEnrollmentsByInstitution(@PathVariable String institutionId) {
+  public Mono<ResponseEntity<java.util.List<EnrollmentResponse>>> getEnrollmentsByInstitution(
+      @PathVariable String institutionId,
+      @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer limit) {
     return access.staffOf(institutionId)
-      .map(caller -> ResponseEntity.ok(getEnrollmentsByInstitutionUseCase.execute(institutionId)));
+      .flatMap(caller -> Paging.of(getEnrollmentsByInstitutionUseCase.execute(institutionId), page, limit));
   }
 
   @GetMapping("/course/{courseId}")

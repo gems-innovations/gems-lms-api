@@ -90,6 +90,7 @@ public class SecurityConfig {
     configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
     configuration.setAllowCredentials(allowCredentials);
     configuration.setMaxAge(maxAge);
+    configuration.setExposedHeaders(Arrays.asList("X-Total-Count", "Content-Disposition"));
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);

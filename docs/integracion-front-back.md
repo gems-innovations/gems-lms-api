@@ -149,7 +149,10 @@ Pendiente:
     token de un uso y 1 h (`/auth/forgot-password`, `/auth/reset-password`). **Pendiente**: el enlace hoy
     se escribe en `logs/ms-auth.log` (`LoggingPasswordResetNotifier`); falta un notificador por correo
     (SMTP/SendGrid/SES) y definir el **auto-registro** (el enlace "Regístrate" del login no hace nada).
-15. Sin paginación en usuarios, rutas e inscripciones; la tabla `students` de ms-education quedó sin uso.
+15. ~~Paginación~~ **Resuelto**: `GET /users/institution/{id}` (en SQL, con `search`), `/learning-paths` y
+    `/enrollments/institution/{id}` aceptan `page`/`limit` y devuelven el total en `X-Total-Count`; sin `page`
+    responden la lista completa como antes. La lista de usuarios del front tiene búsqueda y paginación. El registro
+    `students` de ms-education queda marcado `@Deprecated` (las cuentas viven en ms-auth).
 
 ## Qué falta — front
 

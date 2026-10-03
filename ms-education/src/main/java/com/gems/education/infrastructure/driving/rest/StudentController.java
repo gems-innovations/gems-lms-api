@@ -12,6 +12,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import jakarta.validation.Valid;
 
+/**
+ * Legacy student-profile registry (name, birth date, document). Accounts live in ms-auth and
+ * enrollments use their user ids, so the web app does not use this registry. Kept for existing
+ * integrations; new code should not depend on it.
+ */
+@Deprecated
 @RestController
 @RequestMapping(RestConstants.STUDENTS_API_BASE_PATH)
 public class StudentController {

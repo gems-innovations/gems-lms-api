@@ -244,6 +244,22 @@ class UserControllerTest {
         }
 
         @Test
+        @DisplayName("Institution users can be paged and searched, with the total in X-Total-Count")
+        void institutionUsersArePaged() {
+            UserResponse ana = new UserResponse(4L, "Ana", "Ruiz", "ana", "ana@example.com", "STUDENT", "inst-123",
+                null, LocalDateTime.now(), LocalDateTime.now(), true);
+            when(getUsersByInstitutionUseCase.search("inst-123", "ana", 2, 2L))
+                .thenReturn(Mono.just(new com.gems.auth.application.GetUsersByInstitutionUseCase.UserPage(
+                    java.util.List.of(ana), 3L)));
+
+            as(new AuthenticatedUser(2L, "ADMIN", "inst-123")).get()
+                .uri("/api/v1/users/institution/inst-123?page=2&limit=2&search=ana")
+                .exchange().expectStatus().isOk()
+                .expectHeader().valueEquals("X-Total-Count", "3")
+                .expectBody().jsonPath("$[0].email").isEqualTo("ana@example.com");
+        }
+
+        @Test
         @DisplayName("User counts: super admin sees every institution, staff only theirs, students none")
         void userCountsAreScopedByRole() {
             when(getAllUsersUseCase.countByInstitution())

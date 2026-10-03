@@ -14,12 +14,14 @@ import com.gems.auth.infrastructure.driving.rest.request.UpdateUserRequest;
 import com.gems.shared.security.AuthenticatedUser;
 import com.gems.shared.security.CurrentUser;
 import com.gems.shared.security.ForbiddenException;
+import com.gems.shared.web.Paging;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -114,11 +116,21 @@ public class UserController {
       .then(Mono.just(ResponseEntity.noContent().<Void>build()));
   }
 
+  /** All the institution's users, or one page with {@code page} (total in X-Total-Count). */
   @GetMapping("/institution/{instId}")
-  public Mono<ResponseEntity<Flux<UserResponse>>> getUsersByInstitution(@PathVariable("instId") String instId) {
+  public Mono<ResponseEntity<List<UserResponse>>> getUsersByInstitution(
+      @PathVariable("instId") String instId,
+      @RequestParam(required = false) Integer page,
+      @RequestParam(required = false) Integer limit,
+      @RequestParam(required = false) String search) {
     return CurrentUser.require(caller -> caller.isStaff() && caller.belongsTo(instId),
         "You can only list users of your institution")
-      .map(caller -> ResponseEntity.ok(getUsersByInstitutionUseCase.execute(instId)));
+      .flatMap(caller -> {
+        if (page == null) return getUsersByInstitutionUseCase.execute(instId).collectList().map(ResponseEntity::ok);
+        int size = Paging.limit(limit);
+        return getUsersByInstitutionUseCase.search(instId, search, size, Paging.offset(page, size))
+          .flatMap(result -> Paging.ok(result.users(), result.total()));
+      });
   }
 
   /** Loads the target user if the caller may change it (and it is not the caller). */

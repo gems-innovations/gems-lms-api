@@ -23,4 +23,10 @@ public interface IUserRepository extends ReactiveCrudRepository<UserEntity, Long
   @Modifying
   @Query("UPDATE users SET password = :encodedPassword, must_change_password = false, updated_at = NOW() WHERE user_id = :userId")
   Mono<Integer> updatePassword(Long userId, String encodedPassword);
+
+  @Query("SELECT * FROM users WHERE institution_id = :institutionId AND (:pattern = '' OR first_name ILIKE :pattern OR last_name ILIKE :pattern OR email ILIKE :pattern OR username ILIKE :pattern) ORDER BY first_name, last_name, user_id LIMIT :limit OFFSET :offset")
+  Flux<UserEntity> searchByInstitution(String institutionId, String pattern, int limit, long offset);
+
+  @Query("SELECT COUNT(*) FROM users WHERE institution_id = :institutionId AND (:pattern = '' OR first_name ILIKE :pattern OR last_name ILIKE :pattern OR email ILIKE :pattern OR username ILIKE :pattern)")
+  Mono<Long> countSearchByInstitution(String institutionId, String pattern);
 }

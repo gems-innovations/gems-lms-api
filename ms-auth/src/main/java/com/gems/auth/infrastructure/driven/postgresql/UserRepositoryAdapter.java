@@ -8,6 +8,7 @@ import com.gems.auth.domain.values.UserId;
 import com.gems.auth.domain.values.UserName;
 import com.gems.auth.domain.values.UserRole;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -113,5 +114,21 @@ public class UserRepositoryAdapter implements UserGateway {
   @Override
   public Mono<Void> updatePassword(UserId id, String encodedPassword) {
     return userRepository.updatePassword(id.getValue(), encodedPassword).then();
+  }
+
+  @Override
+  public Flux<User> searchByInstitution(String institutionId, String search, int limit, long offset) {
+    return userRepository.searchByInstitution(institutionId, pattern(search), limit, offset).map(this::mapToDomain);
+  }
+
+  @Override
+  public Mono<Long> countByInstitution(String institutionId, String search) {
+    return userRepository.countSearchByInstitution(institutionId, pattern(search));
+  }
+
+  /** ILIKE pattern for a free-text search ('' = no filter); % and _ in the text are literal. */
+  private static String pattern(String search) {
+    if (search == null || search.isBlank()) return "";
+    return "%" + search.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
   }
 }

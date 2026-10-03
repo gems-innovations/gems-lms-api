@@ -23,4 +23,9 @@ public interface UserGateway {
 
   /** Replaces the password hash and clears the "must change password" flag. */
   Mono<Void> updatePassword(UserId id, String encodedPassword);
+
+  /** A page of the institution's users whose name, username or e-mail contains {@code search}. */
+  Flux<User> searchByInstitution(String institutionId, String search, int limit, long offset);
+
+  Mono<Long> countByInstitution(String institutionId, String search);
 }

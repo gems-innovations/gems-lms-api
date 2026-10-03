@@ -16,7 +16,7 @@ spring:
         # (shared.security.CorsConfig). When the gateway proxies a response that already
         # carries CORS headers, its own filter adds them again, so the header ends up
         # duplicated on the way to the browser — which then rejects the response outright.
-        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Vary X-Content-Type-Options X-Frame-Options X-XSS-Protection Strict-Transport-Security Content-Security-Policy Referrer-Policy Permissions-Policy X-Permitted-Cross-Domain-Policies, RETAIN_UNIQUE
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Expose-Headers Vary X-Content-Type-Options X-Frame-Options X-XSS-Protection Strict-Transport-Security Content-Security-Policy Referrer-Policy Permissions-Policy X-Permitted-Cross-Domain-Policies, RETAIN_UNIQUE
       routes:
         - id: ms-auth-auth
           uri: http://localhost:${AUTH_PORT:8081}
