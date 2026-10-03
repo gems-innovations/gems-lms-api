@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gems.education.application.GetCourseActivityUseCase;
 import com.gems.education.application.GradeSubmissionUseCase;
+import com.gems.education.application.NotificationUseCase;
 import com.gems.education.application.SubmitAssignmentUseCase;
 import com.gems.education.application.SubmitQuizAttemptUseCase;
 import com.gems.education.domain.entities.AssignmentSubmission;
@@ -35,19 +36,22 @@ public class CourseActivityController {
   private final GetCourseActivityUseCase getCourseActivityUseCase;
   private final EducationAccess access;
   private final ObjectMapper mapper;
+  private final NotificationUseCase notifications;
 
   public CourseActivityController(SubmitQuizAttemptUseCase submitQuizAttemptUseCase,
                                   SubmitAssignmentUseCase submitAssignmentUseCase,
                                   GradeSubmissionUseCase gradeSubmissionUseCase,
                                   GetCourseActivityUseCase getCourseActivityUseCase,
                                   EducationAccess access,
-                                  ObjectMapper mapper) {
+                                  ObjectMapper mapper,
+                                  NotificationUseCase notifications) {
     this.submitQuizAttemptUseCase = submitQuizAttemptUseCase;
     this.submitAssignmentUseCase = submitAssignmentUseCase;
     this.gradeSubmissionUseCase = gradeSubmissionUseCase;
     this.getCourseActivityUseCase = getCourseActivityUseCase;
     this.access = access;
     this.mapper = mapper;
+    this.notifications = notifications;
   }
 
   @PostMapping("/courses/{courseId}/blocks/{blockId}/attempts")
@@ -63,9 +67,13 @@ public class CourseActivityController {
   public Mono<ResponseEntity<SubmissionResponse>> submitAssignment(@PathVariable Long courseId, @PathVariable Long blockId,
                                                                    @RequestBody SubmissionRequest request) {
     return access.readableCourse(courseId)
-      .then(CurrentUser.get())
-      .flatMap(caller -> submitAssignmentUseCase.execute(caller.userId(), courseId, blockId,
-        request.textContent(), toJson(request.fileUrls())))
+      .flatMap(course -> CurrentUser.get()
+        .flatMap(caller -> submitAssignmentUseCase.execute(caller.userId(), courseId, blockId,
+          request.textContent(), toJson(request.fileUrls())))
+        .flatMap(submission -> notifications.submissionReceived(course.getInstitutionId(), courseId,
+            course.getTitle(), submission.id())
+          .onErrorResume(e -> Mono.empty())
+          .thenReturn(submission)))
       .map(submission -> ResponseEntity.ok(SubmissionResponse.from(submission)));
   }
 
@@ -97,7 +105,11 @@ public class CourseActivityController {
   public Mono<ResponseEntity<SubmissionResponse>> grade(@PathVariable Long id, @Valid @RequestBody GradeRequest request) {
     return gradeSubmissionUseCase.findSubmission(id)
       .flatMap(submission -> access.editableCourse(submission.courseId()))
-      .flatMap(course -> gradeSubmissionUseCase.execute(id, request.grade(), request.feedback()))
+      .flatMap(course -> gradeSubmissionUseCase.execute(id, request.grade(), request.feedback())
+        .flatMap(graded -> notifications.submissionGraded(course.getInstitutionId(), graded.studentId(),
+            course.getId(), course.getTitle(), graded.id(), request.grade())
+          .onErrorResume(e -> Mono.empty())
+          .thenReturn(graded)))
       .map(submission -> ResponseEntity.ok(SubmissionResponse.from(submission)));
   }
 

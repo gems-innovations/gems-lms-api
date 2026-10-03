@@ -204,6 +204,60 @@ CREATE TABLE IF NOT EXISTS path_enrollments (
 );
 CREATE INDEX IF NOT EXISTS idx_path_enrollments_student ON path_enrollments(student_id);
 
+-- Course feedback: one survey per course, one response and one review per student.
+CREATE TABLE IF NOT EXISTS course_surveys (
+    id BIGSERIAL PRIMARY KEY,
+    course_id BIGINT NOT NULL UNIQUE REFERENCES courses(id) ON DELETE CASCADE,
+    title VARCHAR(200) NOT NULL,
+    description TEXT,
+    sections TEXT NOT NULL DEFAULT '[]',
+    published BOOLEAN NOT NULL DEFAULT false,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS survey_responses (
+    id BIGSERIAL PRIMARY KEY,
+    survey_id BIGINT NOT NULL REFERENCES course_surveys(id) ON DELETE CASCADE,
+    course_id BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
+    answers TEXT NOT NULL DEFAULT '[]',
+    submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (survey_id, student_id)
+);
+
+CREATE TABLE IF NOT EXISTS course_reviews (
+    id BIGSERIAL PRIMARY KEY,
+    course_id BIGINT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    student_id BIGINT NOT NULL,
+    rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (course_id, student_id)
+);
+
+-- In-app notifications. recipient_user_id NULL = for the staff of institution_id.
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    institution_id VARCHAR(100),
+    recipient_user_id BIGINT,
+    type VARCHAR(30) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    course_id BIGINT,
+    reference_id BIGINT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient ON notifications(recipient_user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_institution ON notifications(institution_id);
+
+CREATE TABLE IF NOT EXISTS notification_reads (
+    notification_id BIGINT NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL,
+    read_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (notification_id, user_id)
+);
+
 -- Course counters are derived from enrollments: recomputed on every enrollment change and,
 -- here, once per startup so counters written by older versions are corrected.
 UPDATE courses SET

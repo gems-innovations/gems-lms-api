@@ -147,7 +147,8 @@ public class GlobalExceptionHandler {
   public Mono<ResponseEntity<ErrorResponse>> handleCourseActivityException(CourseActivityException ex) {
     HttpStatus status = switch (ex.getCode()) {
       case CourseActivityException.NOT_ENROLLED -> HttpStatus.FORBIDDEN;
-      case CourseActivityException.BLOCK_NOT_FOUND, CourseActivityException.SUBMISSION_NOT_FOUND -> HttpStatus.NOT_FOUND;
+      case CourseActivityException.BLOCK_NOT_FOUND, CourseActivityException.SUBMISSION_NOT_FOUND,
+        com.gems.education.application.CourseFeedbackUseCase.SURVEY_NOT_FOUND -> HttpStatus.NOT_FOUND;
       case CourseActivityException.ATTEMPT_LIMIT_REACHED -> HttpStatus.CONFLICT;
       default -> HttpStatus.BAD_REQUEST;
     };

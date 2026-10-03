@@ -127,13 +127,15 @@ Pendiente:
     publicadas), etiquetas, miniatura (URL), pasos opcionales con puntaje mínimo y contador de inscritos.
     Inscripción a rutas en `/learning-paths/{id}/enrollments` y `/learning-paths/enrollments/me`. Falta
     calcular el avance de la ruta en el back (hoy lo deriva el front de las matrículas de sus cursos).
-10. **Encuestas de curso, notificaciones y reseñas**: sin API (encuestas y notificaciones son locales;
-    reseñas quedan vacías).
+10. ~~**Encuestas, notificaciones y reseñas**~~ **Resuelto**: encuesta por curso (`/courses/{id}/survey`, respuestas
+    de inscritos), reseñas 1–5 (`/courses/{id}/review(s)`) que alimentan `averageRating`/`ratingCount`, y
+    notificaciones del servidor (`/notifications`: entrega → staff, calificación → estudiante) con campana en
+    los layouts de estudiante e instructor.
 11. Lecciones y módulos no guardan `description`/`isFree`; los bloques no tienen fecha de entrega.
 12. ~~**Contadores**~~ **Resuelto**: `enrolledCount` y `completionRate` de cursos se recalculan en cada
     inscripción, avance y borrado (y al arrancar); las rutas calculan inscritos y % que completó sus cursos
     obligatorios; `usersCount` lo da ms-auth (`GET /users/counts`) y el front lo combina. `averageRating`
-    sigue vacío hasta que existan reseñas (punto de encuestas/reseñas).
+    sale de las reseñas.
 13. `DELETE /users/{id}` solo desactiva (el usuario reaparece como inactivo al recargar).
 14. ~~**Contraseñas**~~ **Resuelto** (sin correo real): las cuentas creadas con contraseña temporal deben
     cambiarla al entrar (`mustChangePassword`, `POST /auth/change-password`); "olvidé mi contraseña" con

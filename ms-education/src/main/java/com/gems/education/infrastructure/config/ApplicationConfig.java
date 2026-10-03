@@ -226,4 +226,15 @@ public class ApplicationConfig {
   public PathEnrollmentUseCase pathEnrollmentUseCase(PathEnrollmentGateway pathEnrollmentGateway) {
     return new PathEnrollmentUseCase(pathEnrollmentGateway);
   }
+
+  @Bean
+  public CourseFeedbackUseCase courseFeedbackUseCase(CourseFeedbackGateway courseFeedbackGateway,
+                                                     EnrollmentGateway enrollmentGateway) {
+    return new CourseFeedbackUseCase(courseFeedbackGateway, enrollmentGateway);
+  }
+
+  @Bean
+  public NotificationUseCase notificationUseCase(NotificationGateway notificationGateway) {
+    return new NotificationUseCase(notificationGateway);
+  }
 }
