@@ -95,7 +95,7 @@ public class UserController {
           ensureCanAssign(caller, request.getRole(), request.getInstitutionId());
         }
         UpdateUserCommand command = new UpdateUserCommand(id, request.getFirstName(), request.getLastName(),
-          request.getUsername(), request.getRole(), request.getInstitutionId());
+          request.getUsername(), request.getRole(), request.getInstitutionId(), request.getAvatarUrl());
         return updateUserUseCase.execute(command);
       }))
       .map(ResponseEntity::ok);

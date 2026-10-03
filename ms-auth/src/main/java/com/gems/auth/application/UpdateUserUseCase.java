@@ -36,7 +36,7 @@ public class UpdateUserUseCase {
           existing.getPassword(),
           UserRole.valueOf(command.getRole()),
           command.getInstitutionId(),
-          existing.getAvatarUrl(),
+          command.getAvatarUrl() == null ? existing.getAvatarUrl() : command.getAvatarUrl(),
           existing.getCreatedAt(),
           LocalDateTime.now(),
           existing.isActive()

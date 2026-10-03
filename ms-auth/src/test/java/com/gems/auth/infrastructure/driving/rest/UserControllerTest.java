@@ -17,11 +17,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 
@@ -151,6 +154,26 @@ class UserControllerTest {
                 .jsonPath("$.role").isEqualTo("ADMIN");
 
             verify(updateUserUseCase).execute(any(UpdateUserCommand.class));
+        }
+
+        @Test
+        @DisplayName("Should pass the avatar URL when the user updates their profile")
+        void shouldPassAvatarUrlWhenUpdatingProfile() {
+            UserResponse updatedResponse = new UserResponse(1L, "John", "Doe", "john", "john@example.com", "ADMIN", "inst-456", "https://cdn.example/john.png", LocalDateTime.now(), LocalDateTime.now(), true);
+            when(updateUserUseCase.execute(any(UpdateUserCommand.class))).thenReturn(Mono.just(updatedResponse));
+
+            webTestClient.put()
+                .uri("/api/v1/users/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"firstName\":\"John\",\"lastName\":\"Doe\",\"username\":\"john\",\"role\":\"ADMIN\",\"institutionId\":\"inst-456\",\"avatarUrl\":\"https://cdn.example/john.png\"}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.avatarUrl").isEqualTo("https://cdn.example/john.png");
+
+            ArgumentCaptor<UpdateUserCommand> command = ArgumentCaptor.forClass(UpdateUserCommand.class);
+            verify(updateUserUseCase).execute(command.capture());
+            assertThat(command.getValue().getAvatarUrl()).isEqualTo("https://cdn.example/john.png");
         }
     }
 
