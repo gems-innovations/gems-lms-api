@@ -45,9 +45,9 @@ load_env_file() {
 load_env_file ".env"
 
 API_GATEWAY_PORT=${API_GATEWAY_PORT:-8080}
-EDUCATION_PORT=${EDUCATION_PORT:-""}
-AUTH_PORT=${AUTH_PORT:-""}
-ADMIN_PORT=${ADMIN_PORT:-""}
+EDUCATION_PORT=${EDUCATION_PORT:-8083}
+AUTH_PORT=${AUTH_PORT:-8081}
+ADMIN_PORT=${ADMIN_PORT:-8082}
 
 # lsof/pkill are not available in Git Bash on Windows: fall back to netstat/taskkill there.
 pids_on_port() {
@@ -102,13 +102,6 @@ case "${MICROSERVICE,,}" in
         stop_microservice_on_port "$EDUCATION_PORT" "Education Service"
         stop_microservice_on_port "$AUTH_PORT" "Auth Service"
         stop_microservice_on_port "$ADMIN_PORT" "Admin Service"
-        
-        echo -e "\n${CYAN}Killing all remaining Java processes...${NC}"
-        if command -v pkill >/dev/null 2>&1 && pkill -9 java 2>/dev/null; then
-            echo -e "${GREEN}All Java processes killed${NC}"
-        else
-            echo -e "${YELLOW}No Java processes found${NC}"
-        fi
         ;;
     "ms-auth")
         echo -e "${RED}Stopping Auth microservice...${NC}"

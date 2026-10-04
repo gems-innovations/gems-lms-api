@@ -193,6 +193,13 @@ Resuelto también:
    usuario, acción y rango de fechas, estados de carga/error y paginación.
 6. **Resuelto**: "Mis certificaciones" usa credenciales persistentes del servidor, conserva la descarga en PDF y
    dispone de una página pública para comprobar código, titular, contenido, institución y fechas.
+7. **Resuelto**: PWA instalable con manifiesto, iconos normal y adaptable, cascarón visual sin conexión,
+   aviso de conectividad y actualización controlada. El service worker nunca almacena respuestas de `/api`.
+8. **Resuelto**: auditoría WCAG automatizada para rutas clave de administrador, docente y estudiante;
+   contraste, navegación, nombres accesibles y preferencias de movimiento revisados. Bundle inicial de producción
+   en 642 kB sin comprimir (164 kB estimados por red), dentro del presupuesto; Excel, PDF y gráficas son diferidos.
+9. **Resuelto**: CI propio del front valida instalación reproducible, dependencias de producción, todas las suites,
+   librerías y build PWA/SSR en cambios dirigidos a `develop`, `qa` o `main`.
 
 ## Pendientes de revisión y despliegue
 
@@ -242,5 +249,6 @@ contraseña temporal, cambio, revocación al desactivar/reactivar/borrar y aisla
 Crea una cuenta y un quiz temporales, y los elimina al terminar. No imprime contraseñas ni tokens.
 
 Para pruebas E2E: `npm run test:e2e` en `gems-lms-web` compila las librerías, inicia Angular y ejecuta
-Playwright. El flujo autenticado requiere `E2E_ADMIN_EMAIL` y `E2E_ADMIN_PASSWORD` en el entorno; no se
-guardan credenciales en el repositorio. El gateway y los servicios deben estar levantados.
+Playwright. Los recorridos autenticados usan `E2E_ADMIN_EMAIL`, `E2E_INSTRUCTOR_EMAIL`,
+`E2E_STUDENT_EMAIL` y `E2E_ADMIN_PASSWORD`; no se guardan credenciales en el repositorio. El gateway y los
+servicios deben estar levantados.

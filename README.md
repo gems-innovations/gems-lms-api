@@ -179,6 +179,7 @@ Con `dev-up.sh` (recomendado, también en Windows con Git Bash) o con los script
 En PowerShell, `./start-microservices.ps1` detecta Java desde `PATH`, carga `.env` e inicia los
 servicios en segundo plano sin abrir ventanas. Para desarrollo completo, `dev-up.sh` también levanta
 las bases, Redis y el buzón local. Los correos de recuperación se consultan en http://localhost:8025.
+Los scripts de parada terminan únicamente los procesos que escuchan en los cuatro puertos del LMS.
 
 El gateway se inicia con `./gradlew :api-gateway:bootRun` (dev-up.sh ya lo hace).
 
