@@ -119,3 +119,15 @@ cors:
   allowed-headers: "${CORS_ALLOWED_HEADERS:*}"
   allow-credentials: true
   max-age: 3600
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}

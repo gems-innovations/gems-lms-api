@@ -201,6 +201,9 @@ Resuelto también:
 - **Resuelto localmente**: `ops/backup.ps1` genera dumps consistentes de las tres bases, incluye uploads y
   un manifiesto SHA-256; `ops/restore.ps1` verifica las sumas y exige confirmación explícita antes de
   reemplazar datos. Falta programar y copiar los respaldos a almacenamiento cifrado externo en producción.
+- **Resuelto localmente**: los cuatro servicios exportan métricas Prometheus; el compose opcional de
+  `observability/` levanta Prometheus y Grafana ligados a localhost, con fuente provisionada. Nginx bloquea
+  la ruta de métricas en los dominios públicos. Alertas y destinatarios requieren configuración de despliegue.
 - **Resuelto**: ms-auth coordina el borrado: primero limpia los datos en ms-education y después elimina
   la cuenta. Si la limpieza falla, conserva la cuenta y responde 503 para reintentar. El front muestra
   ese error. La limpieza es idempotente; no existe una transacción distribuida entre las dos bases.

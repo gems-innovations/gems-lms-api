@@ -30,7 +30,7 @@ import java.util.List;
 public class SecurityConfig {
 
   private static final String[] PUBLIC_PATHS = {
-    "/actuator/health",
+    "/actuator/health/**", "/actuator/prometheus",
     "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html"
   };
 

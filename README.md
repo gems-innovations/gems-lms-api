@@ -68,6 +68,7 @@ trampas de Windows.
 
 Las copias de las tres bases y los archivos se crean y verifican con `ops/backup.ps1`. El procedimiento
 de restauración y retención está en [docs/backups.md](docs/backups.md).
+Las métricas y el panel operativo se describen en [docs/monitoring.md](docs/monitoring.md).
 
 ### Prerrequisitos
 
