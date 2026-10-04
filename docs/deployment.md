@@ -26,6 +26,10 @@ script y una variable ausente detiene el despliegue.
 
 ## Comprobaciones posteriores
 
+Todo dominio público de API, incluidos los alias históricos `api.admin` y `api.edu`, debe resolver
+al `api-gateway`. Nginx no publica los microservicios directamente: así se conservan el rate limit,
+la validación de sesión y la auditoría para todas las solicitudes.
+
 - `https://<api>/actuator/health` responde `UP`.
 - `/swagger-ui`, `/v3/api-docs` y `/actuator/prometheus` responden 404 desde Internet.
 - Los puertos 5432–5434 y 6379 no están publicados por Docker.
