@@ -1,6 +1,7 @@
 package com.gems.education.infrastructure.driven.files;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.codec.multipart.FilePart;
@@ -15,6 +16,7 @@ import java.nio.file.Path;
 
 /** Keeps uploads in a directory of the server ({@code files.dir}, ./data/uploads by default). */
 @Component
+@ConditionalOnProperty(name = "files.storage", havingValue = "local", matchIfMissing = true)
 public class LocalFileStorage implements FileStorage {
   private final Path root;
 

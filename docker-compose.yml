@@ -213,6 +213,15 @@ services:
       - AUTH_SERVICE_URL=http://ms-auth:${AUTH_PORT:-8081}
       - FILES_DIR=/data/uploads
       - FILES_MAX_SIZE_BYTES=${FILES_MAX_SIZE_BYTES:-10485760}
+      - FILES_STORAGE=${FILES_STORAGE:-local}
+      - S3_BUCKET=${S3_BUCKET:-}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_ENDPOINT=${S3_ENDPOINT:-}
+      - S3_PATH_STYLE=${S3_PATH_STYLE:-false}
+      - S3_PREFIX=${S3_PREFIX:-uploads}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
       - EDUCATION_PORT=${EDUCATION_PORT:-8083}
       - EDUCATION_R2DBC_URL=r2dbc:postgresql://postgres-education:5432/${EDUCATION_DB_NAME:-education_db}
       - EDUCATION_R2DBC_USERNAME=${EDUCATION_DB_USER:-education_user}

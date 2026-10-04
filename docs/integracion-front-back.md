@@ -198,6 +198,9 @@ Resuelto también:
 - Configurar SMTP real, dominios, HTTPS y almacenamiento persistente de archivos al desplegar.
   El compose incluye el gateway, las variables de correo/bootstrap y un volumen persistente de uploads;
   las imágenes y certificados del entorno real aún necesitan validarse al desplegar.
+- **Resuelto en código**: `FILES_STORAGE=s3` activa almacenamiento AWS S3 o compatible sin cambiar la API;
+  disco local continúa como predeterminado. El bucket, credenciales, migración y prueba real corresponden
+  al despliegue. Ver `docs/object-storage.md`.
 - **Resuelto localmente**: `ops/backup.ps1` genera dumps consistentes de las tres bases, incluye uploads y
   un manifiesto SHA-256; `ops/restore.ps1` verifica las sumas y exige confirmación explícita antes de
   reemplazar datos. Falta programar y copiar los respaldos a almacenamiento cifrado externo en producción.
