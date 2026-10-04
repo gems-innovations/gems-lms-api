@@ -217,6 +217,9 @@ Nginx dirige `api.auth.gemsinnovations.com` al gateway (una sola base para el fr
 compatibilidad. Adaptar dominios, certificados, `FRONTEND_URL` y CORS al entorno elegido.
 Las imágenes compilan únicamente `bootJar`; los tests se ejecutan en el paso de CI. El contexto Docker
 excluye `.env`, logs, archivos subidos y salidas de compilación. No se ha realizado ningún despliegue.
+El compose exige los secretos críticos y no publica PostgreSQL ni Redis. Usar
+`.env.production.example` y seguir `docs/deployment.md`; la automatización valida el `.env` administrado
+en el servidor y nunca lo reemplaza.
 
 ## 📋 Tecnologías Utilizadas
 

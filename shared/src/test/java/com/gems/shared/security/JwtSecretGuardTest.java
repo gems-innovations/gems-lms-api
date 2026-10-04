@@ -12,6 +12,7 @@ class JwtSecretGuardTest {
     assertThrows(IllegalStateException.class, () -> JwtSecretGuard.check(null));
     assertThrows(IllegalStateException.class, () -> JwtSecretGuard.check(" "));
     assertThrows(IllegalStateException.class, () -> JwtSecretGuard.check("mySecretKey123456789012345678901234567890"));
+    assertThrows(IllegalStateException.class, () -> JwtSecretGuard.check("CHANGE_ME_" + "x".repeat(64)));
     assertThrows(IllegalStateException.class, () -> JwtSecretGuard.check("x".repeat(63)));
   }
 

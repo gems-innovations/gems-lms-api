@@ -198,7 +198,9 @@ Resuelto también:
 
 - Configurar SMTP real, dominios, HTTPS y almacenamiento persistente de archivos al desplegar.
   El compose incluye el gateway, las variables de correo/bootstrap y un volumen persistente de uploads;
-  las imágenes y certificados del entorno real aún necesitan validarse al desplegar.
+  las imágenes y certificados del entorno real aún necesitan validarse al desplegar. El compose de
+  producción exige secretos, mantiene bases y Redis en la red privada y Nginx bloquea Swagger y métricas;
+  consultar `docs/deployment.md`.
 - **Resuelto en código**: `FILES_STORAGE=s3` activa almacenamiento AWS S3 o compatible sin cambiar la API;
   disco local continúa como predeterminado. El bucket, credenciales, migración y prueba real corresponden
   al despliegue. Ver `docs/object-storage.md`.

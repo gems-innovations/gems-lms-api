@@ -26,6 +26,9 @@ public class JwtSecretGuard {
     if (OLD_PUBLIC_DEFAULT.equals(secret)) {
       throw new IllegalStateException("JWT_SECRET is the old public default; generate a new random secret");
     }
+    if (secret.toUpperCase().startsWith("CHANGE_ME")) {
+      throw new IllegalStateException("JWT_SECRET still contains the deployment template placeholder");
+    }
     if (secret.getBytes(StandardCharsets.UTF_8).length < MIN_BYTES) {
       throw new IllegalStateException("JWT_SECRET must be at least " + MIN_BYTES + " bytes long for HS512");
     }
