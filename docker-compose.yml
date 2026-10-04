@@ -84,10 +84,8 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot
     depends_on:
-      - api-gateway
-      - ms-auth
-      - ms-admin
-      - ms-education
+      api-gateway:
+        condition: service_healthy
     networks:
       - gems-network
     restart: unless-stopped
@@ -113,10 +111,14 @@ services:
       - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60}
       - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX:-rate_limit:}
     depends_on:
-      - ms-auth
-      - ms-admin
-      - ms-education
-      - redis
+      ms-auth:
+        condition: service_healthy
+      ms-admin:
+        condition: service_healthy
+      ms-education:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - gems-network
     restart: unless-stopped
