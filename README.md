@@ -66,6 +66,9 @@ Levanta las bases y Redis (`docker-compose-local.yml`), los cuatro servicios en 
 [docs/integracion-front-back.md](docs/integracion-front-back.md) para la integración con gems-lms-web y las
 trampas de Windows.
 
+Las copias de las tres bases y los archivos se crean y verifican con `ops/backup.ps1`. El procedimiento
+de restauración y retención está en [docs/backups.md](docs/backups.md).
+
 ### Prerrequisitos
 
 - Java 24

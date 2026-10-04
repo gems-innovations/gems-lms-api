@@ -44,3 +44,4 @@ bin/
 # Local uploads (LocalFileStorage)
 data/uploads/
 **/data/uploads/
+/backups/
