@@ -59,7 +59,7 @@ class BulkEnrollStudentsUseCaseTest {
 
     when(courseGateway.findById(5L)).thenReturn(Mono.just(course));
     when(enrollmentGateway.findByStudentIdAndCourseId(10L, 5L)).thenReturn(Mono.empty());
-    when(enrollmentGateway.save(any(Enrollment.class))).thenReturn(Mono.just(enrollment));
+    when(enrollmentGateway.saveRespectingCapacity(any(Enrollment.class))).thenReturn(Mono.just(enrollment));
 
     Flux<EnrollmentResponse> result = bulkEnrollStudentsUseCase.execute(command);
 
@@ -70,6 +70,6 @@ class BulkEnrollStudentsUseCaseTest {
     verify(courseGateway, times(1)).findById(5L);
     // studentId is the ms-auth user id; the legacy students table is not consulted.
     verifyNoInteractions(studentGateway);
-    verify(enrollmentGateway, times(1)).save(any(Enrollment.class));
+    verify(enrollmentGateway, times(1)).saveRespectingCapacity(any(Enrollment.class));
   }
 }

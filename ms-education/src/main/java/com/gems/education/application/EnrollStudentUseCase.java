@@ -6,6 +6,8 @@ import com.gems.education.application.gateway.EnrollmentGateway;
 import com.gems.education.application.response.EnrollmentResponse;
 import com.gems.education.domain.entities.Enrollment;
 import com.gems.education.application.exceptions.CourseNotFoundException;
+import com.gems.education.application.exceptions.EnrollmentNotAllowedException;
+import com.gems.education.domain.entities.EnrollmentPolicy;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -43,8 +45,9 @@ public class EnrollStudentUseCase {
       .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + command.getCourseId())))
       .flatMap(course -> enrollmentGateway.findByStudentIdAndCourseId(command.getStudentId(), command.getCourseId())
         .switchIfEmpty(Mono.defer(() -> rules.requireAllowed(command.getStudentId(), command.getCourseId(), byStaff)
-          .then(Mono.defer(() -> enrollmentGateway.save(new Enrollment(null, command.getStudentId(),
-            command.getCourseId(), "active", LocalDateTime.now(), 0, null))))))
+          .then(Mono.defer(() -> enrollmentGateway.saveRespectingCapacity(new Enrollment(null, command.getStudentId(),
+            command.getCourseId(), "active", LocalDateTime.now(), 0, null))))
+          .switchIfEmpty(Mono.error(new EnrollmentNotAllowedException(java.util.List.of(EnrollmentPolicy.FULL))))))
       )
       .map(this::mapToResponse);
   }

@@ -30,7 +30,7 @@ public class BulkEnrollStudentsUseCase {
         .concatMap(studentId -> enrollmentGateway.findByStudentIdAndCourseId(studentId, command.getCourseId())
           // Staff enroll: only the capacity applies. One at a time so the capacity holds within the batch.
           .switchIfEmpty(Mono.defer(() -> rules.requireAllowed(studentId, command.getCourseId(), true)
-            .then(Mono.defer(() -> enrollmentGateway.save(new Enrollment(null, studentId, command.getCourseId(),
+            .then(Mono.defer(() -> enrollmentGateway.saveRespectingCapacity(new Enrollment(null, studentId, command.getCourseId(),
               "active", LocalDateTime.now(), 0, null))))))
           .onErrorResume(e -> Mono.empty()) // Students that cannot be enrolled are skipped
         )

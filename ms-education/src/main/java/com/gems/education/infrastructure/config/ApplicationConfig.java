@@ -5,6 +5,8 @@ import com.gems.education.application.gateway.*;
 import com.gems.education.infrastructure.driven.postgresql.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 @Configuration
 public class ApplicationConfig {
@@ -150,8 +152,9 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public EnrollmentGateway enrollmentGateway(IEnrollmentRepository enrollmentRepository) {
-    return new EnrollmentRepositoryAdapter(enrollmentRepository);
+  public EnrollmentGateway enrollmentGateway(IEnrollmentRepository enrollmentRepository, DatabaseClient db,
+                                               TransactionalOperator tx) {
+    return new EnrollmentRepositoryAdapter(enrollmentRepository, db, tx);
   }
 
   @Bean

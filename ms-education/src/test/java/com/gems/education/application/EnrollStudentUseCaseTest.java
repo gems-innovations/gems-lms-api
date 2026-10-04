@@ -58,7 +58,7 @@ class EnrollStudentUseCaseTest {
 
     when(courseGateway.findById(5L)).thenReturn(Mono.just(course));
     when(enrollmentGateway.findByStudentIdAndCourseId(10L, 5L)).thenReturn(Mono.empty());
-    when(enrollmentGateway.save(any(Enrollment.class))).thenReturn(Mono.just(enrollment));
+    when(enrollmentGateway.saveRespectingCapacity(any(Enrollment.class))).thenReturn(Mono.just(enrollment));
 
     Mono<EnrollmentResponse> result = enrollStudentUseCase.execute(command);
 
@@ -73,6 +73,20 @@ class EnrollStudentUseCaseTest {
     // studentId is the ms-auth user id; the legacy students table is not consulted.
     verifyNoInteractions(studentGateway);
     verify(courseGateway, times(1)).findById(5L);
-    verify(enrollmentGateway, times(1)).save(any(Enrollment.class));
+    verify(enrollmentGateway, times(1)).saveRespectingCapacity(any(Enrollment.class));
+  }
+
+  @Test
+  void shouldRejectWhenTheLastSeatWasTakenConcurrently() {
+    EnrollmentCommand command = new EnrollmentCommand(10L, 5L);
+    when(courseGateway.findById(5L)).thenReturn(Mono.just(TestData.course(5L, "Java", "Desc", "PUBLISHED",
+      "inst-1", LocalDateTime.now(), LocalDateTime.now(), List.of())));
+    when(enrollmentGateway.findByStudentIdAndCourseId(10L, 5L)).thenReturn(Mono.empty());
+    when(enrollmentGateway.saveRespectingCapacity(any(Enrollment.class))).thenReturn(Mono.empty());
+
+    StepVerifier.create(enrollStudentUseCase.execute(command))
+      .expectErrorMatches(error -> error instanceof com.gems.education.application.exceptions.EnrollmentNotAllowedException
+        && ((com.gems.education.application.exceptions.EnrollmentNotAllowedException) error).getReasons().contains("FULL"))
+      .verify();
   }
 }
