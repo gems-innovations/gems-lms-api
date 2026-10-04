@@ -17,8 +17,8 @@ class NotificationConfigTest {
   private final NotificationConfig config = new NotificationConfig();
 
   @Test
-  void withoutMailHostLinksGoToTheLog() {
-    assertInstanceOf(LoggingPasswordResetNotifier.class,
+  void withoutMailHostUsesSafeUndeliveredFallback() {
+    assertInstanceOf(UndeliveredPasswordResetNotifier.class,
       config.passwordResetNotifier("http://localhost:4200", "", 587, "", "", true, "no-reply@gems.lms"));
   }
 

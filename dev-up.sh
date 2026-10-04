@@ -30,6 +30,9 @@ while IFS= read -r line || [ -n "$line" ]; do
 done < .env
 export BOOTSTRAP_SUPERADMIN_EMAIL="${BOOTSTRAP_SUPERADMIN_EMAIL:-super@gems.lms}"
 export BOOTSTRAP_SUPERADMIN_PASSWORD="${BOOTSTRAP_SUPERADMIN_PASSWORD:-$DEV_PASSWORD}"
+export MAIL_HOST="${MAIL_HOST:-localhost}"
+export MAIL_PORT="${MAIL_PORT:-1025}"
+export MAIL_STARTTLS="${MAIL_STARTTLS:-false}"
 
 echo "1) Bases de datos y Redis"
 docker compose -f docker-compose-local.yml --env-file .env up -d
@@ -37,7 +40,7 @@ docker compose -f docker-compose-local.yml --env-file .env up -d
 echo "2) Esperando a que los contenedores estén sanos..."
 for _ in $(seq 1 60); do
   healthy=$(docker ps --filter name=gems- --filter health=healthy -q | wc -l)
-  [ "$healthy" -ge 4 ] && break
+  [ "$healthy" -ge 5 ] && break
   sleep 2
 done
 
@@ -73,4 +76,5 @@ if [ "$1" = "--seed" ]; then
   bash ./seed-dev.sh
 fi
 
-echo "Listo. Gateway en http://localhost:8080/api/v1 — para detener: ./stop-microservices.sh y docker compose -f docker-compose-local.yml stop"
+echo "Listo. Gateway: http://localhost:8080/api/v1 — correo local: http://localhost:${MAILPIT_UI_PORT:-8025}"
+echo "Para detener: ./stop-microservices.sh y docker compose -f docker-compose-local.yml stop"

@@ -11,8 +11,7 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import java.util.Properties;
 
 /**
- * Picks how password reset links are delivered: by e-mail when MAIL_HOST is set, otherwise to
- * the log (development).
+ * Picks how password reset links are delivered. Reset tokens are never written to logs.
  */
 @Configuration
 public class NotificationConfig {
@@ -28,8 +27,8 @@ public class NotificationConfig {
       @Value("${app.mail.starttls:true}") boolean starttls,
       @Value("${app.mail.from:no-reply@gems.lms}") String from) {
     if (host.isBlank()) {
-      log.warn("MAIL_HOST is not set: password reset links will be written to the log instead of e-mailed");
-      return new LoggingPasswordResetNotifier(frontendUrl);
+      log.warn("MAIL_HOST is not set: password reset messages will not be delivered");
+      return new UndeliveredPasswordResetNotifier();
     }
     JavaMailSenderImpl sender = new JavaMailSenderImpl();
     sender.setHost(host);

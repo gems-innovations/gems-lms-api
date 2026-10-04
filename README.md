@@ -126,7 +126,7 @@ BOOTSTRAP_SUPERADMIN_PASSWORD=UnaClaveSegura1!
 # URL del front, para los enlaces de los correos
 FRONTEND_URL=http://localhost:4200
 
-# Correo (recuperación de contraseña). Sin MAIL_HOST los enlaces se escriben en logs/ms-auth.log.
+# Correo real (producción). En local, dev-up usa Mailpit en localhost:1025.
 MAIL_HOST=
 MAIL_PORT=587
 MAIL_USERNAME=
@@ -156,6 +156,7 @@ docker compose -f docker-compose-local.yml up -d
 - `postgres-auth` en el puerto **5433**
 - `postgres-education` en el puerto **5434**
 - `redis` en el puerto **6379**
+- `mailpit` en **8025** (buzón web) y **1025** (SMTP), limitado a localhost
 
 Las tablas se crean (y migran) solas al arrancar cada servicio, desde su `schema.sql`.
 
@@ -174,6 +175,10 @@ Con `dev-up.sh` (recomendado, también en Windows con Git Bash) o con los script
 ./start-microservices.sh ms-auth    # uno en primer plano
 ./stop-microservices.sh             # detener
 ```
+
+En PowerShell, `./start-microservices.ps1` detecta Java desde `PATH`, carga `.env` e inicia los
+servicios en segundo plano sin abrir ventanas. Para desarrollo completo, `dev-up.sh` también levanta
+las bases, Redis y el buzón local. Los correos de recuperación se consultan en http://localhost:8025.
 
 El gateway se inicia con `./gradlew :api-gateway:bootRun` (dev-up.sh ya lo hace).
 

@@ -1,6 +1,6 @@
 # Integración gems-lms-web ↔ gems-lms-api
 
-Estado a 2026-10-03 (ramas `feature/integracion-front` en este repo y `feature/integracion-back` en gems-lms-web).
+Estado a 2026-10-04 (ramas `feature/integracion-front` en este repo y `feature/integracion-back` en gems-lms-web).
 
 ## Cómo levantar todo en local
 
@@ -39,7 +39,7 @@ Usuarios de desarrollo (contraseña: `DEV_PASSWORD` en `seed-dev.sh`):
 - Para desarrollo local usar `docker-compose-local.yml`; `docker-compose.yml` es el de producción
   (imágenes de Docker Hub + nginx con certificados).
 - Puertos reales de PostgreSQL: admin 5432, auth 5433, education 5434 (el README los tenía invertidos).
-- `start-microservices.ps1` tiene fija la ruta del JDK de otra máquina (`C:\Users\Lu\...`).
+- El lanzador PowerShell detecta Java 24+ desde `PATH`, usa los puertos correctos y escribe sus salidas en `logs/`.
 
 ## Qué se conectó
 
@@ -156,11 +156,12 @@ Resuelto también:
 13. ~~Borrado de usuarios~~ **Resuelto**: `DELETE /users/{id}` limpia los datos antes de borrar la cuenta
     (desactivar es `PUT /users/{id}/status`). ms-auth llama a `DELETE /students/{id}/learning-data` (matrículas,
     intentos, entregas, encuestas, reseñas, rutas, grupos y notificaciones, en una transacción).
-14. ~~**Contraseñas**~~ **Resuelto** (sin correo real): las cuentas creadas con contraseña temporal deben
+14. ~~**Contraseñas**~~ **Resuelto**: las cuentas creadas con contraseña temporal deben
     cambiarla al entrar (`mustChangePassword`, `POST /auth/change-password`); "olvidé mi contraseña" con
     token de un uso y 1 h (`/auth/forgot-password`, `/auth/reset-password`). El enlace se envía por **SMTP**
-    (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`; sirve SendGrid/SES por SMTP); sin
-    `MAIL_HOST` se escribe en `logs/ms-auth.log`.
+    (`MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`; sirve SendGrid/SES por SMTP).
+    En desarrollo, `docker-compose-local.yml` incluye Mailpit: recibe por `localhost:1025` y muestra el buzón en
+    `http://localhost:8025`. Si no hay SMTP configurado, el mensaje se omite sin escribir tokens ni datos personales.
 15. ~~Paginación~~ **Resuelto**: `GET /users/institution/{id}` (en SQL, con `search`), `/learning-paths` y
     `/enrollments/institution/{id}` aceptan `page`/`limit` y devuelven el total en `X-Total-Count`; sin `page`
     responden la lista completa como antes. La lista de usuarios del front tiene búsqueda y paginación. El registro
@@ -224,10 +225,10 @@ Resuelto también:
   Todos los servicios necesitan alcanzar ms-auth mediante `AUTH_SERVICE_URL`; si no está disponible,
   el acceso protegido falla con 503, sin permitir sesiones que no puedan verificarse.
 
-Estos puntos requieren verificación antes de afirmar que todas las brechas están cerradas.
+Las funciones locales están cerradas; los puntos que dependen de infraestructura se verifican durante el despliegue.
 
 Validación del cierre local: build completo del back sin fallos y cobertura mínima al 50%;
-Las pruebas del front cubren shared, auth, education, admin, instructor y main; el módulo admin incluye el servicio de reportes. Playwright cubre el acceso anónimo y el flujo administrador de reportes, incluida la descarga CSV. Build de producción. Smoke en servicios
+Las pruebas del front cubren shared, auth, education, admin, instructor y main; el módulo admin incluye el servicio de reportes. Playwright cubre acceso anónimo, reportes de administrador, descarga CSV y auditorías WCAG de rutas clave de administrador, docente y estudiante. Build de producción. Smoke en servicios
 activos: contraseñas temporales, renovación/revocación, aislamiento de quizzes y auditoría por institución. Compose validado;
 imágenes Docker y despliegue remoto aún no ejecutados.
 
