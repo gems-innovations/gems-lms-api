@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS assignment_submissions (
 
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_student ON quiz_attempts(student_id);
 CREATE INDEX IF NOT EXISTS idx_quiz_attempts_enrollment_block ON quiz_attempts(enrollment_id, block_id);
+-- Dos envíos simultáneos leen el mismo número de intentos previos; solo uno puede guardarse con ese número.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_quiz_attempts_number ON quiz_attempts(enrollment_id, block_id, attempt_number);
 CREATE INDEX IF NOT EXISTS idx_submissions_student ON assignment_submissions(student_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_course ON assignment_submissions(course_id);
 

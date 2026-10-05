@@ -1,5 +1,6 @@
 package com.gems.education.infrastructure.driven.postgresql;
 
+import com.gems.education.application.exceptions.CourseActivityException;
 import com.gems.education.application.gateway.CourseActivityGateway;
 import com.gems.education.domain.entities.AssignmentSubmission;
 import com.gems.education.domain.entities.QuizAttempt;
@@ -33,7 +34,10 @@ public class CourseActivityRepositoryAdapter implements CourseActivityGateway {
     e.setPassed(attempt.passed());
     e.setFeedback(attempt.feedback());
     e.setCompletedAt(attempt.completedAt());
-    return attemptRepository.save(e).map(this::toAttempt);
+    // The unique attempt number rejects a concurrent submit that counted the same previous attempts.
+    return attemptRepository.save(e).map(this::toAttempt)
+      .onErrorMap(org.springframework.dao.DataIntegrityViolationException.class, error -> new CourseActivityException(
+        CourseActivityException.ATTEMPT_LIMIT_REACHED, "Another attempt for this quiz was just submitted"));
   }
 
   @Override

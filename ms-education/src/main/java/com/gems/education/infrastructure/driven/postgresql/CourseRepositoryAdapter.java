@@ -13,6 +13,7 @@ import reactor.core.publisher.Mono;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -175,48 +176,42 @@ public class CourseRepositoryAdapter implements CourseGateway {
     return courseRepository.deleteById(id);
   }
 
+  /** The course tree in three queries (modules, their lessons, their contents), whatever its size. */
   private Mono<Course> loadFullCourse(CourseEntity courseEntity) {
-    return moduleRepository.findByCourseId(courseEntity.getId())
-      .flatMap(moduleEntity -> 
-        lessonRepository.findByModuleId(moduleEntity.getId())
-          .flatMap(lessonEntity -> 
-            contentRepository.findByLessonId(lessonEntity.getId())
-              .map(contentEntity -> new Content(
-                contentEntity.getId(),
-                contentEntity.getLessonId(),
-                contentEntity.getType(),
-                contentEntity.getValue(),
-                contentEntity.getOrderIndex()
-              ))
-              .collectList()
-              .map(contents -> {
-                contents.sort(Comparator.comparingInt(Content::getOrderIndex));
-                return new Lesson(
-                  lessonEntity.getId(),
-                  lessonEntity.getModuleId(),
-                  lessonEntity.getTitle(),
-                  lessonEntity.getOrderIndex(),
-                  contents
-                ).details(lessonEntity.getDescription(), lessonEntity.getIsFree());
-              })
-          )
-          .collectList()
-          .map(lessons -> {
-            lessons.sort(Comparator.comparingInt(Lesson::getOrderIndex));
-            return new Module(
-              moduleEntity.getId(),
-              moduleEntity.getCourseId(),
-              moduleEntity.getTitle(),
-              moduleEntity.getOrderIndex(),
-              lessons
-            ).details(moduleEntity.getDescription());
-          })
-      )
-      .collectList()
-      .map(modules -> {
-        modules.sort(Comparator.comparingInt(Module::getOrderIndex));
-        return mapToDomain(courseEntity, modules);
-      });
+    return moduleRepository.findByCourseId(courseEntity.getId()).collectList().flatMap(moduleEntities -> {
+      if (moduleEntities.isEmpty()) return Mono.just(mapToDomain(courseEntity, new ArrayList<>()));
+      return lessonRepository.findByModuleIdIn(moduleEntities.stream().map(ModuleEntity::getId).toList()).collectList()
+        .flatMap(lessonEntities -> (lessonEntities.isEmpty()
+            ? Mono.just(List.<ContentEntity>of())
+            : contentRepository.findByLessonIdIn(lessonEntities.stream().map(LessonEntity::getId).toList()).collectList())
+          .map(contentEntities -> mapToDomain(courseEntity, assemble(moduleEntities, lessonEntities, contentEntities))));
+    });
+  }
+
+  private static List<Module> assemble(List<ModuleEntity> moduleEntities,
+                                                 List<LessonEntity> lessonEntities,
+                                                 List<ContentEntity> contentEntities) {
+    Map<Long, List<Content>> contentsByLesson = new HashMap<>();
+    for (ContentEntity c : contentEntities) {
+      contentsByLesson.computeIfAbsent(c.getLessonId(), k -> new ArrayList<>())
+        .add(new Content(c.getId(), c.getLessonId(), c.getType(), c.getValue(), c.getOrderIndex()));
+    }
+    Map<Long, List<Lesson>> lessonsByModule = new HashMap<>();
+    for (LessonEntity l : lessonEntities) {
+      List<Content> contents = contentsByLesson.getOrDefault(l.getId(), new ArrayList<>());
+      contents.sort(Comparator.comparingInt(Content::getOrderIndex));
+      lessonsByModule.computeIfAbsent(l.getModuleId(), k -> new ArrayList<>())
+        .add(new Lesson(l.getId(), l.getModuleId(), l.getTitle(), l.getOrderIndex(), contents)
+          .details(l.getDescription(), l.getIsFree()));
+    }
+    List<Module> modules = new ArrayList<>();
+    for (ModuleEntity m : moduleEntities) {
+      List<Lesson> lessons = lessonsByModule.getOrDefault(m.getId(), new ArrayList<>());
+      lessons.sort(Comparator.comparingInt(Lesson::getOrderIndex));
+      modules.add(new Module(m.getId(), m.getCourseId(), m.getTitle(), m.getOrderIndex(), lessons).details(m.getDescription()));
+    }
+    modules.sort(Comparator.comparingInt(Module::getOrderIndex));
+    return modules;
   }
 
   @Override

@@ -252,3 +252,34 @@ Para pruebas E2E: `npm run test:e2e` en `gems-lms-web` compila las librerías, i
 Playwright. Los recorridos autenticados usan `E2E_ADMIN_EMAIL`, `E2E_INSTRUCTOR_EMAIL`,
 `E2E_STUDENT_EMAIL` y `E2E_ADMIN_PASSWORD`; no se guardan credenciales en el repositorio. El gateway y los
 servicios deben estar levantados.
+
+### Capacidad: simulación de una universidad
+
+`DEV_PASSWORD=... node seed/university-sim.mjs` crea una institución desechable (`sim-…`) y simula un
+semestre contra el gateway, con todos los usuarios activos a la vez:
+
+1. Alta masiva de docentes y estudiantes y ráfaga de inicios de sesión.
+2. Periodo académico, cursos de 3 unidades × 4 semanas con quiz y taller con rúbrica, reglas y grupos.
+3. Inscripción en bloque y carrera por un curso con cupo.
+4. Intentos de quiz, incluidos 5 envíos simultáneos de un mismo estudiante.
+5. Entregas, avance, foro, reseñas, calificación por los docentes, libro de calificaciones, notificaciones y reportes.
+
+Al final comprueba la coherencia de los datos y muestra latencias p50/p95 por endpoint. Variables:
+`STUDENTS`, `INSTRUCTORS`, `COURSES`, `CONCURRENCY`, `CAPACITY` y `BASE`. No ejecutarlo contra producción.
+
+Referencia en un portátil Windows con Docker Desktop (200 estudiantes, concurrencia 60): unas 82 req/s, cero
+errores; quiz p50 0,6 s; login p95 1,7 s (BCrypt). Docker Desktop encarece cada consulta: la cifra de producción
+debe medirse en un servidor Linux.
+
+Decisiones que salieron de la simulación:
+
+- **Límite de peticiones por usuario.** Con un token firmado válido se cuenta por usuario
+  (`RATE_LIMIT_REQUESTS`); sin token, por IP (`RATE_LIMIT_ANONYMOUS_REQUESTS`). Antes todo un campus detrás de
+  NAT compartía 300/min.
+- **Caché de sesión** en `RemoteSessionValidator` (`session.cache.seconds`, 5 s por defecto; 0 la desactiva).
+  Desactivar un usuario o revocar su sesión tarda como máximo ese tiempo.
+- **Curso en 3 consultas.** `CourseRepositoryAdapter` carga módulos, lecciones y contenidos con `IN`, en lugar
+  de una consulta por módulo y por lección.
+- **Intentos de quiz sin carreras.** Índice único `(enrollment_id, block_id, attempt_number)`: si llegan envíos
+  simultáneos, uno se guarda y el resto recibe 409.
+- **Logs SQL y pool.** `LOG_LEVEL_FRAMEWORK` (INFO por defecto) y `R2DBC_POOL_MAX` (30 por defecto).

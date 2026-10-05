@@ -100,15 +100,18 @@ function courseBody(n) {
   return {
     title: `Simulación ${RUN} · Curso ${n}`, description: `Curso ${n} de la universidad simulada.`, status: 'published',
     difficulty: 'beginner', tags: ['simulación'], instructorName: `Docente ${n}`, institutionId: INST,
-    modules: [{
-      title: 'Unidad 1', orderIndex: 1, lessons: [{
-        title: 'Semana 1', orderIndex: 1, contents: [
+    // Tamaño de un curso real: 3 unidades de 4 semanas; el parcial y el taller van en la última.
+    modules: [1, 2, 3].map(u => ({
+      title: `Unidad ${u}`, orderIndex: u, lessons: [1, 2, 3, 4].map(w => ({
+        title: `Semana ${(u - 1) * 4 + w}`, orderIndex: w, contents: [
           { type: 'document', orderIndex: 1, value: JSON.stringify({ title: 'Lectura', duration: 5, isRequired: true, markdownContent: '# Lectura\n\nTexto.' }) },
-          { type: 'quiz', orderIndex: 2, value: JSON.stringify(quiz) },
-          { type: 'assignment', orderIndex: 3, value: JSON.stringify(assignment) },
+          ...(u === 3 && w === 4 ? [
+            { type: 'quiz', orderIndex: 2, value: JSON.stringify(quiz) },
+            { type: 'assignment', orderIndex: 3, value: JSON.stringify(assignment) },
+          ] : []),
         ],
-      }],
-    }],
+      })),
+    })),
   };
 }
 
@@ -223,6 +226,19 @@ await pool(students, async (s, i) => {
     await api('GET', `/courses/${c.id}/gradebook/me`, { token: T });
   }
 });
+// Doble clic: un estudiante nuevo en el curso envía cinco intentos a la vez; el quiz permite 2.
+{
+  const c = courses[1];
+  const s = students.find(st => !(rosters.get(c?.id) ?? []).includes(st.id));
+  if (s && c) {
+    await api('POST', '/enrollments/bulk', { token: A, body: { courseId: c.id, studentIds: [s.id] } });
+    const answers = [{ questionId: 'q1', answer: 'a' }];
+    const burst = await Promise.all(Array.from({ length: 5 }, () =>
+      api('POST', `/courses/${c.id}/blocks/${c.quiz.id}/attempts`, { token: s.token, body: { answers }, expect: [201, 409] })));
+    const saved = burst.filter(r => r.status === 201).length;
+    check('cinco envíos simultáneos del mismo quiz no superan los 2 permitidos', saved >= 1 && saved <= 2, `guardados ${saved}`);
+  }
+}
 check('el máximo de intentos del quiz se respeta', extraAttemptAccepted === 0, `rechazados ${extraAttemptRejected}, aceptados de más ${extraAttemptAccepted}`);
 
 phase('7. Docentes: calificar, anunciar, responder el foro');
