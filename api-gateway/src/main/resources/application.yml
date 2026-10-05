@@ -111,7 +111,7 @@ auth:
 
 rate:
   limit:
-    requests: ${RATE_LIMIT_REQUESTS:100}
+    requests: ${RATE_LIMIT_REQUESTS:300}
     window: ${RATE_LIMIT_WINDOW:60}
     key:
       prefix: "${RATE_LIMIT_KEY_PREFIX:rate_limit:}"

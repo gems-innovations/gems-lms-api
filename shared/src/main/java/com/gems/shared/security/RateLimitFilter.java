@@ -1,6 +1,7 @@
 package com.gems.shared.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpStatus;
@@ -14,8 +15,15 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
+/**
+ * Requests per client and window, counted in Redis. It belongs at the edge (the gateway): the
+ * microservices sit behind it and set rate.limit.enabled=false, otherwise every request would be
+ * counted twice. Forwarding headers are trusted only when the direct peer is a local or private
+ * proxy (nginx, the gateway); a client on the internet cannot pick its own key with them.
+ */
 @Component
 @Order(2)
+@ConditionalOnProperty(name = "rate.limit.enabled", havingValue = "true", matchIfMissing = true)
 public class RateLimitFilter implements WebFilter {
 
     @Value("${rate.limit.requests}")
@@ -69,19 +77,21 @@ public class RateLimitFilter implements WebFilter {
             });
     }
     
-    private String getClientId(ServerHttpRequest request) {
-        String xForwardedFor = request.getHeaders().getFirst(RateLimitConstants.X_FORWARDED_FOR_HEADER);
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
+    static String getClientId(ServerHttpRequest request) {
+        java.net.InetSocketAddress remote = request.getRemoteAddress();
+        java.net.InetAddress peer = remote != null ? remote.getAddress() : null;
+        boolean fromProxy = peer != null && (peer.isLoopbackAddress() || peer.isSiteLocalAddress());
+        if (fromProxy) {
+            String xRealIp = request.getHeaders().getFirst(RateLimitConstants.X_REAL_IP_HEADER);
+            if (xRealIp != null && !xRealIp.isBlank()) {
+                return xRealIp.trim();
+            }
+            String xForwardedFor = request.getHeaders().getFirst(RateLimitConstants.X_FORWARDED_FOR_HEADER);
+            if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+                String[] hops = xForwardedFor.split(",");
+                return hops[hops.length - 1].trim();
+            }
         }
-        
-        String xRealIp = request.getHeaders().getFirst(RateLimitConstants.X_REAL_IP_HEADER);
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-        
-        return request.getRemoteAddress() != null ? 
-            request.getRemoteAddress().getAddress().getHostAddress() : RateLimitConstants.UNKNOWN_CLIENT;
+        return peer != null ? peer.getHostAddress() : RateLimitConstants.UNKNOWN_CLIENT;
     }
 }
-
