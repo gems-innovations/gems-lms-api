@@ -20,6 +20,11 @@ import java.time.Duration;
  * microservices sit behind it and set rate.limit.enabled=false, otherwise every request would be
  * counted twice. Forwarding headers are trusted only when the direct peer is a local or private
  * proxy (nginx, the gateway); a client on the internet cannot pick its own key with them.
+ * <p>
+ * A request with a validly signed token is counted per user, not per address: a whole campus
+ * usually reaches the platform through one NAT address, and a per-address budget would let a
+ * few dozen active students lock everyone else out. Anonymous requests (sign-in, password
+ * reset) are still counted per address, with their own budget.
  */
 @Component
 @Order(2)
@@ -29,6 +34,13 @@ public class RateLimitFilter implements WebFilter {
     @Value("${rate.limit.requests}")
     private int maxRequests;
     
+    /** Budget per address for requests without a valid token. */
+    @Value("${rate.limit.anonymous-requests:${rate.limit.requests}}")
+    private int maxAnonymousRequests;
+
+    @Value("${jwt.secret:}")
+    private String jwtSecret;
+
     @Value("${rate.limit.window}")
     private int windowSeconds;
     
@@ -46,9 +58,10 @@ public class RateLimitFilter implements WebFilter {
         ServerHttpRequest request = exchange.getRequest();
         ServerHttpResponse response = exchange.getResponse();
         
-        String clientId = getClientId(request);
-        String key = keyPrefix + clientId;
-        
+        String user = jwtSecret.isBlank() ? null : signedSubject(request, jwtSecret);
+        String key = keyPrefix + (user != null ? "user:" + user : getClientId(request));
+        int limit = user != null ? maxRequests : maxAnonymousRequests;
+
         return redisTemplate.opsForValue().increment(key)
             .flatMap(count -> {
                 if (count == 1) {
@@ -58,16 +71,16 @@ public class RateLimitFilter implements WebFilter {
                 return Mono.just(count);
             })
             .flatMap(count -> {
-                if (count > maxRequests) {
+                if (count > limit) {
                     response.setStatusCode(HttpStatus.TOO_MANY_REQUESTS);
-                    response.getHeaders().add(RateLimitConstants.RATE_LIMIT_LIMIT_HEADER, String.valueOf(maxRequests));
+                    response.getHeaders().add(RateLimitConstants.RATE_LIMIT_LIMIT_HEADER, String.valueOf(limit));
                     response.getHeaders().add(RateLimitConstants.RATE_LIMIT_REMAINING_HEADER, RateLimitConstants.ZERO_REMAINING);
                     response.getHeaders().add(RateLimitConstants.RATE_LIMIT_RESET_HEADER, String.valueOf(System.currentTimeMillis() + windowSeconds * RateLimitConstants.MILLISECONDS_PER_SECOND));
                     return response.setComplete();
                 }
                 
-                response.getHeaders().add(RateLimitConstants.RATE_LIMIT_LIMIT_HEADER, String.valueOf(maxRequests));
-                response.getHeaders().add(RateLimitConstants.RATE_LIMIT_REMAINING_HEADER, String.valueOf(Math.max(0, maxRequests - count)));
+                response.getHeaders().add(RateLimitConstants.RATE_LIMIT_LIMIT_HEADER, String.valueOf(limit));
+                response.getHeaders().add(RateLimitConstants.RATE_LIMIT_REMAINING_HEADER, String.valueOf(Math.max(0, limit - count)));
                 response.getHeaders().add(RateLimitConstants.RATE_LIMIT_RESET_HEADER, String.valueOf(System.currentTimeMillis() + windowSeconds * RateLimitConstants.MILLISECONDS_PER_SECOND));
                 
                 return chain.filter(exchange);
@@ -77,6 +90,22 @@ public class RateLimitFilter implements WebFilter {
             });
     }
     
+    /** Subject of a correctly signed bearer token; null when absent, forged or expired. */
+    static String signedSubject(ServerHttpRequest request, String secret) {
+        String header = request.getHeaders().getFirst(org.springframework.http.HttpHeaders.AUTHORIZATION);
+        if (header == null || !header.startsWith("Bearer ")) return null;
+        try {
+            return io.jsonwebtoken.Jwts.parserBuilder()
+                .setSigningKey(JwtReactiveAuthenticationManager.signingKey(secret))
+                .build()
+                .parseClaimsJws(header.substring(7).trim())
+                .getBody()
+                .getSubject();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     static String getClientId(ServerHttpRequest request) {
         java.net.InetSocketAddress remote = request.getRemoteAddress();
         java.net.InetAddress peer = remote != null ? remote.getAddress() : null;

@@ -6,6 +6,7 @@ import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import java.net.InetSocketAddress;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class RateLimitFilterTest {
 
@@ -42,5 +43,20 @@ class RateLimitFilterTest {
       .remoteAddress(new InetSocketAddress("127.0.0.1", 50000))
       .build();
     assertEquals("127.0.0.1", RateLimitFilter.getClientId(request));
+  }
+
+  private static final String SECRET = "a-test-secret-long-enough-for-hmac-sha-512-signing-0123456789abcdef";
+
+  @Test
+  void signedRequestsAreCountedPerUserAndForgedOnesAreNot() {
+    String token = io.jsonwebtoken.Jwts.builder().setSubject("42")
+      .signWith(JwtReactiveAuthenticationManager.signingKey(SECRET)).compact();
+    var signed = MockServerHttpRequest.get("/api/v1/courses").header("Authorization", "Bearer " + token).build();
+    assertEquals("42", RateLimitFilter.signedSubject(signed, SECRET));
+
+    String forged = io.jsonwebtoken.Jwts.builder().setSubject("42")
+      .signWith(JwtReactiveAuthenticationManager.signingKey(SECRET + "x")).compact();
+    var other = MockServerHttpRequest.get("/api/v1/courses").header("Authorization", "Bearer " + forged).build();
+    assertNull(RateLimitFilter.signedSubject(other, SECRET));
   }
 }

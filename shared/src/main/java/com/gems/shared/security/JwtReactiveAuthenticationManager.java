@@ -38,7 +38,7 @@ public class JwtReactiveAuthenticationManager implements ReactiveAuthenticationM
 
     try {
       Claims claims = Jwts.parserBuilder()
-        .setSigningKey(signingKey())
+        .setSigningKey(signingKey(jwtSecret))
         .build()
         .parseClaimsJws(token)
         .getBody();
@@ -64,7 +64,7 @@ public class JwtReactiveAuthenticationManager implements ReactiveAuthenticationM
     }
   }
 
-  private SecretKey signingKey() {
+  static SecretKey signingKey(String jwtSecret) {
     byte[] keyBytes = jwtSecret.getBytes();
     if (keyBytes.length * 8 < 512) {
       byte[] paddedKey = new byte[64];
