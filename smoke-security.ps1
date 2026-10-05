@@ -5,10 +5,6 @@ foreach ($line in Get-Content -LiteralPath (Join-Path $PSScriptRoot '.env')) {
   if ($line -match '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') { $settings[$Matches[1]] = $Matches[2] }
 }
 $password = $settings['DEV_PASSWORD']
-if (!$password) {
-  $seed = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'seed-dev.sh') -Raw
-  $password = [regex]::Match($seed, 'DEV_PASSWORD:-([^}]+)').Groups[1].Value
-}
 if (!$password) { throw 'Configurar DEV_PASSWORD para las cuentas de desarrollo.' }
 function Request([string]$method, [string]$path, $body, [string]$token = '') {
   $options = @{ Uri = "$BaseUrl$path"; Method = $method; SkipHttpErrorCheck = $true; TimeoutSec = 15; StatusCodeVariable = 'code' }

@@ -19,7 +19,7 @@ El front habla **solo con el api-gateway** (`http://localhost:8080/api/v1`). Los
 quedan en 8081 (auth), 8082 (admin) y 8083 (education), cada uno con su Swagger en
 `/swagger-ui.html`.
 
-Usuarios de desarrollo (contraseña: `DEV_PASSWORD` en `seed-dev.sh`):
+Usuarios de desarrollo (contraseña: `DEV_PASSWORD` del `.env` local, que `dev-up.sh` genera la primera vez):
 
 | Correo | Rol | Institución |
 |---|---|---|

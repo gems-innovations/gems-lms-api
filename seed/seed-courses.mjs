@@ -5,7 +5,11 @@
 import { readFileSync } from 'node:fs';
 
 const BASE = process.env.BASE || 'http://localhost:8080/api/v1';
-const PASSWORD = process.env.DEV_PASSWORD || 'GemsDev2026!';
+const PASSWORD = process.env.DEV_PASSWORD;
+if (!PASSWORD) {
+  console.error('  Define DEV_PASSWORD (está en el .env local; seed-dev.sh la pasa).');
+  process.exit(1);
+}
 const INSTITUTION_ID = process.env.INSTITUTION_ID || 'inst-1';
 
 const courses = JSON.parse(readFileSync(new URL('./demo-courses.json', import.meta.url), 'utf8'));

@@ -6,13 +6,16 @@
 # instituciones, código INSTITUTION_ALREADY_EXISTS) y se continúa.
 # Requiere Node.js para el catálogo de cursos (paso 4).
 #
-# Contraseña de todos los usuarios de desarrollo: la de DEV_PASSWORD.
+# Contraseña de todos los usuarios de desarrollo: DEV_PASSWORD del .env local (dev-up.sh la crea).
 #
 # Los cuerpos JSON se envían por stdin (--data-binary @-): en Git Bash para Windows
 # los argumentos de línea de comandos se recodifican y rompen las tildes.
 
 BASE="${BASE:-http://localhost:8080/api/v1}"
-DEV_PASSWORD="${DEV_PASSWORD:-GemsDev2026!}"
+if [ -z "${DEV_PASSWORD:-}" ] && [ -f "$(dirname "$0")/.env" ]; then
+  DEV_PASSWORD=$(sed -n 's/^DEV_PASSWORD=//p' "$(dirname "$0")/.env" | tr -d '' | tail -1)
+fi
+if [ -z "${DEV_PASSWORD:-}" ]; then echo "Define DEV_PASSWORD (ejecuta ./dev-up.sh, que la genera en .env)."; exit 1; fi
 
 json_field() { sed -n "s/.*\"$1\":\"\{0,1\}\([^\",}]*\)\"\{0,1\}.*/\1/p"; }
 
@@ -73,4 +76,4 @@ JSON
 echo "4) Catálogo de cursos de demostración (seed/demo-courses.json)"
 BASE="$BASE" DEV_PASSWORD="$DEV_PASSWORD" node "$(dirname "$0")/seed/seed-courses.mjs"
 
-echo "Listo. Usuarios de desarrollo con contraseña DEV_PASSWORD (ver este script)."
+echo "Listo. Usuarios de desarrollo con la contraseña DEV_PASSWORD del .env local."

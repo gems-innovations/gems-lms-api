@@ -13,9 +13,6 @@
 export MSYS_NO_PATHCONV=1
 export MSYS2_ENV_CONV_EXCL='*'
 
-# Primer super admin para desarrollo local (ms-auth lo crea al arrancar si no existe).
-# En otros entornos defínelos en el .env con valores propios.
-export DEV_PASSWORD="${DEV_PASSWORD:-GemsDev2026!}"
 
 set -e
 cd "$(dirname "$0")"
@@ -28,6 +25,17 @@ while IFS= read -r line || [ -n "$line" ]; do
   line=${line%$'\r'}
   [[ $line =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]] && export "${BASH_REMATCH[1]}=${BASH_REMATCH[2]}"
 done < .env
+
+# Contraseña de las cuentas de desarrollo: vive solo en el .env local (ignorado por git).
+# La primera vez se genera una aleatoria; nunca se escribe en el repositorio.
+if [ -z "${DEV_PASSWORD:-}" ]; then
+  DEV_PASSWORD="Dev-$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)!1"
+  printf '
+DEV_PASSWORD=%s
+' "$DEV_PASSWORD" >> .env
+  echo "Se generó DEV_PASSWORD en .env para las cuentas de desarrollo."
+fi
+export DEV_PASSWORD
 export BOOTSTRAP_SUPERADMIN_EMAIL="${BOOTSTRAP_SUPERADMIN_EMAIL:-super@gems.lms}"
 export BOOTSTRAP_SUPERADMIN_PASSWORD="${BOOTSTRAP_SUPERADMIN_PASSWORD:-$DEV_PASSWORD}"
 export MAIL_HOST="${MAIL_HOST:-localhost}"
