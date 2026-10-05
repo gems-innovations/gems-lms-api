@@ -122,6 +122,7 @@ services:
     networks:
       - gems-network
     restart: unless-stopped
+    stop_grace_period: 30s
 
   ms-auth:
     image: ${DOCKER_USERNAME:?Define DOCKER_USERNAME}/ms-auth:${TAG:-latest}
@@ -165,6 +166,7 @@ services:
     networks:
       - gems-network
     restart: unless-stopped
+    stop_grace_period: 30s
 
   ms-admin:
     image: ${DOCKER_USERNAME:?Define DOCKER_USERNAME}/ms-admin:${TAG:-latest}
@@ -197,6 +199,7 @@ services:
     networks:
       - gems-network
     restart: unless-stopped
+    stop_grace_period: 30s
 
   ms-education:
     image: ${DOCKER_USERNAME:?Define DOCKER_USERNAME}/ms-education:${TAG:-latest}
@@ -242,6 +245,7 @@ services:
     networks:
       - gems-network
     restart: unless-stopped
+    stop_grace_period: 30s
 
 volumes:
   uploaded_files:

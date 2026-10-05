@@ -31,6 +31,8 @@ al `api-gateway`. Nginx no publica los microservicios directamente: así se cons
 la validación de sesión y la auditoría para todas las solicitudes.
 El compose espera que bases, Redis, microservicios y gateway estén saludables antes de habilitar la
 siguiente capa; un arranque lento no expone Nginx contra servicios que todavía no están listos.
+Al actualizar o detener contenedores, Spring dispone de hasta 20 segundos para terminar solicitudes
+en curso antes de que Docker complete el apagado.
 
 - `https://<api>/actuator/health` responde `UP`.
 - `/swagger-ui`, `/v3/api-docs` y `/actuator/prometheus` responden 404 desde Internet.
