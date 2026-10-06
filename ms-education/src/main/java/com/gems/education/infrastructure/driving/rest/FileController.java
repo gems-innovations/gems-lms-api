@@ -68,8 +68,10 @@ public class FileController {
       FilePart part = t.getT2();
       MediaType type = part.headers().getContentType() != null ? part.headers().getContentType()
         : MediaType.APPLICATION_OCTET_STREAM;
-      if (PUBLIC.equals(scope) && !"image".equals(type.getType())) {
-        return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only images can be public"));
+      // Public: images and WebVTT subtitles (the <track> of a video loads them without a token).
+      boolean subtitles = "text".equals(type.getType()) && "vtt".equals(type.getSubtype());
+      if (PUBLIC.equals(scope) && !"image".equals(type.getType()) && !subtitles) {
+        return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only images and .vtt subtitles can be public"));
       }
       // SVG queda fuera: puede llevar scripts y el avatar se sirve sin token.
       if (avatar && !AVATAR_TYPES.contains(type.getType() + "/" + type.getSubtype())) {
