@@ -81,7 +81,7 @@ public class BulkUserImportController {
         try {
           UserController.ensureCanAssign(caller, row.getRole(), row.getInstitutionId());
         } catch (ForbiddenException e) {
-          return Mono.just(result(rowNumber, email, "forbidden", e.getMessage()));
+          return Mono.just(result(rowNumber, email, "forbidden", e.getReason() != null ? e.getReason() : e.getMessage()));
         }
         if (dryRun) return Mono.just(result(rowNumber, email, "valid", null));
 
