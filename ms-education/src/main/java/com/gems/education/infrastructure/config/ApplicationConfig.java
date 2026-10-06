@@ -170,6 +170,14 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public com.gems.education.application.CourseRiskUseCase courseRiskUseCase(GradebookUseCase gradebookUseCase,
+      EnrollmentGateway enrollmentGateway, com.gems.education.application.AchievementsUseCase.ActivityDays activityDays,
+      com.gems.education.application.gateway.NotificationGateway notificationGateway) {
+    return new com.gems.education.application.CourseRiskUseCase(gradebookUseCase, enrollmentGateway, activityDays,
+      notificationGateway, java.time.Clock.systemDefaultZone());
+  }
+
+  @Bean
   public com.gems.education.application.AchievementsUseCase achievementsUseCase(
       com.gems.education.application.AchievementsUseCase.ActivityDays activityDays,
       com.gems.education.application.gateway.CourseActivityGateway courseActivityGateway, EnrollmentGateway enrollmentGateway) {

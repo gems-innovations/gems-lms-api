@@ -17,6 +17,9 @@ public class AchievementsUseCase {
     Mono<Void> record(Long studentId, LocalDate day);
 
     Flux<LocalDate> since(Long studentId, LocalDate from);
+
+    /** Last day with activity of each student that has any. */
+    Mono<java.util.Map<Long, LocalDate>> lastActive(java.util.Collection<Long> studentIds);
   }
 
   private final ActivityDays activityDays;

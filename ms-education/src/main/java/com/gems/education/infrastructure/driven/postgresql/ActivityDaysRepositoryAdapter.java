@@ -25,6 +25,15 @@ public class ActivityDaysRepositoryAdapter implements AchievementsUseCase.Activi
   }
 
   @Override
+  public Mono<java.util.Map<Long, LocalDate>> lastActive(java.util.Collection<Long> studentIds) {
+    if (studentIds.isEmpty()) return Mono.just(java.util.Map.of());
+    return db.sql("SELECT student_id, MAX(day) AS last_day FROM student_activity_days WHERE student_id = ANY(:ids) GROUP BY student_id")
+      .bind("ids", studentIds.toArray(Long[]::new))
+      .map((row, meta) -> java.util.Map.entry(row.get("student_id", Long.class), row.get("last_day", LocalDate.class)))
+      .all().collectMap(java.util.Map.Entry::getKey, java.util.Map.Entry::getValue);
+  }
+
+  @Override
   public Flux<LocalDate> since(Long studentId, LocalDate from) {
     return db.sql("SELECT day FROM student_activity_days WHERE student_id = :student AND day >= :from ORDER BY day")
       .bind("student", studentId).bind("from", from)

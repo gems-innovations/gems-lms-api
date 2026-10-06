@@ -22,4 +22,5 @@ public record Notification(
   public static final String GRADED = "graded";
   public static final String ANNOUNCEMENT = "announcement";
   public static final String FORUM = "forum";
+  public static final String REMINDER = "reminder";
 }
