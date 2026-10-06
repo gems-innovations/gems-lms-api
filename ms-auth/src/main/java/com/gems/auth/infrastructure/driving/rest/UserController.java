@@ -1,5 +1,6 @@
 package com.gems.auth.infrastructure.driving.rest;
 
+import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.DeleteUserUseCase;
 import com.gems.auth.application.GetAllUsersUseCase;
 import com.gems.auth.application.GetUserByIdUseCase;
@@ -38,13 +39,19 @@ public class UserController {
   private final GetAllUsersUseCase getAllUsersUseCase;
   private final UpdateUserUseCase updateUserUseCase;
   private final ToggleUserStatusUseCase toggleUserStatusUseCase;
+  private final JwtGateway jwtGateway;
+
+  /** Token nuevo tras editar el propio perfil: la versión de sesión cambia con cada actualización. */
+  static final String SESSION_TOKEN_HEADER = "X-Session-Token";
 
   public UserController(DeleteUserUseCase deleteUserUseCase,
                         GetUsersByInstitutionUseCase getUsersByInstitutionUseCase,
                         GetUserByIdUseCase getUserByIdUseCase,
                         GetAllUsersUseCase getAllUsersUseCase,
                         UpdateUserUseCase updateUserUseCase,
-                        ToggleUserStatusUseCase toggleUserStatusUseCase) {
+                        ToggleUserStatusUseCase toggleUserStatusUseCase,
+                        JwtGateway jwtGateway) {
+    this.jwtGateway = jwtGateway;
     this.deleteUserUseCase = deleteUserUseCase;
     this.getUsersByInstitutionUseCase = getUsersByInstitutionUseCase;
     this.getUserByIdUseCase = getUserByIdUseCase;
@@ -96,9 +103,16 @@ public class UserController {
         }
         UpdateUserCommand command = new UpdateUserCommand(id, request.getFirstName(), request.getLastName(),
           request.getUsername(), request.getRole(), request.getInstitutionId(), request.getAvatarUrl());
-        return updateUserUseCase.execute(command);
-      }))
-      .map(ResponseEntity::ok);
+        if (!caller.isUser(id)) return updateUserUseCase.execute(command).map(ResponseEntity::ok);
+        // Editing yourself changes the session revision (updatedAt) and would sign you out; the
+        // stored row is read back so the new token carries exactly the revision ms-auth checks.
+        return updateUserUseCase.execute(command)
+          .then(getUserByIdUseCase.execute(id))
+          .map(saved -> ResponseEntity.ok()
+            .header(SESSION_TOKEN_HEADER, jwtGateway.generateToken(saved.userId(), saved.role(), saved.institutionId(),
+              saved.updatedAt().toString()))
+            .body(saved));
+      }));
   }
 
   // PUT as well: browsers go through the gateway, whose CORS policy does not allow PATCH.

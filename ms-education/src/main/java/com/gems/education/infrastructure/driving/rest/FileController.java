@@ -38,6 +38,10 @@ import java.util.UUID;
 public class FileController {
   static final String PUBLIC = "public";
   static final String PRIVATE = "private";
+  /** Foto de perfil: cualquier usuario la sube; se guarda como pública, solo imágenes rasterizadas. */
+  static final String AVATAR = "avatar";
+  static final long AVATAR_MAX_BYTES = 2L * 1024 * 1024;
+  private static final java.util.Set<String> AVATAR_TYPES = java.util.Set.of("image/png", "image/jpeg", "image/webp", "image/gif");
 
   private final FileStorage storage;
   private final DatabaseClient db;
@@ -53,9 +57,12 @@ public class FileController {
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public Mono<ResponseEntity<FileBody>> upload(@RequestPart("file") Mono<FilePart> filePart,
                                                @RequestParam(defaultValue = PRIVATE) String scope) {
-    if (!PUBLIC.equals(scope) && !PRIVATE.equals(scope)) {
-      return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "scope must be public or private"));
+    if (!PUBLIC.equals(scope) && !PRIVATE.equals(scope) && !AVATAR.equals(scope)) {
+      return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "scope must be public, private or avatar"));
     }
+    boolean avatar = AVATAR.equals(scope);
+    String storedScope = avatar ? PUBLIC : scope;
+    long limit = avatar ? Math.min(AVATAR_MAX_BYTES, maxBytes) : maxBytes;
     return CurrentUser.get().zipWith(filePart).flatMap(t -> {
       AuthenticatedUser caller = t.getT1();
       FilePart part = t.getT2();
@@ -64,18 +71,22 @@ public class FileController {
       if (PUBLIC.equals(scope) && !"image".equals(type.getType())) {
         return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only images can be public"));
       }
+      // SVG queda fuera: puede llevar scripts y el avatar se sirve sin token.
+      if (avatar && !AVATAR_TYPES.contains(type.getType() + "/" + type.getSubtype())) {
+        return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Use a PNG, JPG, WebP or GIF image"));
+      }
       if (PUBLIC.equals(scope) && !caller.isStaff()) {
         return Mono.error(new ForbiddenException("Only staff upload public images"));
       }
       String id = UUID.randomUUID().toString();
       String name = safeName(part.filename());
       return storage.write(id, part).flatMap(size -> {
-        if (size > maxBytes) {
+        if (size > limit) {
           return storage.delete(id).then(Mono.error(new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE,
-            "Files are limited to " + (maxBytes / (1024 * 1024)) + " MB")));
+            "Files are limited to " + (limit / (1024 * 1024)) + " MB")));
         }
-        return insert(id, caller, scope, name, type.toString(), size)
-          .thenReturn(new FileBody(id, name, type.toString(), size, url(id, scope)));
+        return insert(id, caller, storedScope, name, type.toString(), size)
+          .thenReturn(new FileBody(id, name, type.toString(), size, url(id, storedScope)));
       });
     }).map(body -> ResponseEntity.status(HttpStatus.CREATED).body(body));
   }
