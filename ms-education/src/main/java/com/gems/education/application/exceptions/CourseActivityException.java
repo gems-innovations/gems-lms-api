@@ -10,6 +10,7 @@ public class CourseActivityException extends RuntimeException {
   public static final String SESSION_REQUIRED = "SESSION_REQUIRED";
   public static final String SESSION_NOT_FOUND = "SESSION_NOT_FOUND";
   public static final String SESSION_CLOSED = "SESSION_CLOSED";
+  public static final String PERIOD_CLOSED = "PERIOD_CLOSED";
 
   private final String code;
 

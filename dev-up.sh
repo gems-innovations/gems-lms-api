@@ -29,7 +29,7 @@ done < .env
 # Contraseña de las cuentas de desarrollo: vive solo en el .env local (ignorado por git).
 # La primera vez se genera una aleatoria; nunca se escribe en el repositorio.
 if [ -z "${DEV_PASSWORD:-}" ]; then
-  DEV_PASSWORD="Dev-$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)!1"
+  DEV_PASSWORD="Dev$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)!1"
   printf '
 DEV_PASSWORD=%s
 ' "$DEV_PASSWORD" >> .env

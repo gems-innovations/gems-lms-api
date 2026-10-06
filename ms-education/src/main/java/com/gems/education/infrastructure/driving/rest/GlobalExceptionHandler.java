@@ -159,7 +159,8 @@ public class GlobalExceptionHandler {
       case CourseActivityException.BLOCK_NOT_FOUND, CourseActivityException.SUBMISSION_NOT_FOUND,
         CourseActivityException.SESSION_NOT_FOUND,
         com.gems.education.application.CourseFeedbackUseCase.SURVEY_NOT_FOUND -> HttpStatus.NOT_FOUND;
-      case CourseActivityException.ATTEMPT_LIMIT_REACHED, CourseActivityException.SESSION_CLOSED -> HttpStatus.CONFLICT;
+      case CourseActivityException.ATTEMPT_LIMIT_REACHED, CourseActivityException.SESSION_CLOSED,
+        CourseActivityException.PERIOD_CLOSED -> HttpStatus.CONFLICT;
       default -> HttpStatus.BAD_REQUEST;
     };
     return Mono.just(ResponseEntity.status(status).body(new ErrorResponse(ex.getCode(), ex.getMessage(), status.value())));

@@ -32,7 +32,8 @@ class EnrollmentRulesControllerTest extends ControllerTestSupport {
     when(useCase.saveRules(anyLong(), any())).thenAnswer(inv -> Mono.just(inv.getArgument(1)));
     when(useCase.eligibility(anyLong(), anyLong(), anyBoolean())).thenAnswer(inv -> Mono.just(new Eligibility(
       inv.getArgument(1), true, List.of(), List.of(), null, null, null, null)));
-    controller = new EnrollmentRulesController(useCase, access);
+    com.gems.education.application.PeriodClosingUseCase closing = org.mockito.Mockito.mock(com.gems.education.application.PeriodClosingUseCase.class);
+    controller = new EnrollmentRulesController(useCase, access, closing);
   }
 
   @Test

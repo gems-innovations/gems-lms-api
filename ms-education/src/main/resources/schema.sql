@@ -394,6 +394,23 @@ CREATE TABLE IF NOT EXISTS academic_periods (
     CHECK (ends_on >= starts_on)
 );
 CREATE INDEX IF NOT EXISTS idx_academic_periods_institution ON academic_periods(institution_id, starts_on DESC);
+-- Cierre del período: congela las notas finales (period_grade_records) y bloquea la actividad.
+ALTER TABLE academic_periods ADD COLUMN IF NOT EXISTS closed_at TIMESTAMP;
+ALTER TABLE academic_periods ADD COLUMN IF NOT EXISTS closed_by BIGINT;
+
+CREATE TABLE IF NOT EXISTS period_grade_records (
+    period_id BIGINT NOT NULL REFERENCES academic_periods(id) ON DELETE CASCADE,
+    course_id BIGINT NOT NULL,
+    course_title VARCHAR(255) NOT NULL,
+    student_id BIGINT NOT NULL,
+    enrollment_id BIGINT,
+    final_grade DOUBLE PRECISION,
+    current_grade DOUBLE PRECISION,
+    progress INT,
+    passed BOOLEAN NOT NULL DEFAULT FALSE,
+    recorded_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (period_id, course_id, student_id)
+);
 
 -- Enrollment rules of a course; a course without a row has none. Window bounds are inclusive; when
 -- closes_at is null and the course has a period, enrollment closes when the period ends.

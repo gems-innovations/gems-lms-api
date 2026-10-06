@@ -1,5 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.application.PeriodClosingUseCase;
 import com.gems.education.application.GradebookUseCase;
 import com.gems.education.application.GradebookUseCase.Gradebook;
 import com.gems.shared.security.CurrentUser;
@@ -20,8 +21,10 @@ import java.util.Map;
 public class GradebookController {
   private final GradebookUseCase gradebook;
   private final EducationAccess access;
+  private final PeriodClosingUseCase closing;
 
-  public GradebookController(GradebookUseCase gradebook, EducationAccess access) {
+  public GradebookController(GradebookUseCase gradebook, EducationAccess access, PeriodClosingUseCase closing) {
+    this.closing = closing;
     this.gradebook = gradebook;
     this.access = access;
   }
@@ -45,6 +48,7 @@ public class GradebookController {
   @PutMapping("/weights")
   public Mono<ResponseEntity<Gradebook>> weights(@PathVariable Long courseId, @Valid @RequestBody WeightsRequest request) {
     return access.editableCourse(courseId)
+      .then(closing.requireOpen(courseId))
       .then(Mono.defer(() -> gradebook.saveWeights(courseId, request.weights())))
       .map(ResponseEntity::ok);
   }

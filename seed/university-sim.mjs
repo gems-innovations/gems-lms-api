@@ -21,6 +21,9 @@ const CAPACITY = +(process.env.CAPACITY || 40);
 if (!PASSWORD) { console.error('Define DEV_PASSWORD.'); process.exit(1); }
 
 const RUN = Date.now().toString(36);
+// Las cuentas simuladas usan su propia contraseña aleatoria (válida para el registro); DEV_PASSWORD
+// solo sirve para entrar como super admin y con las cuentas de demostración.
+const USER_PASSWORD = `Sim${Math.random().toString(36).slice(2, 12)}A!1`;
 const INST = `sim-${RUN}`;
 
 // ---------------------------------------------------------------- métricas
@@ -76,8 +79,8 @@ const phase = name => console.log(`\n== ${name}`);
 const pick = (arr, n, seed) => arr.filter((_, i) => (i * 7 + seed) % arr.length < n);
 const list = d => Array.isArray(d) ? d : (d?.content ?? d?.items ?? d?.data ?? d?.courses ?? d?.users ?? []);
 
-async function login(email) {
-  const r = await api('POST', '/auth/login', { body: { email, password: PASSWORD } });
+async function login(email, password = email.includes(INST) ? USER_PASSWORD : PASSWORD) {
+  const r = await api('POST', '/auth/login', { body: { email, password } });
   return r.data?.token ? { token: r.data.token, id: r.data.userId ?? r.data.user?.id } : null;
 }
 
@@ -136,7 +139,7 @@ await api('POST', '/institutions', { token: S, body: {
 } });
 
 const register = (first, last, email, role) => api('POST', '/auth/register', { token: S, body: {
-  firstName: first, lastName: last, username: email.split('@')[0].replace(/[^a-z0-9]/gi, '.'), email, password: PASSWORD, role, institutionId: INST,
+  firstName: first, lastName: last, username: email.split('@')[0].replace(/[^a-z0-9]/gi, '.'), email, password: USER_PASSWORD, role, institutionId: INST,
 } });
 const adminEmail = `admin@${INST}.edu`;
 await register('Admin', 'Simulado', adminEmail, 'ADMIN');
@@ -149,8 +152,8 @@ const instructorEmails = Array.from({ length: N_INSTRUCTORS }, (_, i) => `docent
 const studentEmails = Array.from({ length: N_STUDENTS }, (_, i) => `est${i + 1}@${INST}.edu`);
 await pool(instructorEmails, (e, i) => register('Docente', `Número ${i + 1}`, e, 'INSTRUCTOR'), 10);
 await pool(studentEmails, (e, i) => register('Estudiante', `Número ${i + 1}`, e, 'STUDENT'), 10);
-const instructors = (await pool(instructorEmails, login, 10)).filter(Boolean);
-const students = (await pool(studentEmails, login)).filter(Boolean);
+const instructors = (await pool(instructorEmails, e => login(e), 10)).filter(Boolean);
+const students = (await pool(studentEmails, e => login(e))).filter(Boolean);
 check('todos los docentes inician sesión', instructors.length === N_INSTRUCTORS, `${instructors.length}/${N_INSTRUCTORS}`);
 check('todos los estudiantes inician sesión (ráfaga concurrente)', students.length === N_STUDENTS, `${students.length}/${N_STUDENTS}`);
 
@@ -183,7 +186,7 @@ phase('4. Inscripciones');
 // Cada estudiante (salvo el curso con cupo) queda en 3 cursos, inscrito por el administrador en bloque.
 const regular = courses.slice(1);
 const rosters = new Map(regular.map(c => [c.id, []]));
-students.forEach((s, i) => { for (let k = 0; k < 3 && regular.length; k++) rosters.get(regular[(i + k) % regular.length].id).push(s.id); });
+students.forEach((s, i) => { for (let k = 0; k < Math.min(3, regular.length); k++) rosters.get(regular[(i + k) % regular.length].id).push(s.id); });
 await pool([...rosters], ([courseId, ids]) => api('POST', '/enrollments/bulk', { token: A, body: { courseId, studentIds: ids } }), 4);
 
 // Carrera por el cupo: todos los estudiantes intentan inscribirse a la vez en el curso con cupo.
@@ -251,7 +254,7 @@ await pool(courses, async c => {
   const subs = list((await api('GET', `/courses/${c.id}/submissions`, { token: T })).data);
   await pool(subs, async (sub, k) => {
     const r = await api('PUT', `/submissions/${sub.id}/grade`, { token: T, body: {
-      grade: 60 + (k % 41), feedback: 'Buen trabajo', rubricScores: [{ criterionId: 'r1', points: 50 }, { criterionId: 'r2', points: 30 }],
+      grade: 60 + (k % 41), feedback: 'Buen trabajo', rubricScores: [{ criterionId: 'r1', score: 50 }, { criterionId: 'r2', score: 30 }],
     } });
     if (r.status < 300) graded++;
   }, 8);

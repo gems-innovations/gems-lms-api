@@ -71,6 +71,7 @@ public class GradeSubmissionUseCase {
     return Math.round(earned * 100f / possible);
   }
 
-  public record RubricScore(String criterionId, int score, String comment) {
+  /** score is required: a missing value is rejected instead of counting as 0. */
+  public record RubricScore(String criterionId, Integer score, String comment) {
   }
 }

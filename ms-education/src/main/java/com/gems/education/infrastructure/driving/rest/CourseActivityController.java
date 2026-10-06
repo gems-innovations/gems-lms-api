@@ -1,5 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.application.PeriodClosingUseCase;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -39,6 +40,7 @@ public class CourseActivityController {
   private final EducationAccess access;
   private final ObjectMapper mapper;
   private final NotificationUseCase notifications;
+  private final PeriodClosingUseCase closing;
 
   public CourseActivityController(SubmitQuizAttemptUseCase submitQuizAttemptUseCase,
                                   SubmitAssignmentUseCase submitAssignmentUseCase,
@@ -46,7 +48,9 @@ public class CourseActivityController {
                                   GetCourseActivityUseCase getCourseActivityUseCase,
                                   EducationAccess access,
                                   ObjectMapper mapper,
-                                  NotificationUseCase notifications) {
+                                  NotificationUseCase notifications,
+                                  PeriodClosingUseCase closing) {
+    this.closing = closing;
     this.submitQuizAttemptUseCase = submitQuizAttemptUseCase;
     this.submitAssignmentUseCase = submitAssignmentUseCase;
     this.gradeSubmissionUseCase = gradeSubmissionUseCase;
@@ -60,6 +64,7 @@ public class CourseActivityController {
   public Mono<ResponseEntity<AttemptResponse>> submitAttempt(@PathVariable Long courseId, @PathVariable Long blockId,
                                                              @Valid @RequestBody AttemptRequest request) {
     return access.readableCourse(courseId)
+      .then(closing.requireOpen(courseId))
       .then(CurrentUser.get())
       .flatMap(caller -> request.sessionId() != null
         ? submitQuizAttemptUseCase.execute(caller.userId(), courseId, blockId, request.sessionId(), request.answers().toString())
@@ -74,6 +79,7 @@ public class CourseActivityController {
   @PostMapping("/courses/{courseId}/blocks/{blockId}/attempts/start")
   public Mono<ResponseEntity<SessionResponse>> startAttempt(@PathVariable Long courseId, @PathVariable Long blockId) {
     return access.readableCourse(courseId)
+      .then(closing.requireOpen(courseId))
       .then(CurrentUser.get())
       .flatMap(caller -> submitQuizAttemptUseCase.start(caller.userId(), courseId, blockId))
       .map(session -> ResponseEntity.ok(SessionResponse.from(session)));
@@ -83,6 +89,7 @@ public class CourseActivityController {
   public Mono<ResponseEntity<SubmissionResponse>> submitAssignment(@PathVariable Long courseId, @PathVariable Long blockId,
                                                                    @RequestBody SubmissionRequest request) {
     return access.readableCourse(courseId)
+      .flatMap(course -> closing.requireOpen(courseId).thenReturn(course))
       .flatMap(course -> CurrentUser.get()
         .flatMap(caller -> submitAssignmentUseCase.execute(caller.userId(), courseId, blockId,
           request.textContent(), toJson(request.fileUrls())))
@@ -122,6 +129,7 @@ public class CourseActivityController {
   public Mono<ResponseEntity<SubmissionResponse>> grade(@PathVariable Long id, @Valid @RequestBody GradeRequest request) {
     return gradeSubmissionUseCase.findSubmission(id)
       .flatMap(submission -> access.editableCourse(submission.courseId()))
+      .flatMap(course -> closing.requireOpen(course.getId()).thenReturn(course))
       .flatMap(course -> applyGrade(id, request)
         .flatMap(graded -> notifications.submissionGraded(course.getInstitutionId(), graded.studentId(),
             course.getId(), course.getTitle(), graded.id(), graded.grade())

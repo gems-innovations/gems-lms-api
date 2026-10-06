@@ -1,5 +1,7 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.domain.entities.PeriodGradeRecord;
+import com.gems.education.application.PeriodClosingUseCase;
 import com.gems.education.application.EnrollmentRulesUseCase;
 import com.gems.education.application.EnrollmentRulesUseCase.Eligibility;
 import com.gems.education.domain.entities.AcademicPeriod;
@@ -28,10 +30,12 @@ public class EnrollmentRulesController {
 
   private final EnrollmentRulesUseCase useCase;
   private final EducationAccess access;
+  private final PeriodClosingUseCase closing;
 
-  public EnrollmentRulesController(EnrollmentRulesUseCase useCase, EducationAccess access) {
+  public EnrollmentRulesController(EnrollmentRulesUseCase useCase, EducationAccess access, PeriodClosingUseCase closing) {
     this.useCase = useCase;
     this.access = access;
+    this.closing = closing;
   }
 
   // ── Periods ────────────────────────────────────────────────────────────────
@@ -67,6 +71,31 @@ public class EnrollmentRulesController {
   public Mono<ResponseEntity<Void>> deletePeriod(@PathVariable Long id) {
     return admin().flatMap(scope -> useCase.deletePeriod(id, scope.orElse(null)))
       .thenReturn(ResponseEntity.noContent().<Void>build());
+  }
+
+  // ── Closing (acta) ─────────────────────────────────────────────────────────
+
+  /** Freezes the final grades of the period's courses and stops their activity. */
+  @PostMapping("/academic-periods/{id}/close")
+  public Mono<ResponseEntity<PeriodClosingUseCase.CloseSummary>> closePeriod(@PathVariable Long id) {
+    return CurrentUser.require(c -> c.isSuperAdmin() || c.isAdmin(), "Only administrators close academic periods")
+      .flatMap(caller -> useCase.period(id, caller.isSuperAdmin() ? null : caller.institutionId())
+        .flatMap(p -> closing.close(p, caller.userId())))
+      .map(ResponseEntity::ok);
+  }
+
+  @PostMapping("/academic-periods/{id}/reopen")
+  public Mono<ResponseEntity<AcademicPeriod>> reopenPeriod(@PathVariable Long id) {
+    return admin().flatMap(scope -> useCase.period(id, scope.orElse(null))).flatMap(closing::reopen)
+      .map(ResponseEntity::ok);
+  }
+
+  /** The acta: one line per student and course. Administrators of the institution only. */
+  @GetMapping("/academic-periods/{id}/records")
+  public Mono<ResponseEntity<List<PeriodGradeRecord>>> periodRecords(@PathVariable Long id) {
+    return admin().flatMap(scope -> useCase.period(id, scope.orElse(null)))
+      .flatMap(p -> closing.records(p).collectList())
+      .map(ResponseEntity::ok);
   }
 
   // ── Course rules ───────────────────────────────────────────────────────────

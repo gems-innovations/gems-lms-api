@@ -23,7 +23,9 @@ class GradebookControllerTest extends ControllerTestSupport {
     when(gradebook.course(anyLong())).thenReturn(Mono.just(empty));
     when(gradebook.student(anyLong(), anyLong())).thenReturn(Mono.just(empty));
     when(gradebook.saveWeights(anyLong(), anyMap())).thenReturn(Mono.just(empty));
-    controller = new GradebookController(gradebook, access);
+    com.gems.education.application.PeriodClosingUseCase closing = org.mockito.Mockito.mock(com.gems.education.application.PeriodClosingUseCase.class);
+    when(closing.requireOpen(anyLong())).thenReturn(Mono.empty());
+    controller = new GradebookController(gradebook, access, closing);
   }
 
   @Test
