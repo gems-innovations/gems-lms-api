@@ -1,5 +1,7 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.domain.entities.Achievements;
+import com.gems.education.application.AchievementsUseCase;
 import com.gems.education.application.PeriodClosingUseCase;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -41,6 +43,7 @@ public class CourseActivityController {
   private final ObjectMapper mapper;
   private final NotificationUseCase notifications;
   private final PeriodClosingUseCase closing;
+  private final AchievementsUseCase achievements;
 
   public CourseActivityController(SubmitQuizAttemptUseCase submitQuizAttemptUseCase,
                                   SubmitAssignmentUseCase submitAssignmentUseCase,
@@ -49,8 +52,10 @@ public class CourseActivityController {
                                   EducationAccess access,
                                   ObjectMapper mapper,
                                   NotificationUseCase notifications,
-                                  PeriodClosingUseCase closing) {
+                                  PeriodClosingUseCase closing,
+                                  AchievementsUseCase achievements) {
     this.closing = closing;
+    this.achievements = achievements;
     this.submitQuizAttemptUseCase = submitQuizAttemptUseCase;
     this.submitAssignmentUseCase = submitAssignmentUseCase;
     this.gradeSubmissionUseCase = gradeSubmissionUseCase;
@@ -69,6 +74,7 @@ public class CourseActivityController {
       .flatMap(caller -> request.sessionId() != null
         ? submitQuizAttemptUseCase.execute(caller.userId(), courseId, blockId, request.sessionId(), request.answers().toString())
         : submitQuizAttemptUseCase.execute(caller.userId(), courseId, blockId, request.answers().toString()))
+      .flatMap(attempt -> achievements.recordActivity(attempt.studentId()).thenReturn(attempt))
       .map(attempt -> ResponseEntity.status(HttpStatus.CREATED).body(AttemptResponse.from(attempt)));
   }
 
@@ -97,7 +103,14 @@ public class CourseActivityController {
             course.getTitle(), submission.id())
           .onErrorResume(e -> Mono.empty())
           .thenReturn(submission)))
+      .flatMap(submission -> achievements.recordActivity(submission.studentId()).thenReturn(submission))
       .map(submission -> ResponseEntity.ok(SubmissionResponse.from(submission)));
+  }
+
+  /** Points, level, streak, weekly goal and badges of the caller. */
+  @GetMapping("/activity/achievements")
+  public Mono<ResponseEntity<Achievements.Profile>> myAchievements() {
+    return CurrentUser.get().flatMap(caller -> achievements.of(caller.userId())).map(ResponseEntity::ok);
   }
 
   /** The caller's quiz attempts and assignment submissions across all their courses. */

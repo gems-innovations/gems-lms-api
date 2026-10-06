@@ -39,6 +39,7 @@ public class EnrollmentController {
   private final GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase;
   private final EducationAccess access;
   private final InstitutionMembers members;
+  private final com.gems.education.application.AchievementsUseCase achievements;
 
   public EnrollmentController(EnrollStudentUseCase enrollStudentUseCase,
                                BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase,
@@ -49,7 +50,9 @@ public class EnrollmentController {
                                GetEnrollmentByIdUseCase getEnrollmentByIdUseCase,
                                GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase,
                                EducationAccess access,
-                               InstitutionMembers members) {
+                               InstitutionMembers members,
+                               com.gems.education.application.AchievementsUseCase achievements) {
+    this.achievements = achievements;
     this.enrollStudentUseCase = enrollStudentUseCase;
     this.bulkEnrollStudentsUseCase = bulkEnrollStudentsUseCase;
     this.getStudentEnrollmentsUseCase = getStudentEnrollmentsUseCase;
@@ -128,6 +131,8 @@ public class EnrollmentController {
     String progressData = body != null ? body.getProgressData() : null;
     return access.accessibleEnrollment(id)
       .flatMap(enrollment -> updateEnrollmentProgressUseCase.execute(id, value, progressData))
+      // Studying a lesson counts as a learning day for the streak.
+      .flatMap(updated -> achievements.recordActivity(updated.getStudentId()).thenReturn(updated))
       .map(ResponseEntity::ok);
   }
 

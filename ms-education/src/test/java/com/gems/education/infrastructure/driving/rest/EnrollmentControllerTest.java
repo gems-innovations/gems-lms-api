@@ -33,13 +33,17 @@ class EnrollmentControllerTest extends ControllerTestSupport {
   private final EnrollmentResponse studentEnrollment =
     TestData.enrollmentResponse(20L, STUDENT.userId(), 1L, LocalDateTime.now(), 0, null);
 
+  private final com.gems.education.application.AchievementsUseCase achievements =
+    org.mockito.Mockito.mock(com.gems.education.application.AchievementsUseCase.class);
+
   @BeforeEach
   void setUp() {
     givenCourses();
+    when(achievements.recordActivity(org.mockito.ArgumentMatchers.any())).thenReturn(Mono.empty());
     when(getEnrollmentByIdUseCase.execute(20L)).thenReturn(Mono.just(studentEnrollment));
     controller = new EnrollmentController(enrollStudentUseCase, bulkEnrollStudentsUseCase, getStudentEnrollmentsUseCase,
       getEnrollmentsByCourseUseCase, updateEnrollmentProgressUseCase, deleteEnrollmentUseCase, getEnrollmentByIdUseCase,
-      getEnrollmentsByInstitutionUseCase, access, members);
+      getEnrollmentsByInstitutionUseCase, access, members, achievements);
   }
 
   private WebTestClient as(AuthenticatedUser caller) {

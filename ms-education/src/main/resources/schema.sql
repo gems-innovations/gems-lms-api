@@ -431,3 +431,20 @@ UPDATE courses SET
     enrolled_count = (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = courses.id),
     completion_rate = COALESCE((SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE e.status = 'completed') / NULLIF(COUNT(*), 0))
                                 FROM enrollments e WHERE e.course_id = courses.id), 0);
+
+-- Gamificación: días con actividad de aprendizaje (rachas y meta semanal).
+CREATE TABLE IF NOT EXISTS student_activity_days (
+    student_id BIGINT NOT NULL,
+    day DATE NOT NULL,
+    actions INT NOT NULL DEFAULT 1,
+    PRIMARY KEY (student_id, day)
+);
+-- Días de actividad anteriores a la tabla, a partir de intentos y entregas (idempotente).
+INSERT INTO student_activity_days(student_id, day, actions)
+SELECT student_id, CAST(completed_at AS DATE), COUNT(*) FROM quiz_attempts WHERE completed_at IS NOT NULL
+GROUP BY student_id, CAST(completed_at AS DATE)
+ON CONFLICT (student_id, day) DO NOTHING;
+INSERT INTO student_activity_days(student_id, day, actions)
+SELECT student_id, CAST(submitted_at AS DATE), COUNT(*) FROM assignment_submissions WHERE submitted_at IS NOT NULL
+GROUP BY student_id, CAST(submitted_at AS DATE)
+ON CONFLICT (student_id, day) DO NOTHING;
