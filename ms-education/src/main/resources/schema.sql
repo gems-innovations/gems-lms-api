@@ -448,3 +448,13 @@ INSERT INTO student_activity_days(student_id, day, actions)
 SELECT student_id, CAST(submitted_at AS DATE), COUNT(*) FROM assignment_submissions WHERE submitted_at IS NOT NULL
 GROUP BY student_id, CAST(submitted_at AS DATE)
 ON CONFLICT (student_id, day) DO NOTHING;
+
+-- Comentarios de retroalimentación reutilizables de cada docente.
+CREATE TABLE IF NOT EXISTS feedback_snippets (
+    id BIGSERIAL PRIMARY KEY,
+    owner_id BIGINT NOT NULL,
+    text VARCHAR(2000) NOT NULL,
+    uses INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_feedback_snippets_text ON feedback_snippets(owner_id, md5(text));
