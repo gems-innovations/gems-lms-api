@@ -51,6 +51,9 @@ class UserControllerTest {
 
     private WebTestClient webTestClient;
 
+    private final com.gems.auth.application.gateway.JwtGateway jwtGateway =
+        org.mockito.Mockito.mock(com.gems.auth.application.gateway.JwtGateway.class);
+
     @BeforeEach
     void setUp() {
         UserController userController = new UserController(
@@ -59,7 +62,8 @@ class UserControllerTest {
             getUserByIdUseCase,
             getAllUsersUseCase,
             updateUserUseCase,
-            toggleUserStatusUseCase
+            toggleUserStatusUseCase,
+            jwtGateway
         );
         webTestClient = WebTestClient.bindToController(userController)
             .webFilter(TestSecurity.superAdmin())
@@ -259,7 +263,7 @@ class UserControllerTest {
 
         private WebTestClient as(AuthenticatedUser caller) {
             UserController controller = new UserController(deleteUserUseCase, getUsersByInstitutionUseCase,
-                getUserByIdUseCase, getAllUsersUseCase, updateUserUseCase, toggleUserStatusUseCase);
+                getUserByIdUseCase, getAllUsersUseCase, updateUserUseCase, toggleUserStatusUseCase, jwtGateway);
             return WebTestClient.bindToController(controller)
                 .webFilter(TestSecurity.authenticatedAs(caller))
                 .controllerAdvice(new GlobalExceptionHandler(), new com.gems.shared.security.SecurityExceptionAdvice())
