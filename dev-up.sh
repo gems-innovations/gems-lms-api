@@ -38,9 +38,12 @@ fi
 export DEV_PASSWORD
 export BOOTSTRAP_SUPERADMIN_EMAIL="${BOOTSTRAP_SUPERADMIN_EMAIL:-super@gems.lms}"
 export BOOTSTRAP_SUPERADMIN_PASSWORD="${BOOTSTRAP_SUPERADMIN_PASSWORD:-$DEV_PASSWORD}"
-export MAIL_HOST="${MAIL_HOST:-localhost}"
-export MAIL_PORT="${MAIL_PORT:-1025}"
-export MAIL_STARTTLS="${MAIL_STARTTLS:-false}"
+# Correo: en desarrollo siempre va a Mailpit (las pruebas crean cuentas @ejemplo.test que rebotarían).
+# Para probar el envío real con el SMTP del .env, ejecuta con USE_REAL_MAIL=1.
+if [ "${USE_REAL_MAIL:-0}" != "1" ]; then
+  export MAIL_HOST=localhost MAIL_PORT=1025 MAIL_STARTTLS=false
+  unset MAIL_USERNAME MAIL_PASSWORD
+fi
 
 echo "1) Bases de datos y Redis"
 docker compose -f docker-compose-local.yml --env-file .env up -d

@@ -5,7 +5,6 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.web.util.HtmlUtils;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -38,15 +37,12 @@ public class SmtpPasswordResetNotifier implements PasswordResetNotifier {
       helper.setFrom(from);
       helper.setTo(email);
       helper.setSubject("Restablece tu contraseña de GEMS LMS");
-      String name = firstName == null || firstName.isBlank() ? "" : " " + firstName;
-      helper.setText(
-        "Hola" + name + ",\n\nRecibimos una solicitud para restablecer tu contraseña. Abre este enlace "
-          + "(válido por 1 hora) para elegir una nueva:\n\n" + link
-          + "\n\nSi no fuiste tú, ignora este correo: tu contraseña no cambia.\n",
-        "<p>Hola" + HtmlUtils.htmlEscape(name) + ",</p>"
-          + "<p>Recibimos una solicitud para restablecer tu contraseña. El enlace es válido por 1 hora.</p>"
-          + "<p><a href=\"" + HtmlUtils.htmlEscape(link) + "\">Elegir una nueva contraseña</a></p>"
-          + "<p>Si no fuiste tú, ignora este correo: tu contraseña no cambia.</p>");
+      java.util.List<String> paragraphs = java.util.List.of(
+        "Recibimos una solicitud para restablecer tu contraseña. El enlace es válido por 1 hora.",
+        "Si no fuiste tú, ignora este correo: tu contraseña no cambia.");
+      String footer = "Recibes este mensaje porque se pidió restablecer la contraseña de tu cuenta GEMS.";
+      helper.setText(BrandedEmailTemplate.text(firstName, paragraphs, link, footer),
+        BrandedEmailTemplate.html(firstName, paragraphs, "Elegir una nueva contraseña", link, footer));
       return message;
     } catch (MessagingException e) {
       throw new IllegalStateException("Could not build the password reset e-mail", e);

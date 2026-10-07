@@ -72,9 +72,11 @@ function Start-GemsService {
 Import-DotEnv (Join-Path $PSScriptRoot ".env")
 Assert-Java24
 
-if ([string]::IsNullOrWhiteSpace($env:MAIL_HOST)) { $env:MAIL_HOST = "localhost" }
-if ([string]::IsNullOrWhiteSpace($env:MAIL_PORT)) { $env:MAIL_PORT = "1025" }
-if ([string]::IsNullOrWhiteSpace($env:MAIL_STARTTLS)) { $env:MAIL_STARTTLS = "false" }
+# En desarrollo el correo va a Mailpit salvo que USE_REAL_MAIL=1 (prueba de envío real con el SMTP del .env).
+if ($env:USE_REAL_MAIL -ne "1") {
+    $env:MAIL_HOST = "localhost"; $env:MAIL_PORT = "1025"; $env:MAIL_STARTTLS = "false"
+    Remove-Item Env:MAIL_USERNAME, Env:MAIL_PASSWORD -ErrorAction SilentlyContinue
+}
 
 $services = @{
     "api-gateway" = @{ Port = 8080; Task = ":api-gateway:bootRun" }
