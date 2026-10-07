@@ -86,6 +86,20 @@ services:
     depends_on:
       api-gateway:
         condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - gems-network
+    restart: unless-stopped
+
+  # Frontend estático (imagen publicada por el repo gems-lms-web)
+  web:
+    image: ${DOCKER_USERNAME:?Define DOCKER_USERNAME}/gems-web:${TAG:-latest}
+    container_name: gems-web
+    expose:
+      - "80"
+    environment:
+      - API_BASE_URL=${API_BASE_URL:?Define API_BASE_URL}
     networks:
       - gems-network
     restart: unless-stopped

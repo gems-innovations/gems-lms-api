@@ -9,7 +9,7 @@ value_of() {
 }
 
 for key in DOCKER_USERNAME ADMIN_DB_PASSWORD AUTH_DB_PASSWORD EDUCATION_DB_PASSWORD \
-  REDIS_PASSWORD JWT_SECRET CORS_ALLOWED_ORIGINS FRONTEND_URL; do
+  REDIS_PASSWORD JWT_SECRET CORS_ALLOWED_ORIGINS FRONTEND_URL API_BASE_URL; do
   value=$(value_of "$key")
   [ -n "$value" ] || { echo "$key is required" >&2; exit 1; }
   case "$value" in CHANGE_ME*) echo "$key still contains CHANGE_ME" >&2; exit 1 ;; esac
