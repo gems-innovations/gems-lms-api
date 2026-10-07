@@ -51,37 +51,39 @@ jobs:
   docker-build-push:
     needs: build-and-test
     if: github.event_name == 'push' # Only build/push docker images on push, not PR
-    runs-on: ubuntu-latest
+    # La VM de Oracle es ARM (Ampere): se compila nativo en un runner ARM, sin emulación.
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         service: [ms-auth, ms-admin, ms-education, api-gateway]
     steps:
     - uses: actions/checkout@v7
-    
-    - name: Set up JDK 24
-      uses: actions/setup-java@v6
-      with:
-        java-version: '24'
-        distribution: 'temurin'
 
-    - uses: docker/setup-qemu-action@v3
     - uses: docker/setup-buildx-action@v3
 
-    - name: Login to Docker Hub
+    - name: Login to GitHub Container Registry
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-        
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v7
       with:
         context: .
         file: ./${{ matrix.service }}/Dockerfile
         push: true
+        platforms: linux/arm64
+        cache-from: type=gha,scope=${{ matrix.service }}
+        cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+        labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
         tags: |
-          ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ github.sha }}
-          ${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ env.DEPLOY_ENV }}-latest
+          ghcr.io/gems-innovations/${{ matrix.service }}:${{ github.sha }}
+          ghcr.io/gems-innovations/${{ matrix.service }}:${{ env.DEPLOY_ENV }}-latest
 
   deploy:
     needs: docker-build-push
@@ -97,7 +99,7 @@ jobs:
         host: ${{ secrets.VM_HOST }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
-        source: "docker-compose.yml,nginx,ops/validate-production-env.sh"
+        source: "docker-compose.yml,ops/validate-production-env.sh"
         target: "/home/${{ secrets.VM_USER }}/app"
 
     - name: Deploy to ${{ env.DEPLOY_ENV }}
@@ -111,5 +113,6 @@ jobs:
           cd /home/${{ secrets.VM_USER }}/app
           sh ops/validate-production-env.sh .env
           docker compose --env-file .env config --quiet
-          docker compose pull
-          docker compose up -d --remove-orphans
+          docker compose --env-file .env pull
+          docker compose --env-file .env up -d --remove-orphans
+          docker image prune -f

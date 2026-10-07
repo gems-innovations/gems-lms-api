@@ -72,10 +72,13 @@ services:
       retries: 5
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?Define REDIS_PASSWORD}"]
 
-  # Nginx Reverse Proxy
+  # Nginx Reverse Proxy (solo en una VM dedicada: `docker compose --profile edge up -d`).
+  # En la VM de Oracle compartida el borde es el nginx del sistema (ops/host-nginx/gems-lms.conf),
+  # que llega al gateway y al front por los puertos de loopback publicados abajo.
   nginx:
     image: nginx:alpine
     container_name: gems-nginx
+    profiles: ["edge"]
     ports:
       - "80:80"
       - "443:443"
@@ -94,10 +97,12 @@ services:
 
   # Frontend estático (imagen publicada por el repo gems-lms-web)
   web:
-    image: ${DOCKER_USERNAME:?Define DOCKER_USERNAME}/gems-web:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/gems-web:${TAG:-latest}
     container_name: gems-web
     expose:
       - "80"
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-18081}:80"
     environment:
       - API_BASE_URL=${API_BASE_URL:?Define API_BASE_URL}
     networks:
@@ -106,11 +111,14 @@ services:
 
   # Microservices
   api-gateway:
-    image: ${DOCKER_USERNAME:?Define DOCKER_USERNAME}/api-gateway:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/api-gateway:${TAG:-latest}
     container_name: gems-api-gateway
     expose:
       - "8080"
+    ports:
+      - "127.0.0.1:${GATEWAY_HOST_PORT:-18080}:8080"
     environment:
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
       - AUTH_SERVICE_URL=http://ms-auth:${AUTH_PORT:-8081}
       - ADMIN_SERVICE_URL=http://ms-admin:${ADMIN_PORT:-8082}
       - EDUCATION_SERVICE_URL=http://ms-education:${EDUCATION_PORT:-8083}
@@ -138,13 +146,15 @@ services:
       - gems-network
     restart: unless-stopped
     stop_grace_period: 30s
+    mem_limit: ${JAVA_MEM_LIMIT:-1g}
 
   ms-auth:
-    image: ${DOCKER_USERNAME:?Define DOCKER_USERNAME}/ms-auth:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/ms-auth:${TAG:-latest}
     container_name: gems-ms-auth
     expose:
       - "${AUTH_PORT:-8081}"
     environment:
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
       - EDUCATION_SERVICE_URL=http://ms-education:${EDUCATION_PORT:-8083}
       - BOOTSTRAP_SUPERADMIN_EMAIL=${BOOTSTRAP_SUPERADMIN_EMAIL:-}
       - BOOTSTRAP_SUPERADMIN_PASSWORD=${BOOTSTRAP_SUPERADMIN_PASSWORD:-}
@@ -182,13 +192,15 @@ services:
       - gems-network
     restart: unless-stopped
     stop_grace_period: 30s
+    mem_limit: ${JAVA_MEM_LIMIT:-1g}
 
   ms-admin:
-    image: ${DOCKER_USERNAME:?Define DOCKER_USERNAME}/ms-admin:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/ms-admin:${TAG:-latest}
     container_name: gems-ms-admin
     expose:
       - "${ADMIN_PORT:-8082}"
     environment:
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
       - AUTH_SERVICE_URL=http://ms-auth:${AUTH_PORT:-8081}
       - ADMIN_PORT=${ADMIN_PORT:-8082}
       - ADMIN_R2DBC_URL=r2dbc:postgresql://postgres-admin:5432/${ADMIN_DB_NAME:-admin_db}
@@ -215,13 +227,15 @@ services:
       - gems-network
     restart: unless-stopped
     stop_grace_period: 30s
+    mem_limit: ${JAVA_MEM_LIMIT:-1g}
 
   ms-education:
-    image: ${DOCKER_USERNAME:?Define DOCKER_USERNAME}/ms-education:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/ms-education:${TAG:-latest}
     container_name: gems-ms-education
     expose:
       - "${EDUCATION_PORT:-8083}"
     environment:
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
       - AUTH_SERVICE_URL=http://ms-auth:${AUTH_PORT:-8081}
       - FILES_DIR=/data/uploads
       - FILES_MAX_SIZE_BYTES=${FILES_MAX_SIZE_BYTES:-10485760}
@@ -261,6 +275,7 @@ services:
       - gems-network
     restart: unless-stopped
     stop_grace_period: 30s
+    mem_limit: ${JAVA_MEM_LIMIT:-1g}
 
 volumes:
   uploaded_files:

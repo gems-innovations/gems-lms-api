@@ -45,38 +45,42 @@ Respaldos, restauración y métricas están documentados en `docs/backups.md` y 
 
 ## Despliegue automático en la VM de Oracle (GitHub Actions)
 
-Todo corre en una sola VM con Docker Compose: Nginx (TLS) → `web` (front estático) y → `api-gateway`
-→ microservicios. Los repos publican imágenes en Docker Hub y la VM las descarga por SSH.
+La VM de Oracle (ARM Ampere) es **compartida** con otros servicios. Por eso el borde es el **nginx del sistema** y no el
+contenedor `nginx` del compose (queda en el perfil `edge`, para una VM dedicada).
+
+```
+Internet → nginx del sistema (TLS, ops/host-nginx/gems-lms.conf)
+             ├─ lms.gemsinnovations.com        → 127.0.0.1:18081 → web (front estático)
+             └─ api.{auth,admin,edu}.gems…     → 127.0.0.1:18080 → api-gateway → microservicios
+```
+
+Los repos publican imágenes `linux/arm64` en `ghcr.io/gems-innovations` (compiladas en runners ARM
+de GitHub, con `GITHUB_TOKEN`: no hace falta Docker Hub). La VM necesita `docker login ghcr.io` si los paquetes son privados.
 
 | Repo | Workflow | Qué hace |
 |---|---|---|
-| gems-lms-api | `.github/workflows/ci-cd.yml` | Tests, imágenes de `ms-auth`, `ms-admin`, `ms-education`, `api-gateway`; copia compose y nginx a la VM y hace `up -d` |
+| gems-lms-api | `.github/workflows/ci-cd.yml` | Tests, imágenes de `ms-auth`, `ms-admin`, `ms-education`, `api-gateway`; copia el compose a la VM y hace `up -d` |
 | gems-lms-web | `.github/workflows/deploy.yml` | Tests, imagen `gems-web` (build `production,static` + nginx) y `up -d web` |
 
-Ramas: `develop` → `dev`, `qa` → `qa`, `main` → `pdn` (etiqueta `<entorno>-latest`). Cada rama usa su
-GitHub Environment, así que cada uno puede tener su propia VM.
+Ramas: `develop` → `dev`, `qa` → `qa`, `main` → `pdn` (etiqueta `<entorno>-latest`).
 
-### Configuración en GitHub (en ambos repos, por Environment)
+### Configuración en GitHub (en ambos repos, Environment `pdn`)
 
-- Secrets: `DOCKER_USERNAME`, `DOCKER_PASSWORD` (token de Docker Hub), `VM_HOST` (IP pública),
-  `VM_USER` (`ubuntu` u `opc`), `VM_SSH_KEY` (llave privada, sin passphrase).
-- Variable opcional `DOCKER_PLATFORMS`: `linux/amd64` (defecto) o `linux/amd64,linux/arm64` si la VM es
-  ARM (Ampere). El build ARM bajo emulación es lento.
-- Las imágenes deben ser públicas o la VM debe haber hecho `docker login`.
+Secrets: `VM_HOST` (IP pública), `VM_USER`, `VM_SSH_KEY` (llave privada sin passphrase,
+idealmente una llave solo para despliegue agregada a `~/.ssh/authorized_keys` de la VM).
 
 ### Preparar la VM (una sola vez)
 
-1. En Oracle Cloud abrir TCP 80 y 443 en la Security List / NSG de la subred.
-2. Apuntar los DNS del front y del API a la IP pública.
-3. Ejecutar `ops/setup-vm.sh <dominio-front> <dominio-api> <correo>`: instala Docker, abre el
-   firewall local, emite los certificados y programa la renovación.
-4. Crear `~/app/.env` desde `.env.production.example`. El workflow nunca lo crea ni lo toca.
-5. Si el dominio del front no es `lms.gemsinnovations.com`, editar `nginx/conf.d/web.conf`.
+1. Apuntar en el DNS `lms`, `api.auth`, `api.admin` y `api.edu` a la IP pública (registros A).
+2. Copiar el repo de ops a `~/app` y crear `~/app/.env` desde `.env.production.example`
+   (el workflow nunca lo crea ni lo toca).
+3. Ejecutar `sh ~/app/ops/setup-vm.sh <correo>`: emite los certificados con el certbot del sistema
+   (renovación por `certbot.timer`), instala el sitio y valida con `nginx -t` antes de recargar.
 
-El orden del primer despliegue es: push del API (levanta bases y servicios; Nginx espera al `web`),
-y luego push del front. Si el front aún no se publicó, `docker compose up` fallará al no encontrar
-`gems-web`: publica primero el front o ejecuta ambos workflows.
+Primer despliegue: publica primero el front (la imagen `gems-web` debe existir) y luego el API.
 
 ### Datos iniciales
 
-Los cursos gratuitos se cargan manualmente con los scripts de `seed/` contra la URL pública del API.
+El primer super admin se crea solo al arrancar `ms-auth` con `BOOTSTRAP_SUPERADMIN_EMAIL` /
+`BOOTSTRAP_SUPERADMIN_PASSWORD`. Los cursos gratuitos se cargan con los scripts de `seed/` contra la
+URL pública del API.

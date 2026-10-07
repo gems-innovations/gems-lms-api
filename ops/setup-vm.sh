@@ -1,12 +1,17 @@
 #!/bin/sh
-# Preparación única de la VM de Oracle (Ubuntu). Ejecutar como el usuario de despliegue:
-#   sh setup-vm.sh lms.gemsinnovations.com api.auth.gemsinnovations.com tu@correo.com
-# Requisitos previos: los dominios ya apuntan a la IP pública de la VM y la Security List /
-# NSG de Oracle permite entrada TCP 22, 80 y 443.
+# Preparación única de la VM de Oracle (Ubuntu, compartida con otros proyectos).
+# El borde es el nginx del sistema: este script emite los certificados con el certbot del sistema
+# (que ya se renueva solo con certbot.timer) e instala el sitio ops/host-nginx/gems-lms.conf.
+#   sh ops/setup-vm.sh tu@correo.com
+# Requisitos previos: los dominios del front y del API apuntan a la IP pública de la VM y la
+# Security List / NSG de Oracle permite entrada TCP 22, 80 y 443.
 set -eu
 
-[ $# -ge 3 ] || { echo "Uso: $0 <dominio-front> <dominio-api> <correo-certbot>" >&2; exit 1; }
-web_domain=$1; api_domain=$2; email=$3
+[ $# -ge 1 ] || { echo "Uso: $0 <correo-certbot>" >&2; exit 1; }
+email=$1
+here=$(cd "$(dirname "$0")" && pwd)
+web_domain=lms.gemsinnovations.com
+api_domains="api.auth.gemsinnovations.com api.admin.gemsinnovations.com api.edu.gemsinnovations.com"
 
 # 1) Docker
 if ! command -v docker >/dev/null 2>&1; then
@@ -20,27 +25,31 @@ for port in 80 443; do
   sudo iptables -C INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null ||
     sudo iptables -I INPUT 5 -p tcp --dport "$port" -j ACCEPT
 done
-command -v netfilter-persistent >/dev/null 2>&1 && sudo netfilter-persistent save || true
 
-# 3) Carpetas que monta el compose
+# 3) Carpetas
 mkdir -p "$HOME/app"
 sudo mkdir -p /var/www/certbot
 
-# 4) Certificados Let's Encrypt (modo standalone: el puerto 80 debe estar libre)
-for domain in "$web_domain" "$api_domain"; do
-  sudo docker run --rm -p 80:80 \
-    -v /etc/letsencrypt:/etc/letsencrypt -v /var/www/certbot:/var/www/certbot \
-    certbot/certbot certonly --standalone -d "$domain" -m "$email" --agree-tos --no-eff-email -n
-done
+# 4) Certificados con el plugin nginx del certbot del sistema (no detiene nginx)
+dpkg -s python3-certbot-nginx >/dev/null 2>&1 || sudo apt-get install -y python3-certbot-nginx
+sudo certbot certonly --nginx -n --agree-tos -m "$email" --keep-until-expiring \
+  --cert-name "$web_domain" -d "$web_domain"
+api_args=""
+for d in $api_domains; do api_args="$api_args -d $d"; done
+# shellcheck disable=SC2086
+sudo certbot certonly --nginx -n --agree-tos -m "$email" --keep-until-expiring \
+  --cert-name api.auth.gemsinnovations.com $api_args
 
-# 5) Renovación automática (certbot webroot, con nginx ya corriendo)
-cron="0 3 * * 1 docker run --rm -v /etc/letsencrypt:/etc/letsencrypt -v /var/www/certbot:/var/www/certbot certbot/certbot renew -q --webroot -w /var/www/certbot && docker exec gems-nginx nginx -s reload"
-( crontab -l 2>/dev/null | grep -v 'certbot/certbot renew'; echo "$cron" ) | crontab -
+# 5) Sitio del LMS; se valida antes de recargar para no afectar a los otros sitios
+sudo cp "$here/host-nginx/gems-lms.conf" /etc/nginx/sites-available/gems-lms
+sudo ln -sf /etc/nginx/sites-available/gems-lms /etc/nginx/sites-enabled/gems-lms
+sudo nginx -t
+sudo systemctl reload nginx
 
 cat <<MSG
 
 Listo. Falta:
-  1. Copiar .env.production.example a $HOME/app/.env y completar cada CHANGE_ME
-     (incluye API_BASE_URL=https://$api_domain/api/v1 y FRONTEND_URL=https://$web_domain).
-  2. Configurar en GitHub los secrets/variables (ver docs/deployment.md) y hacer push a main.
+  1. Crear $HOME/app/.env desde .env.production.example y completar cada CHANGE_ME.
+  2. Configurar en GitHub los secrets VM_HOST, VM_USER y VM_SSH_KEY del Environment pdn
+     (ver docs/deployment.md) y hacer push a main en los dos repos.
 MSG

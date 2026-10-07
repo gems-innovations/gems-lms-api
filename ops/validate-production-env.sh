@@ -8,7 +8,7 @@ value_of() {
   sed -n "s/^$1=//p" "$env_file" | tail -n 1 | sed "s/^['\"]//;s/['\"]$//"
 }
 
-for key in DOCKER_USERNAME ADMIN_DB_PASSWORD AUTH_DB_PASSWORD EDUCATION_DB_PASSWORD \
+for key in ADMIN_DB_PASSWORD AUTH_DB_PASSWORD EDUCATION_DB_PASSWORD \
   REDIS_PASSWORD JWT_SECRET CORS_ALLOWED_ORIGINS FRONTEND_URL API_BASE_URL; do
   value=$(value_of "$key")
   [ -n "$value" ] || { echo "$key is required" >&2; exit 1; }
