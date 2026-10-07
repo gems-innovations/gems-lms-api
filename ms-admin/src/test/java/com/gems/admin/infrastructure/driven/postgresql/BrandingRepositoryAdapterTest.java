@@ -1,5 +1,6 @@
 package com.gems.admin.infrastructure.driven.postgresql;
 
+import com.gems.admin.TestData;
 import com.gems.admin.domain.entities.Branding;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,8 +32,7 @@ class BrandingRepositoryAdapterTest {
   void setUp() {
     LocalDateTime now = LocalDateTime.now();
 
-    testBranding = new Branding(
-      1L, "company-123", "example.com",
+    testBranding = TestData.branding(1L, "company-123", "example.com",
       "https://cdn.example.com/logo.png",
       "https://cdn.example.com/favicon.ico",
       "#3B82F6", "#8B5CF6", "#10B981", "#1F2937",
@@ -40,8 +40,7 @@ class BrandingRepositoryAdapterTest {
       ".custom { color: red; }", now
     );
 
-    testBrandingEntity = new BrandingEntity(
-      1L, "company-123", "example.com",
+    testBrandingEntity = TestData.brandingEntity(1L, "company-123", "example.com",
       "https://cdn.example.com/logo.png",
       "https://cdn.example.com/favicon.ico",
       "#3B82F6", "#8B5CF6", "#10B981", "#1F2937",

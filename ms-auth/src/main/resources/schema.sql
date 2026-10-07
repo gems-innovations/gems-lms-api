@@ -18,3 +18,65 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_active ON users(active);
 CREATE INDEX IF NOT EXISTS idx_users_institution_id ON users(institution_id);
+
+-- Accounts created with a generated (temporary) password must change it on first sign-in.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false;
+
+-- One-time "forgot password" tokens; only their SHA-256 hash is stored.
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Immutable audit trail written by the API gateway for authenticated mutations.
+CREATE TABLE IF NOT EXISTS audit_events (
+    id BIGSERIAL PRIMARY KEY,
+    actor_user_id BIGINT NOT NULL,
+    actor_role VARCHAR(50) NOT NULL,
+    institution_id VARCHAR(100),
+    action VARCHAR(30) NOT NULL,
+    http_method VARCHAR(10) NOT NULL,
+    resource_path VARCHAR(500) NOT NULL,
+    response_status INT NOT NULL,
+    client_ip VARCHAR(100),
+    user_agent VARCHAR(500),
+    occurred_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_events_institution_time
+    ON audit_events(institution_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_actor_time
+    ON audit_events(actor_user_id, occurred_at DESC);
+
+-- E-mail verification: one row per user. Only the SHA-256 hash of the link token is stored.
+CREATE TABLE IF NOT EXISTS email_verifications (
+    user_id BIGINT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    sent_at TIMESTAMP NOT NULL,
+    verified_at TIMESTAMP
+);
+
+-- What e-mail a user wants. No row = defaults (both on). Guests never receive e-mail.
+CREATE TABLE IF NOT EXISTS email_preferences (
+    user_id BIGINT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    course_notices BOOLEAN NOT NULL DEFAULT TRUE,
+    tips BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Proof of each authorization (Ley 1581 de 2012, Decreto 1377 de 2013 arts. 7-8): what, which policy version,
+-- granted or revoked, and when. Rows are never updated: a change of mind is a new row.
+CREATE TABLE IF NOT EXISTS consents (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    kind VARCHAR(30) NOT NULL,
+    policy_version VARCHAR(20) NOT NULL,
+    granted BOOLEAN NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_consents_user ON consents(user_id, kind, created_at DESC);

@@ -1,7 +1,7 @@
 package com.gems.education.application;
 
 import com.gems.education.application.gateway.LearningPathGateway;
-import com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException;
+import com.gems.education.application.exceptions.LearningPathNotFoundException;
 import reactor.core.publisher.Mono;
 
 public class DeleteLearningPathUseCase {

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Databases
   postgres-admin:
@@ -8,9 +6,7 @@ services:
     environment:
       - POSTGRES_DB=${ADMIN_DB_NAME:-admin_db}
       - POSTGRES_USER=${ADMIN_DB_USER:-admin_user}
-      - POSTGRES_PASSWORD=${ADMIN_DB_PASSWORD:-admin_password}
-    ports:
-      - "5432:5432"
+      - POSTGRES_PASSWORD=${ADMIN_DB_PASSWORD:?Define ADMIN_DB_PASSWORD}
     volumes:
       - postgres_admin_data:/var/lib/postgresql/data
     networks:
@@ -28,9 +24,7 @@ services:
     environment:
       - POSTGRES_DB=${AUTH_DB_NAME:-auth_db}
       - POSTGRES_USER=${AUTH_DB_USER:-auth_user}
-      - POSTGRES_PASSWORD=${AUTH_DB_PASSWORD:-auth_password}
-    ports:
-      - "5433:5432"
+      - POSTGRES_PASSWORD=${AUTH_DB_PASSWORD:?Define AUTH_DB_PASSWORD}
     volumes:
       - postgres_auth_data:/var/lib/postgresql/data
     networks:
@@ -48,9 +42,7 @@ services:
     environment:
       - POSTGRES_DB=${EDUCATION_DB_NAME:-education_db}
       - POSTGRES_USER=${EDUCATION_DB_USER:-education_user}
-      - POSTGRES_PASSWORD=${EDUCATION_DB_PASSWORD:-education_password}
-    ports:
-      - "5434:5432"
+      - POSTGRES_PASSWORD=${EDUCATION_DB_PASSWORD:?Define EDUCATION_DB_PASSWORD}
     volumes:
       - postgres_education_data:/var/lib/postgresql/data
     networks:
@@ -67,25 +59,26 @@ services:
     image: redis:7-alpine
     container_name: gems-redis
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-    ports:
-      - "${REDIS_PORT}:6379"
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Define REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     networks:
       - gems-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:?Define REDIS_PASSWORD}", "--raw", "incr", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?Define REDIS_PASSWORD}"]
 
-  # Nginx Reverse Proxy
+  # Nginx Reverse Proxy (solo en una VM dedicada: `docker compose --profile edge up -d`).
+  # En la VM de Oracle compartida el borde es el nginx del sistema (ops/host-nginx/gems-lms.conf),
+  # que llega al gateway y al front por los puertos de loopback publicados abajo.
   nginx:
     image: nginx:alpine
     container_name: gems-nginx
+    profiles: ["edge"]
     ports:
       - "80:80"
       - "443:443"
@@ -94,34 +87,98 @@ services:
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - /var/www/certbot:/var/www/certbot
     depends_on:
-      - ms-auth
-      - ms-admin
-      - ms-education
+      api-gateway:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - gems-network
+    restart: unless-stopped
+
+  # Frontend estático (imagen publicada por el repo gems-lms-web)
+  web:
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/gems-web:${TAG:-latest}
+    container_name: gems-web
+    expose:
+      - "80"
+    ports:
+      - "127.0.0.1:${WEB_HOST_PORT:-18081}:80"
+    environment:
+      - API_BASE_URL=${API_BASE_URL:?Define API_BASE_URL}
     networks:
       - gems-network
     restart: unless-stopped
 
   # Microservices
+  api-gateway:
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/api-gateway:${TAG:-latest}
+    container_name: gems-api-gateway
+    expose:
+      - "8080"
+    ports:
+      - "127.0.0.1:${GATEWAY_HOST_PORT:-18080}:8080"
+    environment:
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
+      - AUTH_SERVICE_URL=http://ms-auth:${AUTH_PORT:-8081}
+      - ADMIN_SERVICE_URL=http://ms-admin:${ADMIN_PORT:-8082}
+      - EDUCATION_SERVICE_URL=http://ms-education:${EDUCATION_PORT:-8083}
+      - JWT_SECRET=${JWT_SECRET:?Define JWT_SECRET}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Define REDIS_PASSWORD}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?Define CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS:-GET,POST,PUT,DELETE,OPTIONS}
+      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS:-*}
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-300}
+      - RATE_LIMIT_ANONYMOUS_REQUESTS=${RATE_LIMIT_ANONYMOUS_REQUESTS:-600}
+      - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW:-60}
+      - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX:-rate_limit:}
+    depends_on:
+      ms-auth:
+        condition: service_healthy
+      ms-admin:
+        condition: service_healthy
+      ms-education:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - gems-network
+    restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: ${JAVA_MEM_LIMIT:-1g}
+
   ms-auth:
-    image: ${DOCKER_USERNAME}/ms-auth:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/ms-auth:${TAG:-latest}
     container_name: gems-ms-auth
     expose:
       - "${AUTH_PORT:-8081}"
     environment:
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
+      - EDUCATION_SERVICE_URL=http://ms-education:${EDUCATION_PORT:-8083}
+      - BOOTSTRAP_SUPERADMIN_EMAIL=${BOOTSTRAP_SUPERADMIN_EMAIL:-}
+      - BOOTSTRAP_SUPERADMIN_PASSWORD=${BOOTSTRAP_SUPERADMIN_PASSWORD:-}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:4200}
+      - MAIL_HOST=${MAIL_HOST:-}
+      - MAIL_PORT=${MAIL_PORT:-587}
+      - MAIL_USERNAME=${MAIL_USERNAME:-}
+      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - MAIL_STARTTLS=${MAIL_STARTTLS:-true}
+      - MAIL_FROM=${MAIL_FROM:-no-reply@gems.lms}
       - AUTH_PORT=${AUTH_PORT:-8081}
       - AUTH_R2DBC_URL=r2dbc:postgresql://postgres-auth:5432/${AUTH_DB_NAME:-auth_db}
       - AUTH_R2DBC_USERNAME=${AUTH_DB_USER:-auth_user}
-      - AUTH_R2DBC_PASSWORD=${AUTH_DB_PASSWORD:-auth_password}
+      - AUTH_R2DBC_PASSWORD=${AUTH_DB_PASSWORD:?Define AUTH_DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Define REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET:?Define JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       - AUTH_LOGIN_PATH=${AUTH_LOGIN_PATH}
       - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS}
       - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW}
       - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?Define CORS_ALLOWED_ORIGINS}
       - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS}
       - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS}
       - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS}
@@ -134,27 +191,31 @@ services:
     networks:
       - gems-network
     restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: ${JAVA_MEM_LIMIT:-1g}
 
   ms-admin:
-    image: ${DOCKER_USERNAME}/ms-admin:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/ms-admin:${TAG:-latest}
     container_name: gems-ms-admin
     expose:
       - "${ADMIN_PORT:-8082}"
     environment:
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
+      - AUTH_SERVICE_URL=http://ms-auth:${AUTH_PORT:-8081}
       - ADMIN_PORT=${ADMIN_PORT:-8082}
       - ADMIN_R2DBC_URL=r2dbc:postgresql://postgres-admin:5432/${ADMIN_DB_NAME:-admin_db}
       - ADMIN_R2DBC_USERNAME=${ADMIN_DB_USER:-admin_user}
-      - ADMIN_R2DBC_PASSWORD=${ADMIN_DB_PASSWORD:-admin_password}
+      - ADMIN_R2DBC_PASSWORD=${ADMIN_DB_PASSWORD:?Define ADMIN_DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Define REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET:?Define JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       - AUTH_LOGIN_PATH=${AUTH_LOGIN_PATH}
       - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS}
       - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW}
       - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?Define CORS_ALLOWED_ORIGINS}
       - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS}
       - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS}
       - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS}
@@ -165,27 +226,42 @@ services:
     networks:
       - gems-network
     restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: ${JAVA_MEM_LIMIT:-1g}
 
   ms-education:
-    image: ${DOCKER_USERNAME}/ms-education:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io/gems-innovations}/ms-education:${TAG:-latest}
     container_name: gems-ms-education
     expose:
       - "${EDUCATION_PORT:-8083}"
     environment:
+      - JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:--XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError}
+      - AUTH_SERVICE_URL=http://ms-auth:${AUTH_PORT:-8081}
+      - FILES_DIR=/data/uploads
+      - FILES_MAX_SIZE_BYTES=${FILES_MAX_SIZE_BYTES:-10485760}
+      - FILES_STORAGE=${FILES_STORAGE:-local}
+      - S3_BUCKET=${S3_BUCKET:-}
+      - S3_REGION=${S3_REGION:-us-east-1}
+      - S3_ENDPOINT=${S3_ENDPOINT:-}
+      - S3_PATH_STYLE=${S3_PATH_STYLE:-false}
+      - S3_PREFIX=${S3_PREFIX:-uploads}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
       - EDUCATION_PORT=${EDUCATION_PORT:-8083}
       - EDUCATION_R2DBC_URL=r2dbc:postgresql://postgres-education:5432/${EDUCATION_DB_NAME:-education_db}
       - EDUCATION_R2DBC_USERNAME=${EDUCATION_DB_USER:-education_user}
-      - EDUCATION_R2DBC_PASSWORD=${EDUCATION_DB_PASSWORD:-education_password}
+      - EDUCATION_R2DBC_PASSWORD=${EDUCATION_DB_PASSWORD:?Define EDUCATION_DB_PASSWORD}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?Define REDIS_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET:?Define JWT_SECRET}
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       - AUTH_LOGIN_PATH=${AUTH_LOGIN_PATH}
       - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS}
       - RATE_LIMIT_WINDOW=${RATE_LIMIT_WINDOW}
       - RATE_LIMIT_KEY_PREFIX=${RATE_LIMIT_KEY_PREFIX}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:?Define CORS_ALLOWED_ORIGINS}
       - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS}
       - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS}
       - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS}
@@ -193,11 +269,16 @@ services:
     depends_on:
       postgres-education:
         condition: service_healthy
+    volumes:
+      - uploaded_files:/data/uploads
     networks:
       - gems-network
     restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: ${JAVA_MEM_LIMIT:-1g}
 
 volumes:
+  uploaded_files:
   postgres_admin_data:
   postgres_auth_data:
   postgres_education_data:

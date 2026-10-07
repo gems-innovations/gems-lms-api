@@ -23,20 +23,6 @@ public class GetAllLearningPathsUseCase {
   }
 
   private LearningPathResponse mapToResponse(LearningPath learningPath) {
-    List<CourseResponse> courseResponses = new ArrayList<>();
-    if (learningPath.getCourses() != null) {
-      courseResponses = learningPath.getCourses().stream()
-        .map(CourseResponseMapper::toResponse)
-        .collect(Collectors.toList());
-    }
-
-    return new LearningPathResponse(
-      learningPath.getId(),
-      learningPath.getTitle(),
-      learningPath.getDescription(),
-      learningPath.getInstitutionId(),
-      learningPath.getCreatedAt(),
-      courseResponses
-    );
+    return LearningPathResponses.toResponse(learningPath);
   }
 }

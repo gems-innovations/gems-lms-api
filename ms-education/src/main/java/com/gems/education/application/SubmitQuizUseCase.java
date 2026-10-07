@@ -4,7 +4,7 @@ import com.gems.education.application.command.QuizSubmissionCommand;
 import com.gems.education.application.gateway.QuizGateway;
 import com.gems.education.application.response.QuizGradingResponse;
 import com.gems.education.domain.entities.Question;
-import com.gems.education.infrastructure.driving.rest.exeption.QuizNotFoundException;
+import com.gems.education.application.exceptions.QuizNotFoundException;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;

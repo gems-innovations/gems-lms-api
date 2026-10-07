@@ -1,5 +1,6 @@
 package com.gems.admin.application;
 
+import com.gems.admin.TestData;
 import com.gems.admin.application.command.InstitutionCommand;
 import com.gems.admin.application.command.InstitutionMetadataCommand;
 import com.gems.admin.application.exceptions.InstitutionNotFoundException;
@@ -27,6 +28,9 @@ class UpdateInstitutionUseCaseTest {
   @Mock
   private InstitutionGateway institutionGateway;
 
+  @Mock
+  private com.gems.admin.application.gateway.BrandingGateway brandingGateway;
+
   @InjectMocks
   private UpdateInstitutionUseCase updateInstitutionUseCase;
 
@@ -36,6 +40,10 @@ class UpdateInstitutionUseCaseTest {
 
   @BeforeEach
   void setUp() {
+    // Institutions now carry their branding; tests that do not care get none stored.
+    lenient().when(brandingGateway.findByCompanyId(org.mockito.ArgumentMatchers.anyString())).thenReturn(reactor.core.publisher.Mono.empty());
+    lenient().when(brandingGateway.save(org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> reactor.core.publisher.Mono.just(inv.getArgument(0)));
+    lenient().when(brandingGateway.update(org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> reactor.core.publisher.Mono.just(inv.getArgument(0)));
     InstitutionMetadataCommand metadataCommand = new InstitutionMetadataCommand(
       "Gems College Updated Description",
       "https://gems-new.edu",
@@ -46,7 +54,7 @@ class UpdateInstitutionUseCaseTest {
       1000
     );
 
-    updateCommand = new InstitutionCommand(
+    updateCommand = TestData.institutionCommand(
       "inst-1",
       "Gems College New",
       "UNIVERSITY",

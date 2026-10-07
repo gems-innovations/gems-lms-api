@@ -59,4 +59,15 @@ public class Module {
   public void setLessons(List<Lesson> lessons) {
     this.lessons = lessons;
   }
+
+  /** Optional module description. */
+  private String description;
+
+  public String getDescription() { return description; }
+  public void setDescription(String description) { this.description = description; }
+
+  public Module details(String description) {
+    this.description = description;
+    return this;
+  }
 }

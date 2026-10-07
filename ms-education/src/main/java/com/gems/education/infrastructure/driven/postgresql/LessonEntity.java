@@ -72,4 +72,21 @@ public class LessonEntity {
   public void setCreatedAt(LocalDateTime createdAt) {
     this.createdAt = createdAt;
   }
+
+  /** Optional lesson description; isFree lessons can be previewed without enrolling. */
+  @org.springframework.data.relational.core.mapping.Column("description")
+  private String description;
+  @org.springframework.data.relational.core.mapping.Column("is_free")
+  private Boolean isFree = false;
+
+  public String getDescription() { return description; }
+  public void setDescription(String description) { this.description = description; }
+  public Boolean getIsFree() { return isFree; }
+  public void setIsFree(Boolean isFree) { this.isFree = Boolean.TRUE.equals(isFree); }
+
+  public LessonEntity details(String description, Boolean isFree) {
+    this.description = description;
+    this.isFree = Boolean.TRUE.equals(isFree);
+    return this;
+  }
 }

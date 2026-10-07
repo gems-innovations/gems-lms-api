@@ -26,6 +26,10 @@ public class EnrollmentEntity {
   @Column("completed_at")
   private LocalDateTime completedAt;
 
+  // Detailed progress of the student (completed blocks, quiz attempts, submissions...) as JSON.
+  @Column("progress_data")
+  private String progressData;
+
   public EnrollmentEntity() {
   }
 
@@ -94,5 +98,13 @@ public class EnrollmentEntity {
 
   public void setCompletedAt(LocalDateTime completedAt) {
     this.completedAt = completedAt;
+  }
+
+  public String getProgressData() {
+    return progressData;
+  }
+
+  public void setProgressData(String progressData) {
+    this.progressData = progressData;
   }
 }

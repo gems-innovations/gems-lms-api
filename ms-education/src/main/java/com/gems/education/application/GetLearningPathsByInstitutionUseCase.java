@@ -27,18 +27,6 @@ public class GetLearningPathsByInstitutionUseCase {
   }
 
   private LearningPathResponse mapToResponse(LearningPath lp) {
-    List<CourseResponse> courseResponses = new ArrayList<>();
-    if (lp.getCourses() != null) {
-      courseResponses = lp.getCourses().stream().map(CourseResponseMapper::toResponse).collect(Collectors.toList());
-    }
-
-    return new LearningPathResponse(
-      lp.getId(),
-      lp.getTitle(),
-      lp.getDescription(),
-      lp.getInstitutionId(),
-      lp.getCreatedAt(),
-      courseResponses
-    );
+    return LearningPathResponses.toResponse(lp);
   }
 }

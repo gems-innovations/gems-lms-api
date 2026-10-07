@@ -1,9 +1,11 @@
 package com.gems.auth.infrastructure.driving.rest;
 
+import com.gems.shared.security.CurrentUser;
+import com.gems.auth.application.ChangePasswordUseCase;
 import com.gems.auth.application.LoginUseCase;
+import com.gems.auth.application.PasswordRecoveryUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.command.LoginCommand;
-import com.gems.auth.application.command.RegisterUserCommand;
 import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.application.response.UserResponse;
 import com.gems.auth.infrastructure.constants.AuthInfraConstants;
@@ -31,12 +33,60 @@ import reactor.core.publisher.Mono;
 @RequestMapping(AuthInfraConstants.AUTH_API_BASE_PATH)
 @Tag(name = "Auth", description = "User management and authentication endpoints")
 public class AuthController {
+
+  /** Optional so the controller can be built in tests without e-mail. */
+  private com.gems.auth.infrastructure.driven.notification.AccountEmails accountEmails;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  void setAccountEmails(com.gems.auth.infrastructure.driven.notification.AccountEmails accountEmails) {
+    this.accountEmails = accountEmails;
+  }
   private final RegisterUserUseCase registerUserUseCase;
   private final LoginUseCase loginUseCase;
+  private final ChangePasswordUseCase changePasswordUseCase;
+  private final PasswordRecoveryUseCase passwordRecoveryUseCase;
 
-  public AuthController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase) {
+  public AuthController(RegisterUserUseCase registerUserUseCase, LoginUseCase loginUseCase,
+                        ChangePasswordUseCase changePasswordUseCase, PasswordRecoveryUseCase passwordRecoveryUseCase) {
     this.registerUserUseCase = registerUserUseCase;
     this.loginUseCase = loginUseCase;
+    this.changePasswordUseCase = changePasswordUseCase;
+    this.passwordRecoveryUseCase = passwordRecoveryUseCase;
+  }
+
+  /** The signed-in user replaces their password (required after signing in with a temporary one). */
+  @PostMapping("/change-password")
+  @Operation(summary = "Change the signed-in user's password")
+  @SecurityRequirement(name = "bearerAuth")
+  public Mono<ResponseEntity<Void>> changePassword(@RequestBody ChangePasswordRequest request) {
+    return CurrentUser.forPasswordChange()
+      .flatMap(caller -> changePasswordUseCase.execute(caller.userId(), request.currentPassword(), request.newPassword())
+        .then(Mono.fromRunnable(() -> { if (accountEmails != null) accountEmails.passwordChanged(caller.userId()); })))
+      .thenReturn(ResponseEntity.noContent().<Void>build());
+  }
+
+  /** Always 202, whether or not the e-mail has an account, so accounts cannot be discovered. */
+  @PostMapping("/forgot-password")
+  @Operation(summary = "Send a password reset link")
+  public Mono<ResponseEntity<Void>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+    return passwordRecoveryUseCase.requestReset(request.email())
+      .thenReturn(ResponseEntity.accepted().<Void>build());
+  }
+
+  @PostMapping("/reset-password")
+  @Operation(summary = "Set a new password with a reset link token")
+  public Mono<ResponseEntity<Void>> resetPassword(@RequestBody ResetPasswordRequest request) {
+    return passwordRecoveryUseCase.reset(request.token(), request.newPassword())
+      .thenReturn(ResponseEntity.noContent().<Void>build());
+  }
+
+  public record ChangePasswordRequest(String currentPassword, String newPassword) {
+  }
+
+  public record ForgotPasswordRequest(String email) {
+  }
+
+  public record ResetPasswordRequest(String token, String newPassword) {
   }
 
   @PostMapping(AuthInfraConstants.REGISTER_ENDPOINT)
@@ -68,9 +118,17 @@ public class AuthController {
       )
   })
   public Mono<ResponseEntity<UserResponse>> registerUser(@Valid @RequestBody RegisterUserRequest request) {
-    RegisterUserCommand command = UserMapper.toDomain(request);
-
-    return registerUserUseCase.execute(command)
+    // Accounts are created by administrators: an admin inside their own institution (defaulting
+    // to it) and never as SUPER_ADMIN. The first super admin comes from SuperAdminBootstrap.
+    return CurrentUser.get()
+      .flatMap(caller -> {
+        if (caller.isAdmin() && request.getInstitutionId() == null) {
+          request.setInstitutionId(caller.institutionId());
+        }
+        UserController.ensureCanAssign(caller, request.getRole(), request.getInstitutionId());
+        return registerUserUseCase.execute(UserMapper.toDomain(request));
+      })
+      .doOnNext(created -> { if (accountEmails != null) accountEmails.created(created.userId()); })
       .map(userResponse -> ResponseEntity.status(HttpStatus.CREATED).body(userResponse));
   }
 

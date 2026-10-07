@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Validates the JWT extracted by {@link JwtServerAuthenticationConverter} and, when valid,
@@ -22,6 +23,11 @@ import java.util.List;
  */
 @Component
 public class JwtReactiveAuthenticationManager implements ReactiveAuthenticationManager {
+  private final SessionValidator sessions;
+
+  public JwtReactiveAuthenticationManager(SessionValidator sessions) {
+    this.sessions = sessions;
+  }
 
   @Value("${jwt.secret}")
   private String jwtSecret;
@@ -32,25 +38,33 @@ public class JwtReactiveAuthenticationManager implements ReactiveAuthenticationM
 
     try {
       Claims claims = Jwts.parserBuilder()
-        .setSigningKey(signingKey())
+        .setSigningKey(signingKey(jwtSecret))
         .build()
         .parseClaimsJws(token)
         .getBody();
 
       Long userId = Long.parseLong(claims.getSubject());
       String role = claims.get("role", String.class);
+      String institutionId = claims.get("institutionId", String.class);
 
-      return Mono.just(new UsernamePasswordAuthenticationToken(
-        userId,
-        token,
-        List.of(new SimpleGrantedAuthority("ROLE_" + role))
-      ));
+      String revision = claims.get("sessionRevision", String.class);
+      if (revision == null) return Mono.error(new BadCredentialsException("Please sign in again"));
+      return sessions.state(userId, token).switchIfEmpty(Mono.error(new BadCredentialsException("Account unavailable")))
+        .flatMap(state -> {
+          if (!state.active() || !revision.equals(state.revision()) || !Objects.equals(role, state.role())
+              || !Objects.equals(institutionId, state.institutionId())) {
+            return Mono.error(new BadCredentialsException("Session no longer valid"));
+          }
+          return Mono.just(new UsernamePasswordAuthenticationToken(
+            new AuthenticatedUser(userId, role, institutionId, state.mustChangePassword()), token,
+            List.of(new SimpleGrantedAuthority("ROLE_" + role))));
+        });
     } catch (Exception e) {
       return Mono.error(new BadCredentialsException("Invalid or expired JWT", e));
     }
   }
 
-  private SecretKey signingKey() {
+  static SecretKey signingKey(String jwtSecret) {
     byte[] keyBytes = jwtSecret.getBytes();
     if (keyBytes.length * 8 < 512) {
       byte[] paddedKey = new byte[64];

@@ -14,5 +14,6 @@ public record LoginResponse(
   boolean active,
   LocalDateTime createdAt,
   LocalDateTime updatedAt,
-  String token) {
+  String token,
+  boolean mustChangePassword) {
 }

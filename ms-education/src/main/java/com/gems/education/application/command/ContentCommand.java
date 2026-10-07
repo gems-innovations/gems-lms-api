@@ -1,6 +1,7 @@
 package com.gems.education.application.command;
 
 public class ContentCommand {
+  private Long id;
   private final String type;
   private final String value;
   private final Integer orderIndex;
@@ -21,5 +22,14 @@ public class ContentCommand {
 
   public Integer getOrderIndex() {
     return orderIndex;
+  }
+
+  public ContentCommand withId(Long id) {
+    this.id = id;
+    return this;
+  }
+
+  public Long getId() {
+    return id;
   }
 }

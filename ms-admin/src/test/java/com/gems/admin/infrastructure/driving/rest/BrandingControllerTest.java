@@ -44,7 +44,10 @@ class BrandingControllerTest {
       getBrandingByCompanyIdUseCase,
       deleteBrandingUseCase
     );
-    webTestClient = WebTestClient.bindToController(brandingController).build();
+    webTestClient = WebTestClient.bindToController(brandingController)
+      .webFilter(TestSecurity.superAdmin())
+      .controllerAdvice(new GlobalExceptionHandler(), new com.gems.shared.security.SecurityExceptionAdvice())
+      .build();
 
     LocalDateTime now = LocalDateTime.now();
     brandingResponse = new BrandingResponse(

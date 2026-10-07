@@ -2,7 +2,7 @@ package com.gems.education.application;
 
 import com.gems.education.application.gateway.EnrollmentGateway;
 import com.gems.education.application.response.EnrollmentResponse;
-import com.gems.education.infrastructure.driving.rest.exeption.EnrollmentNotFoundException;
+import com.gems.education.application.exceptions.EnrollmentNotFoundException;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -15,7 +15,12 @@ public class UpdateEnrollmentProgressUseCase {
   }
 
   public Mono<EnrollmentResponse> execute(Long enrollmentId, Integer progress) {
-    if (progress < 0 || progress > 100) {
+    return execute(enrollmentId, progress, null);
+  }
+
+  /** Updates the percentage and, when given, the detailed progress JSON (null keeps the current one). */
+  public Mono<EnrollmentResponse> execute(Long enrollmentId, Integer progress, String progressData) {
+    if (progress == null || progress < 0 || progress > 100) {
       return Mono.error(new IllegalArgumentException("Progress must be between 0 and 100"));
     }
 
@@ -23,6 +28,7 @@ public class UpdateEnrollmentProgressUseCase {
       .switchIfEmpty(Mono.error(new EnrollmentNotFoundException("Enrollment not found with ID " + enrollmentId)))
       .flatMap(enrollment -> {
         enrollment.setProgress(progress);
+        if (progressData != null) enrollment.setProgressData(progressData);
         if (progress == 100) {
           enrollment.setCompletedAt(LocalDateTime.now());
           enrollment.setStatus("completed");
@@ -34,14 +40,6 @@ public class UpdateEnrollmentProgressUseCase {
         }
         return enrollmentGateway.save(enrollment);
       })
-      .map(enrollment -> new EnrollmentResponse(
-        enrollment.getId(),
-        enrollment.getStudentId(),
-        enrollment.getCourseId(),
-        enrollment.getStatus(),
-        enrollment.getEnrolledAt(),
-        enrollment.getProgress(),
-        enrollment.getCompletedAt()
-      ));
+      .map(enrollment -> EnrollmentResponse.from(enrollment));
   }
 }

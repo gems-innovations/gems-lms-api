@@ -10,9 +10,48 @@ public class LearningPathResponse {
   private String institutionId;
   private LocalDateTime createdAt;
   private List<CourseResponse> courses;
+  private String status = "published";
+  private List<String> tags = List.of();
+  private String thumbnailUrl;
+  private LocalDateTime updatedAt;
+  private List<StepResponse> steps = List.of();
+  private long enrolledCount;
+  private int completionRate;
+
+  /** Settings of one course of the path, in path order. */
+  public record StepResponse(Long courseId, boolean required, Integer minimumScore) {
+  }
 
   public LearningPathResponse() {
   }
+
+  /** A copy of this path with other course bodies (e.g. without answer keys). */
+  public LearningPathResponse withCourses(List<CourseResponse> otherCourses) {
+    LearningPathResponse copy = new LearningPathResponse(id, title, description, institutionId, createdAt, otherCourses);
+    copy.status = status;
+    copy.tags = tags;
+    copy.thumbnailUrl = thumbnailUrl;
+    copy.updatedAt = updatedAt;
+    copy.steps = steps;
+    copy.enrolledCount = enrolledCount;
+    copy.completionRate = completionRate;
+    return copy;
+  }
+
+  public String getStatus() { return status; }
+  public void setStatus(String status) { this.status = status; }
+  public List<String> getTags() { return tags; }
+  public void setTags(List<String> tags) { this.tags = tags; }
+  public String getThumbnailUrl() { return thumbnailUrl; }
+  public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+  public LocalDateTime getUpdatedAt() { return updatedAt; }
+  public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+  public List<StepResponse> getSteps() { return steps; }
+  public void setSteps(List<StepResponse> steps) { this.steps = steps; }
+  public long getEnrolledCount() { return enrolledCount; }
+  public void setEnrolledCount(long enrolledCount) { this.enrolledCount = enrolledCount; }
+  public int getCompletionRate() { return completionRate; }
+  public void setCompletionRate(int completionRate) { this.completionRate = completionRate; }
 
   public LearningPathResponse(Long id, String title, String description, String institutionId, LocalDateTime createdAt, List<CourseResponse> courses) {
     this.id = id;

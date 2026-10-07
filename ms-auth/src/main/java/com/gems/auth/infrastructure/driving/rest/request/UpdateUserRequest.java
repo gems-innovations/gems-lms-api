@@ -20,6 +20,9 @@ public class UpdateUserRequest {
 
   private String institutionId;
 
+  @Size(max = 255, message = "Avatar URL must not exceed 255 characters")
+  private String avatarUrl;
+
   public UpdateUserRequest() {}
 
   public UpdateUserRequest(String firstName, String lastName, String username, String role, String institutionId) {
@@ -44,4 +47,7 @@ public class UpdateUserRequest {
 
   public String getInstitutionId() { return institutionId; }
   public void setInstitutionId(String institutionId) { this.institutionId = institutionId; }
+
+  public String getAvatarUrl() { return avatarUrl; }
+  public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
 }

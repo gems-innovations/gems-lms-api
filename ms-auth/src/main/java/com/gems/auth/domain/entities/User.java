@@ -21,6 +21,8 @@ public class User {
   private final LocalDateTime createdAt;
   private LocalDateTime updatedAt;
   private Boolean active;
+  /** Set for accounts created with a temporary password until the user picks their own. */
+  private boolean mustChangePassword;
 
   public User(Long id, String firstName, String lastName, String username, String email, String password,
               UserRole role, String institutionId, String avatarUrl) {
@@ -134,5 +136,13 @@ public class User {
   public void activate() {
     this.active = true;
     this.updatedAt = LocalDateTime.now();
+  }
+
+  public boolean mustChangePassword() {
+    return mustChangePassword;
+  }
+
+  public void setMustChangePassword(boolean mustChangePassword) {
+    this.mustChangePassword = mustChangePassword;
   }
 }

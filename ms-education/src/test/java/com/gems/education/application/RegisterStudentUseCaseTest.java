@@ -5,7 +5,7 @@ import com.gems.education.application.gateway.StudentGateway;
 import com.gems.education.application.response.StudentResponse;
 import com.gems.education.domain.constants.StudentsConstants;
 import com.gems.education.domain.entities.Student;
-import com.gems.education.infrastructure.driving.rest.exeption.StudentAlreadyExistsException;
+import com.gems.education.application.exceptions.StudentAlreadyExistsException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

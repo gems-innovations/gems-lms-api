@@ -3,7 +3,6 @@ package com.gems.admin.infrastructure.driving.rest;
 import com.gems.admin.application.CreateBrandingUseCase;
 import com.gems.admin.application.GetBrandingByCompanyIdUseCase;
 import com.gems.admin.application.UpdateBrandingUseCase;
-import com.gems.admin.application.command.BrandingCommand;
 import com.gems.admin.application.response.BrandingResponse;
 import com.gems.admin.infrastructure.driving.rest.mapper.BrandingMapper;
 import com.gems.admin.infrastructure.driving.rest.request.BrandingRequest;
@@ -16,6 +15,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.gems.shared.security.AuthenticatedUser;
+import com.gems.shared.security.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -70,8 +71,8 @@ public class BrandingController {
     )
   })
   public Mono<ResponseEntity<BrandingResponse>> createBranding(@Valid @RequestBody BrandingRequest request) {
-    BrandingCommand command = BrandingMapper.toCommand(request);
-    return createBrandingUseCase.execute(command)
+    return canEdit(request.getCompanyId())
+      .flatMap(caller -> createBrandingUseCase.execute(BrandingMapper.toCommand(request)))
       .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
   }
 
@@ -111,8 +112,8 @@ public class BrandingController {
   public Mono<ResponseEntity<BrandingResponse>> updateBranding(
     @PathVariable String companyId,
     @Valid @RequestBody BrandingRequest request) {
-    BrandingCommand command = BrandingMapper.toCommand(request);
-    return updateBrandingUseCase.execute(companyId, command)
+    return canEdit(companyId)
+      .flatMap(caller -> updateBrandingUseCase.execute(companyId, BrandingMapper.toCommand(request)))
       .map(ResponseEntity::ok);
   }
 
@@ -140,7 +141,8 @@ public class BrandingController {
     )
   })
   public Mono<ResponseEntity<BrandingResponse>> getBrandingByCompanyId(@PathVariable String companyId) {
-    return getBrandingByCompanyIdUseCase.execute(companyId)
+    return CurrentUser.require(caller -> caller.belongsTo(companyId), "You can only see your institution branding")
+      .flatMap(caller -> getBrandingByCompanyIdUseCase.execute(companyId))
       .map(ResponseEntity::ok);
   }
 
@@ -151,7 +153,14 @@ public class BrandingController {
   )
   @SecurityRequirement(name = "bearerAuth")
   public Mono<ResponseEntity<Void>> deleteBranding(@PathVariable String companyId) {
-    return deleteBrandingUseCase.execute(companyId)
+    return canEdit(companyId)
+      .flatMap(caller -> deleteBrandingUseCase.execute(companyId))
       .then(Mono.just(ResponseEntity.noContent().<Void>build()));
+  }
+
+  /** The super admin, or the admin of that institution. */
+  private Mono<AuthenticatedUser> canEdit(String companyId) {
+    return CurrentUser.require(caller -> caller.isSuperAdmin() || (caller.isAdmin() && caller.belongsTo(companyId)),
+      "Only the super admin or the institution admin can change its branding");
   }
 }

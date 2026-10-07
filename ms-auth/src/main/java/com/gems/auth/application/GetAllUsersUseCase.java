@@ -3,6 +3,9 @@ package com.gems.auth.application;
 import com.gems.auth.application.gateway.UserGateway;
 import com.gems.auth.application.response.UserResponse;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 public class GetAllUsersUseCase {
   private final UserGateway userGateway;
@@ -26,5 +29,10 @@ public class GetAllUsersUseCase {
         user.getUpdatedAt(),
         user.isActive()
       ));
+  }
+
+  /** Active users per institution id. */
+  public Mono<Map<String, Long>> countByInstitution() {
+    return userGateway.countActiveUsersByInstitution();
   }
 }

@@ -36,4 +36,15 @@ public class ModuleResponse {
   public List<LessonResponse> getLessons() {
     return lessons;
   }
+
+  /** Optional module description. */
+  private String description;
+
+  public String getDescription() { return description; }
+  public void setDescription(String description) { this.description = description; }
+
+  public ModuleResponse details(String description) {
+    this.description = description;
+    return this;
+  }
 }

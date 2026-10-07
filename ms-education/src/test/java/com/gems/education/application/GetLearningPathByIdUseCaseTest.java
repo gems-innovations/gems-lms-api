@@ -3,7 +3,7 @@ package com.gems.education.application;
 import com.gems.education.application.gateway.LearningPathGateway;
 import com.gems.education.application.response.LearningPathResponse;
 import com.gems.education.domain.entities.LearningPath;
-import com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException;
+import com.gems.education.application.exceptions.LearningPathNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

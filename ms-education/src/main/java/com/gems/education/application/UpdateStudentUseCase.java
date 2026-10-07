@@ -7,7 +7,7 @@ import com.gems.education.application.response.StudentResponse;
 import com.gems.education.domain.constants.StudentsConstants;
 import com.gems.education.domain.entities.Student;
 import com.gems.education.domain.values.*;
-import com.gems.education.infrastructure.driving.rest.exeption.StudentNotFoundException;
+import com.gems.education.application.exceptions.StudentNotFoundException;
 import reactor.core.publisher.Mono;
 
 public class UpdateStudentUseCase {

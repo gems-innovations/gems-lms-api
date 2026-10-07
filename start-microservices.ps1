@@ -1,97 +1,97 @@
 param(
+    [ValidateSet("all", "api-gateway", "ms-auth", "ms-admin", "ms-education")]
     [string]$Microservice = "all"
 )
 
-Write-Host "Starting microservices..." -ForegroundColor Green
+$ErrorActionPreference = "Stop"
+Set-Location $PSScriptRoot
 
-# Function to load .env file
-function Load-EnvFile {
-    param([string]$FilePath)
-    if (Test-Path $FilePath) {
-        Write-Host "Loading environment variables from .env file..." -ForegroundColor Cyan
-        Get-Content $FilePath | ForEach-Object {
-            if ($_ -match '^([^#][^=]+)=(.*)$') {
-                $name = $matches[1].Trim()
-                $value = $matches[2].Trim()
-                if ($value -match '^["''](.*)["'']$') { $value = $matches[1] }
-                [Environment]::SetEnvironmentVariable($name, $value, "Process")
+function Import-DotEnv {
+    param([string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Falta el archivo .env. Consulta el README para crearlo."
+    }
+    Get-Content -LiteralPath $Path | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#") -and $line -match '^([A-Za-z_][A-Za-z0-9_]*)=(.*)$') {
+            $value = $matches[2].Trim()
+            if ($value.Length -ge 2 -and (($value.StartsWith('"') -and $value.EndsWith('"')) -or ($value.StartsWith("'") -and $value.EndsWith("'")))) {
+                $value = $value.Substring(1, $value.Length - 2)
             }
+            [Environment]::SetEnvironmentVariable($matches[1], $value, "Process")
         }
-    } else {
-        Write-Host "No .env file found, using default values..." -ForegroundColor Yellow
     }
 }
 
-Load-EnvFile ".env"
-
-# Configure Java Home
-$java24Home = "C:\Users\Lu\JDK-24\jdk-24.0.2+12"
-$java24Bin = "C:\Users\Lu\JDK-24\jdk-24.0.2+12\bin"
-
-if (-not (Test-Path $java24Home)) {
-    Write-Error "Java 24 is not installed in the expected directory ($java24Home)."
-    exit 1
+function Assert-Java24 {
+    $java = Get-Command java -ErrorAction SilentlyContinue
+    if (-not $java) { throw "Java 24 o superior no esta disponible en PATH." }
+    # java writes its version to stderr; cmd redirects it without turning the
+    # expected output into a terminating PowerShell NativeCommandError.
+    $versionText = (& cmd.exe /d /c "java -version 2>&1" | Select-Object -First 1) -join ""
+    if ($versionText -notmatch 'version "(\d+)') { throw "No se pudo identificar la version de Java: $versionText" }
+    if ([int]$matches[1] -lt 24) { throw "Se requiere Java 24 o superior; se encontro Java $($matches[1])." }
+    Write-Host "Java $($matches[1]) detectado." -ForegroundColor Cyan
 }
 
-$env:JAVA_HOME = $java24Home
-$env:PATH = "$java24Bin;" + $env:PATH
-Write-Host "Using JAVA_HOME: $env:JAVA_HOME" -ForegroundColor Cyan
-
-# Ports configurations
-$gatewayPort = "8080"
-$educationPort = "8081"
-$authPort = "8082"
-$adminPort = "8083"
-
-function Start-ServiceProcess {
-    param(
-        [string]$Name,
-        [string]$Port,
-        [string]$GradleTask,
-        [bool]$Background = $true
-    )
-    
-    Write-Host "Starting $Name on port: $Port" -ForegroundColor Yellow
-    
-    if ($Background) {
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD'; `$env:JAVA_HOME='$java24Home'; `$env:PATH='$java24Bin;'+`$env:PATH; Get-Content .env | ForEach-Object { if (`$_ -match '^\s*([^#][^=]+)=(.*)$') { [System.Environment]::SetEnvironmentVariable(`$matches[1].Trim(), `$matches[2].Trim(), 'Process') } }; ./gradlew.bat $GradleTask" -WindowStyle Normal
-    } else {
-        Get-Content .env | ForEach-Object { if ($_ -match '^\s*([^#][^=]+)=(.*)$') { [System.Environment]::SetEnvironmentVariable($matches[1].Trim(), $matches[2].Trim(), 'Process') } }
-        ./gradlew.bat $GradleTask
-    }
+function Get-ConfiguredPort {
+    param([string]$Value, [int]$Default)
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $Default }
+    return [int]$Value
 }
 
-switch ($Microservice.ToLower()) {
-    "all" {
-        Write-Host "Starting all microservices (Gateway + Auth + Admin + Education)..." -ForegroundColor Green
-        Start-ServiceProcess "GATEWAY" $gatewayPort ":api-gateway:bootRun" $true
-        Start-Sleep -Seconds 2
-        Start-ServiceProcess "AUTH" $authPort ":ms-auth:bootRun" $true
-        Start-Sleep -Seconds 2
-        Start-ServiceProcess "ADMIN" $adminPort ":ms-admin:bootRun" $true
-        Start-Sleep -Seconds 2
-        Start-ServiceProcess "EDUCATION" $educationPort ":ms-education:bootRun" $true
-        Write-Host "All microservices are starting in separate windows..." -ForegroundColor Green
+function Test-Port {
+    param([int]$Port)
+    try {
+        $connection = New-Object System.Net.Sockets.TcpClient
+        $result = $connection.BeginConnect("127.0.0.1", $Port, $null, $null)
+        $open = $result.AsyncWaitHandle.WaitOne(500) -and $connection.Connected
+        $connection.Close()
+        return $open
+    } catch { return $false }
+}
+
+function Start-GemsService {
+    param([string]$Name, [int]$Port, [string]$Task, [bool]$Background)
+    if (Test-Port $Port) {
+        Write-Host "$Name ya responde en el puerto $Port." -ForegroundColor DarkGray
+        return
     }
-    "api-gateway" {
-        Write-Host "Starting API Gateway microservice in foreground..." -ForegroundColor Green
-        Start-ServiceProcess "GATEWAY" $gatewayPort ":api-gateway:bootRun" $false
+    if (-not $Background) {
+        & .\gradlew.bat $Task
+        return
     }
-    "ms-auth" {
-        Write-Host "Starting Auth microservice in foreground..." -ForegroundColor Green
-        Start-ServiceProcess "AUTH" $authPort ":ms-auth:bootRun" $false
+    New-Item -ItemType Directory -Force -Path logs | Out-Null
+    $stdout = Join-Path $PSScriptRoot "logs\$Name.log"
+    $stderr = Join-Path $PSScriptRoot "logs\$Name-error.log"
+    Start-Process -FilePath ".\gradlew.bat" -ArgumentList $Task -WorkingDirectory $PSScriptRoot `
+        -RedirectStandardOutput $stdout -RedirectStandardError $stderr -WindowStyle Hidden | Out-Null
+    Write-Host "$Name iniciando en el puerto $Port (logs\$Name.log)." -ForegroundColor Green
+}
+
+Import-DotEnv (Join-Path $PSScriptRoot ".env")
+Assert-Java24
+
+# En desarrollo el correo va a Mailpit salvo que USE_REAL_MAIL=1 (prueba de envío real con el SMTP del .env).
+if ($env:USE_REAL_MAIL -ne "1") {
+    $env:MAIL_HOST = "localhost"; $env:MAIL_PORT = "1025"; $env:MAIL_STARTTLS = "false"
+    Remove-Item Env:MAIL_USERNAME, Env:MAIL_PASSWORD -ErrorAction SilentlyContinue
+}
+
+$services = @{
+    "api-gateway" = @{ Port = 8080; Task = ":api-gateway:bootRun" }
+    "ms-auth" = @{ Port = (Get-ConfiguredPort $env:AUTH_PORT 8081); Task = ":ms-auth:bootRun" }
+    "ms-admin" = @{ Port = (Get-ConfiguredPort $env:ADMIN_PORT 8082); Task = ":ms-admin:bootRun" }
+    "ms-education" = @{ Port = (Get-ConfiguredPort $env:EDUCATION_PORT 8083); Task = ":ms-education:bootRun" }
+}
+
+if ($Microservice -eq "all") {
+    foreach ($name in @("ms-auth", "ms-admin", "ms-education", "api-gateway")) {
+        $service = $services[$name]
+        Start-GemsService $name $service.Port $service.Task $true
     }
-    "ms-education" {
-        Write-Host "Starting Education microservice in foreground..." -ForegroundColor Green
-        Start-ServiceProcess "EDUCATION" $educationPort ":ms-education:bootRun" $false
-    }
-    "ms-admin" {
-        Write-Host "Starting Admin microservice in foreground..." -ForegroundColor Green
-        Start-ServiceProcess "ADMIN" $adminPort ":ms-admin:bootRun" $false
-    }
-    default {
-        Write-Error "Unknown microservice: $Microservice"
-        Write-Host "Available options: all, api-gateway, ms-auth, ms-education, ms-admin" -ForegroundColor Yellow
-        exit 1
-    }
+    Write-Host "Servicios iniciados en segundo plano." -ForegroundColor Green
+} else {
+    $service = $services[$Microservice]
+    Start-GemsService $Microservice $service.Port $service.Task $false
 }

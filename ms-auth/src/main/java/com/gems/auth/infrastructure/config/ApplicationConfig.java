@@ -1,23 +1,43 @@
 package com.gems.auth.infrastructure.config;
 
-import com.gems.auth.application.DisableUserUseCase;
+import com.gems.auth.application.DeleteUserUseCase;
+import com.gems.auth.application.ChangePasswordUseCase;
 import com.gems.auth.application.GetAllUsersUseCase;
 import com.gems.auth.application.GetUserByIdUseCase;
 import com.gems.auth.application.GetUsersByInstitutionUseCase;
 import com.gems.auth.application.LoginUseCase;
+import com.gems.auth.application.PasswordRecoveryUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.ToggleUserStatusUseCase;
 import com.gems.auth.application.UpdateUserUseCase;
+import com.gems.auth.application.AuditUseCase;
+import com.gems.auth.application.EmailVerificationUseCase;
+import com.gems.auth.application.EmailPreferencesUseCase;
+import com.gems.auth.application.PreferenceTokens;
+import com.gems.auth.application.gateway.ConsentGateway;
+import com.gems.auth.application.gateway.CourseNoticeNotifier;
+import com.gems.auth.application.gateway.EmailPreferencesGateway;
+import com.gems.auth.application.gateway.AuditGateway;
+import com.gems.auth.application.gateway.EmailVerificationGateway;
+import com.gems.auth.application.gateway.EmailVerificationNotifier;
 import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
+import com.gems.auth.application.gateway.PasswordResetGateway;
+import com.gems.auth.application.gateway.PasswordResetNotifier;
 import com.gems.auth.application.gateway.UserGateway;
 import com.gems.auth.infrastructure.driven.postgresql.IUserRepository;
 import com.gems.auth.infrastructure.driven.postgresql.UserRepositoryAdapter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ApplicationConfig {
+
+  @Bean
+  public AuditUseCase auditUseCase(AuditGateway auditGateway) {
+    return new AuditUseCase(auditGateway);
+  }
 
   @Bean
   public UserGateway userGateway(IUserRepository userRepository) {
@@ -30,8 +50,17 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public DisableUserUseCase disableUserUseCase(UserGateway userGateway) {
-    return new DisableUserUseCase(userGateway);
+  public DeleteUserUseCase deleteUserUseCase(UserGateway userGateway,
+      com.gems.auth.application.gateway.LearningDataRemovalGateway learningData) {
+    return new DeleteUserUseCase(userGateway, learningData);
+  }
+
+  /** Guests start in the open institution, where the free public courses live. */
+  @Bean
+  public com.gems.auth.application.GuestAccessUseCase guestAccessUseCase(UserGateway userGateway,
+      PasswordEncoderGateway passwordEncoderGateway, JwtGateway jwtGateway,
+      @org.springframework.beans.factory.annotation.Value("${open.institution.id:gems-abierto}") String openInstitutionId) {
+    return new com.gems.auth.application.GuestAccessUseCase(userGateway, passwordEncoderGateway, jwtGateway, openInstitutionId);
   }
 
   @Bean
@@ -64,5 +93,34 @@ public class ApplicationConfig {
   @Bean
   public ToggleUserStatusUseCase toggleUserStatusUseCase(UserGateway userGateway) {
     return new ToggleUserStatusUseCase(userGateway);
+  }
+
+  @Bean
+  public ChangePasswordUseCase changePasswordUseCase(UserGateway userGateway, PasswordEncoderGateway passwordEncoderGateway) {
+    return new ChangePasswordUseCase(userGateway, passwordEncoderGateway);
+  }
+
+  @Bean
+  public PasswordRecoveryUseCase passwordRecoveryUseCase(UserGateway userGateway, PasswordResetGateway resetGateway,
+                                                         PasswordResetNotifier notifier,
+                                                         PasswordEncoderGateway passwordEncoderGateway) {
+    return new PasswordRecoveryUseCase(userGateway, resetGateway, notifier, passwordEncoderGateway);
+  }
+
+  @Bean
+  public EmailVerificationUseCase emailVerificationUseCase(UserGateway userGateway,
+                                                           EmailVerificationGateway verificationGateway,
+                                                           EmailVerificationNotifier notifier) {
+    return new EmailVerificationUseCase(userGateway, verificationGateway, notifier);
+  }
+
+  @Bean
+  public EmailPreferencesUseCase emailPreferencesUseCase(UserGateway userGateway, EmailPreferencesGateway preferencesGateway,
+                                                         CourseNoticeNotifier notifier,
+                                                         ConsentGateway consents,
+                                                         @Value("${app.legal.policy-version:2026-10}") String policyVersion,
+                                                         @Value("${jwt.secret}") String secret) {
+    return new EmailPreferencesUseCase(userGateway, preferencesGateway, notifier, new PreferenceTokens(secret),
+      consents, policyVersion);
   }
 }

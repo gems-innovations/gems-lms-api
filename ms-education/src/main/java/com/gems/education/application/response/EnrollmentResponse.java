@@ -1,5 +1,6 @@
 package com.gems.education.application.response;
 
+import com.gems.education.domain.entities.Enrollment;
 import java.time.LocalDateTime;
 
 public class EnrollmentResponse {
@@ -10,6 +11,9 @@ public class EnrollmentResponse {
   private LocalDateTime enrolledAt;
   private Integer progress;
   private LocalDateTime completedAt;
+
+  // Detailed progress of the student (completed blocks, quiz attempts, submissions...) as JSON.
+  private String progressData;
 
   public EnrollmentResponse() {
   }
@@ -79,5 +83,20 @@ public class EnrollmentResponse {
 
   public void setCompletedAt(LocalDateTime completedAt) {
     this.completedAt = completedAt;
+  }
+
+  public String getProgressData() {
+    return progressData;
+  }
+
+  public void setProgressData(String progressData) {
+    this.progressData = progressData;
+  }
+
+  public static EnrollmentResponse from(Enrollment e) {
+    EnrollmentResponse r = new EnrollmentResponse(e.getId(), e.getStudentId(), e.getCourseId(), e.getStatus(),
+      e.getEnrolledAt(), e.getProgress(), e.getCompletedAt());
+    r.setProgressData(e.getProgressData());
+    return r;
   }
 }

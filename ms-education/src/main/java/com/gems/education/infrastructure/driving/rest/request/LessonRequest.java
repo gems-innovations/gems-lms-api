@@ -6,6 +6,9 @@ import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 public class LessonRequest {
+  // Present when updating an existing lesson; keeps its id stable across course updates.
+  private Long id;
+
   @NotBlank(message = "Lesson title is required")
   private String title;
 
@@ -46,5 +49,28 @@ public class LessonRequest {
 
   public void setContents(List<ContentRequest> contents) {
     this.contents = contents;
+  }
+
+  public Long getId() {
+    return id;
+  }
+
+  public void setId(Long id) {
+    this.id = id;
+  }
+
+  /** Optional lesson description; isFree lessons can be previewed without enrolling. */
+  private String description;
+  private Boolean isFree = false;
+
+  public String getDescription() { return description; }
+  public void setDescription(String description) { this.description = description; }
+  public Boolean getIsFree() { return isFree; }
+  public void setIsFree(Boolean isFree) { this.isFree = Boolean.TRUE.equals(isFree); }
+
+  public LessonRequest details(String description, Boolean isFree) {
+    this.description = description;
+    this.isFree = Boolean.TRUE.equals(isFree);
+    return this;
   }
 }

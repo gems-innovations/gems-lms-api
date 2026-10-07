@@ -10,7 +10,7 @@ import com.gems.education.application.response.LessonResponse;
 import com.gems.education.application.response.ModuleResponse;
 import com.gems.education.domain.entities.Course;
 import com.gems.education.domain.entities.LearningPath;
-import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
+import com.gems.education.application.exceptions.CourseNotFoundException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -29,35 +29,28 @@ public class CreateLearningPathUseCase {
   }
 
   public Mono<LearningPathResponse> execute(LearningPathCommand command) {
-    if (command.getCourseIds() == null || command.getCourseIds().isEmpty()) {
-      LearningPath lp = new LearningPath(null, command.getTitle(), command.getDescription(), command.getInstitutionId(), LocalDateTime.now(), new ArrayList<>());
-      return learningPathGateway.save(lp).map(this::mapToResponse);
-    }
-
-    return Flux.fromIterable(command.getCourseIds())
-      .flatMap(courseId -> courseGateway.findById(courseId)
-        .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + courseId))))
-      .collectList()
+    LearningPath lp = new LearningPath(null, command.getTitle(), command.getDescription(), command.getInstitutionId(), LocalDateTime.now(), new ArrayList<>());
+    lp.setStatus(command.getStatus() != null ? command.getStatus() : LearningPath.DRAFT);
+    lp.setTags(command.getTags());
+    lp.setThumbnailUrl(command.getThumbnailUrl());
+    lp.setSteps(command.getSteps());
+    return loadCourses(command.getCourseIds())
       .flatMap(courses -> {
-        LearningPath lp = new LearningPath(null, command.getTitle(), command.getDescription(), command.getInstitutionId(), LocalDateTime.now(), courses);
+        lp.setCourses(courses);
         return learningPathGateway.save(lp);
       })
       .map(this::mapToResponse);
   }
 
-  private LearningPathResponse mapToResponse(LearningPath lp) {
-    List<CourseResponse> courseResponses = new ArrayList<>();
-    if (lp.getCourses() != null) {
-      courseResponses = lp.getCourses().stream().map(CourseResponseMapper::toResponse).collect(Collectors.toList());
-    }
+  /** The courses in the given order; fails if one does not exist. */
+  private Mono<List<Course>> loadCourses(List<Long> courseIds) {
+    return Flux.fromIterable(courseIds == null ? List.<Long>of() : courseIds)
+      .concatMap(courseId -> courseGateway.findById(courseId)
+        .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + courseId))))
+      .collectList();
+  }
 
-    return new LearningPathResponse(
-      lp.getId(),
-      lp.getTitle(),
-      lp.getDescription(),
-      lp.getInstitutionId(),
-      lp.getCreatedAt(),
-      courseResponses
-    );
+  private LearningPathResponse mapToResponse(LearningPath lp) {
+    return LearningPathResponses.toResponse(lp);
   }
 }

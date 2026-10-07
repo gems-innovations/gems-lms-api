@@ -7,7 +7,7 @@ import com.gems.education.domain.entities.Content;
 import com.gems.education.domain.entities.Course;
 import com.gems.education.domain.entities.Lesson;
 import com.gems.education.domain.entities.Module;
-import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
+import com.gems.education.application.exceptions.CourseNotFoundException;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -49,12 +49,14 @@ public class UpdateCourseUseCase {
                 List<Content> contents = new ArrayList<>();
                 if (lCmd.getContents() != null) {
                   lCmd.getContents().forEach(cCmd ->
-                    contents.add(new Content(null, null, cCmd.getType(), cCmd.getValue(), cCmd.getOrderIndex())));
+                    contents.add(new Content(cCmd.getId(), null, cCmd.getType(), cCmd.getValue(), cCmd.getOrderIndex())));
                 }
-                lessons.add(new Lesson(null, null, lCmd.getTitle(), lCmd.getOrderIndex(), contents));
+                lessons.add(new Lesson(lCmd.getId(), null, lCmd.getTitle(), lCmd.getOrderIndex(), contents)
+                  .details(lCmd.getDescription(), lCmd.getIsFree()));
               });
             }
-            modules.add(new Module(null, null, mCmd.getTitle(), mCmd.getOrderIndex(), lessons));
+            modules.add(new Module(mCmd.getId(), null, mCmd.getTitle(), mCmd.getOrderIndex(), lessons)
+              .details(mCmd.getDescription()));
           });
           existing.setModules(modules);
           existing.setTotalLessons(modules.stream().mapToInt(m -> m.getLessons() == null ? 0 : m.getLessons().size()).sum());

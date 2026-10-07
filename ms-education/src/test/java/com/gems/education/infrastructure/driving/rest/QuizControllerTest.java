@@ -1,130 +1,119 @@
 package com.gems.education.infrastructure.driving.rest;
 
 import com.gems.education.application.*;
-import com.gems.education.application.command.QuizCommand;
-import com.gems.education.application.command.QuizSubmissionCommand;
+import com.gems.education.application.gateway.CourseGateway;
+import com.gems.education.application.gateway.EnrollmentGateway;
+import com.gems.education.application.response.QuestionResponse;
 import com.gems.education.application.response.QuizGradingResponse;
 import com.gems.education.application.response.QuizResponse;
+import com.gems.education.infrastructure.driving.rest.request.QuestionRequest;
 import com.gems.education.infrastructure.driving.rest.request.QuizRequest;
 import com.gems.education.infrastructure.driving.rest.request.QuizSubmissionRequest;
+import com.gems.shared.security.AuthenticatedUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class QuizControllerTest {
-
-  private CreateQuizUseCase createQuizUseCase;
-  private GetQuizByLessonUseCase getQuizByLessonUseCase;
-  private GetQuizByIdUseCase getQuizByIdUseCase;
-  private UpdateQuizUseCase updateQuizUseCase;
-  private DeleteQuizUseCase deleteQuizUseCase;
-  private SubmitQuizUseCase submitQuizUseCase;
+class QuizControllerTest extends ControllerTestSupport {
+  private final CreateQuizUseCase createQuizUseCase = mock(CreateQuizUseCase.class);
+  private final GetQuizByLessonUseCase getQuizByLessonUseCase = mock(GetQuizByLessonUseCase.class);
+  private final GetQuizByIdUseCase getQuizByIdUseCase = mock(GetQuizByIdUseCase.class);
+  private final UpdateQuizUseCase updateQuizUseCase = mock(UpdateQuizUseCase.class);
+  private final DeleteQuizUseCase deleteQuizUseCase = mock(DeleteQuizUseCase.class);
+  private final SubmitQuizUseCase submitQuizUseCase = mock(SubmitQuizUseCase.class);
   private QuizController controller;
+  private final CourseGateway courses = mock(CourseGateway.class);
+  private final EnrollmentGateway enrollments = mock(EnrollmentGateway.class);
+
+  private final QuizResponse quiz = new QuizResponse(1L, 100L, "Docker", 60,
+    List.of(new QuestionResponse(1L, 1L, "¿Qué es una imagen?", List.of("A", "B"), "A")));
 
   @BeforeEach
   void setUp() {
-    createQuizUseCase = mock(CreateQuizUseCase.class);
-    getQuizByLessonUseCase = mock(GetQuizByLessonUseCase.class);
-    getQuizByIdUseCase = mock(GetQuizByIdUseCase.class);
-    updateQuizUseCase = mock(UpdateQuizUseCase.class);
-    deleteQuizUseCase = mock(DeleteQuizUseCase.class);
-    submitQuizUseCase = mock(SubmitQuizUseCase.class);
+    givenCourses();
+    when(courses.findCourseIdByLessonId(100L)).thenReturn(Mono.just(1L));
+    when(enrollments.existsByStudentIdAndCourseId(STUDENT.userId(), 1L)).thenReturn(Mono.just(true));
+    when(getQuizByIdUseCase.execute(1L)).thenReturn(Mono.just(quiz));
+    controller = new QuizController(createQuizUseCase, getQuizByLessonUseCase, getQuizByIdUseCase,
+      updateQuizUseCase, deleteQuizUseCase, submitQuizUseCase, access, studentView,
+      new LessonAccess(courses, enrollments, access));
+  }
 
-    controller = new QuizController(
-      createQuizUseCase,
-      getQuizByLessonUseCase,
-      getQuizByIdUseCase,
-      updateQuizUseCase,
-      deleteQuizUseCase,
-      submitQuizUseCase
-    );
+  private WebTestClient as(AuthenticatedUser caller) {
+    return client(controller, caller);
   }
 
   @Test
-  void shouldCreateQuiz() {
-    QuizResponse response = new QuizResponse(1L, 1L, "Quiz 1", 70, List.of());
-    when(createQuizUseCase.execute(any(QuizCommand.class))).thenReturn(Mono.just(response));
-
-    QuizRequest request = new QuizRequest(1L, "Quiz 1", 70, List.of());
-
-    StepVerifier.create(controller.createQuiz(request))
-      .assertNext(entity -> {
-        assertEquals(201, entity.getStatusCode().value());
-        assertEquals("Quiz 1", entity.getBody().getTitle());
-      })
-      .verifyComplete();
+  void studentsDoNotReceiveTheCorrectOption() {
+    as(STUDENT).get().uri("/api/v1/quizzes/1").exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$.questions[0].correctOption").doesNotExist();
   }
 
   @Test
-  void shouldGetQuizById() {
-    QuizResponse response = new QuizResponse(1L, 1L, "Quiz 1", 70, List.of());
-    when(getQuizByIdUseCase.execute(1L)).thenReturn(Mono.just(response));
-
-    StepVerifier.create(controller.getQuizById(1L))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals("Quiz 1", entity.getBody().getTitle());
-      })
-      .verifyComplete();
+  void staffReceiveTheCorrectOption() {
+    as(INSTRUCTOR).get().uri("/api/v1/quizzes/1").exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$.questions[0].correctOption").isEqualTo("A");
   }
 
   @Test
-  void shouldGetQuizByLesson() {
-    QuizResponse response = new QuizResponse(1L, 1L, "Quiz 1", 70, List.of());
-    when(getQuizByLessonUseCase.execute(1L)).thenReturn(Mono.just(response));
+  void onlyStaffWriteQuizzes() {
+    when(createQuizUseCase.execute(any())).thenReturn(Mono.just(quiz));
+    QuizRequest request = new QuizRequest(100L, "Docker", 60, List.of(new QuestionRequest("¿?", List.of("A", "B"), "A")));
 
-    StepVerifier.create(controller.getQuizByLesson(1L))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals("Quiz 1", entity.getBody().getTitle());
-      })
-      .verifyComplete();
+    as(STUDENT).post().uri("/api/v1/quizzes").contentType(MediaType.APPLICATION_JSON).bodyValue(request)
+      .exchange().expectStatus().isForbidden();
+    as(INSTRUCTOR).post().uri("/api/v1/quizzes").contentType(MediaType.APPLICATION_JSON).bodyValue(request)
+      .exchange().expectStatus().isCreated();
+    as(STUDENT).delete().uri("/api/v1/quizzes/1").exchange().expectStatus().isForbidden();
   }
 
   @Test
-  void shouldUpdateQuiz() {
-    QuizResponse response = new QuizResponse(1L, 1L, "Updated Quiz", 70, List.of());
-    when(updateQuizUseCase.execute(eq(1L), any(QuizCommand.class))).thenReturn(Mono.just(response));
+  void studentsSubmitOnlyTheirOwnAnswers() {
+    when(submitQuizUseCase.execute(eq(1L), any())).thenReturn(Mono.just(new QuizGradingResponse(100, true, 1, 1)));
+    List<QuizSubmissionRequest.AnswerRequest> answers = List.of(new QuizSubmissionRequest.AnswerRequest(1L, "A"));
 
-    QuizRequest request = new QuizRequest(1L, "Updated Quiz", 70, List.of());
-
-    StepVerifier.create(controller.updateQuiz(1L, request))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals("Updated Quiz", entity.getBody().getTitle());
-      })
-      .verifyComplete();
+    as(STUDENT).post().uri("/api/v1/quizzes/1/submit").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new QuizSubmissionRequest(STUDENT.userId(), answers))
+      .exchange().expectStatus().isOk();
+    as(STUDENT).post().uri("/api/v1/quizzes/1/submit").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new QuizSubmissionRequest(99L, answers))
+      .exchange().expectStatus().isForbidden();
   }
 
   @Test
-  void shouldDeleteQuiz() {
-    when(deleteQuizUseCase.execute(1L)).thenReturn(Mono.empty());
-
-    StepVerifier.create(controller.deleteQuiz(1L))
-      .assertNext(entity -> {
-        assertEquals(204, entity.getStatusCode().value());
-      })
-      .verifyComplete();
+  void staffOfAnotherInstitutionCannotReadWriteOrDeleteQuizzes() {
+    QuizRequest request = new QuizRequest(100L, "Docker", 60, List.of());
+    as(OTHER_ADMIN).get().uri("/api/v1/quizzes/1").exchange().expectStatus().isForbidden();
+    as(OTHER_ADMIN).post().uri("/api/v1/quizzes").bodyValue(request).exchange().expectStatus().isForbidden();
+    as(OTHER_ADMIN).put().uri("/api/v1/quizzes/1").bodyValue(request).exchange().expectStatus().isForbidden();
+    as(OTHER_ADMIN).delete().uri("/api/v1/quizzes/1").exchange().expectStatus().isForbidden();
+    verifyNoInteractions(createQuizUseCase, updateQuizUseCase, deleteQuizUseCase);
   }
 
   @Test
-  void shouldSubmitQuiz() {
-    QuizGradingResponse response = new QuizGradingResponse(80, true, 4, 5);
-    when(submitQuizUseCase.execute(eq(1L), any(QuizSubmissionCommand.class))).thenReturn(Mono.just(response));
+  void aStudentMustBeEnrolledToSubmit() {
+    when(enrollments.existsByStudentIdAndCourseId(STUDENT.userId(), 1L)).thenReturn(Mono.just(false));
+    as(STUDENT).post().uri("/api/v1/quizzes/1/submit")
+      .bodyValue(new QuizSubmissionRequest(STUDENT.userId(),
+        List.of(new QuizSubmissionRequest.AnswerRequest(1L, "A"))))
+      .exchange().expectStatus().isForbidden();
+    verifyNoInteractions(submitQuizUseCase);
+  }
 
-    QuizSubmissionRequest request = new QuizSubmissionRequest(10L, List.of(new QuizSubmissionRequest.AnswerRequest(1L, "A")));
-
-    StepVerifier.create(controller.submitQuiz(1L, request))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals(80, entity.getBody().getScore());
-      })
-      .verifyComplete();
+  @Test
+  void updatingCannotMoveAQuizToAnotherInstitution() {
+    when(courses.findCourseIdByLessonId(200L)).thenReturn(Mono.just(2L));
+    when(getCourseByIdUseCase.execute(2L)).thenReturn(Mono.just(course(2L, "published", "inst-2")));
+    as(INSTRUCTOR).put().uri("/api/v1/quizzes/1")
+      .bodyValue(new QuizRequest(200L, "Docker", 60, List.of()))
+      .exchange().expectStatus().isForbidden();
+    verifyNoInteractions(updateQuizUseCase);
   }
 }

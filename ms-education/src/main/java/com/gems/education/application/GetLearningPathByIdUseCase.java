@@ -8,7 +8,7 @@ import com.gems.education.application.response.LessonResponse;
 import com.gems.education.application.response.ModuleResponse;
 import com.gems.education.domain.entities.Course;
 import com.gems.education.domain.entities.LearningPath;
-import com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException;
+import com.gems.education.application.exceptions.LearningPathNotFoundException;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -29,18 +29,6 @@ public class GetLearningPathByIdUseCase {
   }
 
   private LearningPathResponse mapToResponse(LearningPath lp) {
-    List<CourseResponse> courseResponses = new ArrayList<>();
-    if (lp.getCourses() != null) {
-      courseResponses = lp.getCourses().stream().map(CourseResponseMapper::toResponse).collect(Collectors.toList());
-    }
-
-    return new LearningPathResponse(
-      lp.getId(),
-      lp.getTitle(),
-      lp.getDescription(),
-      lp.getInstitutionId(),
-      lp.getCreatedAt(),
-      courseResponses
-    );
+    return LearningPathResponses.toResponse(lp);
   }
 }

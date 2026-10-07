@@ -1,14 +1,17 @@
 server:
   port: 8080
+  shutdown: graceful
 
 spring:
   application:
     name: api-gateway
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   data:
     redis:
       host: "${REDIS_HOST:localhost}"
       port: ${REDIS_PORT:6379}
-      password: "${REDIS_PASSWORD:redis_password}"
+      password: "${REDIS_PASSWORD}"
   cloud:
     gateway:
       default-filters:
@@ -16,55 +19,96 @@ spring:
         # (shared.security.CorsConfig). When the gateway proxies a response that already
         # carries CORS headers, its own filter adds them again, so the header ends up
         # duplicated on the way to the browser — which then rejects the response outright.
-        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Vary X-Content-Type-Options X-Frame-Options X-XSS-Protection Strict-Transport-Security Content-Security-Policy Referrer-Policy Permissions-Policy X-Permitted-Cross-Domain-Policies, RETAIN_UNIQUE
+        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Expose-Headers Vary X-Content-Type-Options X-Frame-Options X-XSS-Protection Strict-Transport-Security Content-Security-Policy Referrer-Policy Permissions-Policy X-Permitted-Cross-Domain-Policies, RETAIN_UNIQUE
       routes:
         - id: ms-auth-auth
-          uri: http://localhost:${AUTH_PORT:8081}
+          uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
           predicates:
             - Path=/api/v1/auth/**
 
         - id: ms-auth-users
-          uri: http://localhost:${AUTH_PORT:8081}
+          uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
           predicates:
             - Path=/api/v1/users/**
 
+        - id: ms-auth-audit
+          uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
+          predicates:
+            - Path=/api/v1/audit/**
+
         - id: ms-admin-institutions
-          uri: http://localhost:${ADMIN_PORT:8082}
+          uri: ${ADMIN_SERVICE_URL:http://localhost:${ADMIN_PORT:8082}}
           predicates:
             - Path=/api/v1/institutions/**
 
         - id: ms-admin-branding
-          uri: http://localhost:${ADMIN_PORT:8082}
+          uri: ${ADMIN_SERVICE_URL:http://localhost:${ADMIN_PORT:8082}}
           predicates:
             - Path=/api/v1/branding/**
 
         - id: ms-education-courses
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/courses/**
 
         - id: ms-education-students
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/students/**
 
         - id: ms-education-quizzes
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
-            - Path=/api/v1/quizzes/**
+            - Path=/api/v1/quizzes/**,/api/v1/question-bank/**,/api/v1/academic-periods/**
 
         - id: ms-education-learning-paths
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/learning-paths/**
 
+        - id: ms-education-activity
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+          predicates:
+            - Path=/api/v1/activity/**,/api/v1/submissions/**
+
+        - id: ms-education-notifications
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+          predicates:
+            - Path=/api/v1/notifications/**
+
+        - id: ms-education-files
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+          predicates:
+            - Path=/api/v1/files/**
+
+        - id: ms-education-groups
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+          predicates:
+            - Path=/api/v1/groups/**
+
         - id: ms-education-enrollments
-          uri: http://localhost:${EDUCATION_PORT:8083}
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
           predicates:
             - Path=/api/v1/enrollments/**
 
+        - id: ms-education-certificates
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+          predicates:
+            - Path=/api/v1/certificates/**
+
+        - id: ms-education-reports
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+          predicates:
+            - Path=/api/v1/reports/**
+
+        # Catálogo público (cursos gratis) y solicitudes de instituciones, sin sesión.
+        - id: ms-education-public
+          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+          predicates:
+            - Path=/api/v1/public/**,/api/v1/institution-requests/**,/api/v1/institution-requests
+
 jwt:
-  secret: "${JWT_SECRET:mySecretKey123456789012345678901234567890}"
+  secret: "${JWT_SECRET}"
   expiration: 86400000
 
 auth:
@@ -73,7 +117,9 @@ auth:
 
 rate:
   limit:
-    requests: ${RATE_LIMIT_REQUESTS:100}
+    requests: ${RATE_LIMIT_REQUESTS:300}
+    # Sin token (login, recuperar contraseña) se cuenta por dirección: todo un campus puede compartir una IP.
+    anonymous-requests: ${RATE_LIMIT_ANONYMOUS_REQUESTS:600}
     window: ${RATE_LIMIT_WINDOW:60}
     key:
       prefix: "${RATE_LIMIT_KEY_PREFIX:rate_limit:}"
@@ -84,3 +130,15 @@ cors:
   allowed-headers: "${CORS_ALLOWED_HEADERS:*}"
   allow-credentials: true
   max-age: 3600
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}

@@ -5,7 +5,9 @@ import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.application.gateway.EnrollmentGateway;
 import com.gems.education.application.response.EnrollmentResponse;
 import com.gems.education.domain.entities.Enrollment;
-import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
+import com.gems.education.application.exceptions.CourseNotFoundException;
+import com.gems.education.application.exceptions.EnrollmentNotAllowedException;
+import com.gems.education.domain.entities.EnrollmentPolicy;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -20,35 +22,37 @@ import java.time.LocalDateTime;
 public class EnrollStudentUseCase {
   private final EnrollmentGateway enrollmentGateway;
   private final CourseGateway courseGateway;
+  private final EnrollmentRulesUseCase rules;
 
-  public EnrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
+  public EnrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway,
+                              EnrollmentRulesUseCase rules) {
     this.enrollmentGateway = enrollmentGateway;
     this.courseGateway = courseGateway;
+    this.rules = rules;
   }
 
+  /** Staff enrolling a student (see {@link #execute(EnrollmentCommand, boolean)}). */
   public Mono<EnrollmentResponse> execute(EnrollmentCommand command) {
+    return execute(command, true);
+  }
+
+  /**
+   * An existing enrollment is returned as is. A new one must pass the course's enrollment rules:
+   * all of them for a student enrolling themselves, only the capacity when staff enroll them.
+   */
+  public Mono<EnrollmentResponse> execute(EnrollmentCommand command, boolean byStaff) {
     return courseGateway.findById(command.getCourseId())
       .switchIfEmpty(Mono.error(new CourseNotFoundException("Course not found with ID " + command.getCourseId())))
       .flatMap(course -> enrollmentGateway.findByStudentIdAndCourseId(command.getStudentId(), command.getCourseId())
-        .switchIfEmpty(Mono.defer(() -> {
-          Enrollment enrollment = new Enrollment(null, command.getStudentId(), command.getCourseId(), "active",
-            LocalDateTime.now(), 0, null);
-          return enrollmentGateway.save(enrollment)
-            .flatMap(saved -> courseGateway.incrementEnrolledCount(command.getCourseId()).thenReturn(saved));
-        }))
+        .switchIfEmpty(Mono.defer(() -> rules.requireAllowed(command.getStudentId(), command.getCourseId(), byStaff)
+          .then(Mono.defer(() -> enrollmentGateway.saveRespectingCapacity(new Enrollment(null, command.getStudentId(),
+            command.getCourseId(), "active", LocalDateTime.now(), 0, null))))
+          .switchIfEmpty(Mono.error(new EnrollmentNotAllowedException(java.util.List.of(EnrollmentPolicy.FULL))))))
       )
       .map(this::mapToResponse);
   }
 
   private EnrollmentResponse mapToResponse(Enrollment enrollment) {
-    return new EnrollmentResponse(
-      enrollment.getId(),
-      enrollment.getStudentId(),
-      enrollment.getCourseId(),
-      enrollment.getStatus(),
-      enrollment.getEnrolledAt(),
-      enrollment.getProgress(),
-      enrollment.getCompletedAt()
-    );
+    return EnrollmentResponse.from(enrollment);
   }
 }

@@ -30,6 +30,11 @@ import java.util.List;
 public class SecurityConfig {
 
   private static final String[] PUBLIC_PATHS = {
+    "/actuator/health/**", "/actuator/prometheus",
+    "/api/v1/files/public/**", "/api/v1/certificates/verify/**",
+    "/api/v1/public/**",
+    // Service-to-service, protected by the internal key (never routed by the gateway).
+    "/internal/engagement/run",
     "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html"
   };
 
@@ -89,6 +94,7 @@ public class SecurityConfig {
     configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
     configuration.setAllowCredentials(allowCredentials);
     configuration.setMaxAge(maxAge);
+    configuration.setExposedHeaders(Arrays.asList("X-Total-Count", "Content-Disposition", "X-Session-Token"));
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);

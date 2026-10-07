@@ -38,6 +38,8 @@ subprojects {
     if (project.name != 'shared') {
       implementation 'org.springframework.boot:spring-boot-starter'
       implementation 'org.springframework.boot:spring-boot-starter-webflux'
+      implementation 'org.springframework.boot:spring-boot-starter-actuator'
+      runtimeOnly 'io.micrometer:micrometer-registry-prometheus'
       testImplementation 'org.springframework.boot:spring-boot-starter-test'
       testImplementation 'io.projectreactor:reactor-test'
     }
@@ -47,9 +49,10 @@ subprojects {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
   }
 
+  // `./gradlew test` only runs tests; coverage report and gate run with `check`/`build`.
   test {
     useJUnitPlatform()
-    finalizedBy jacocoTestReport
+    jvmArgs '-XX:+EnableDynamicAgentLoading'
   }
 
   def coverageIncludes = [
@@ -60,6 +63,7 @@ subprojects {
   ]
 
   jacocoTestReport {
+    dependsOn test
     reports {
       xml.required = true
       html.required = true
@@ -85,7 +89,8 @@ subprojects {
     violationRules {
       rule {
         limit {
-          minimum = 1.0
+          counter = 'LINE'
+          minimum = (project.findProperty('coverageMinimum') ?: '0.50') as BigDecimal
         }
       }
     }

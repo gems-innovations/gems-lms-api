@@ -1,12 +1,13 @@
 package com.gems.education.application;
 
+import com.gems.education.TestData;
 import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.application.response.CourseResponse;
 import com.gems.education.domain.entities.Content;
 import com.gems.education.domain.entities.Course;
 import com.gems.education.domain.entities.Lesson;
 import com.gems.education.domain.entities.Module;
-import com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException;
+import com.gems.education.application.exceptions.CourseNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +39,7 @@ class GetCourseByIdUseCaseTest {
     List<Lesson> lessons = List.of(new Lesson(1L, 1L, "Lesson 1", 1, contents));
     List<Module> modules = List.of(new Module(1L, 1L, "Module 1", 1, lessons));
 
-    course = new Course(
+    course = TestData.course(
       1L,
       "Java Course",
       "Java fundamentals",

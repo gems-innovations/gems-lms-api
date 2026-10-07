@@ -1,9 +1,11 @@
 package com.gems.education.infrastructure.driving.rest;
 
 
+import com.gems.education.application.exceptions.CourseActivityException;
+import com.gems.education.application.exceptions.GroupNotFoundException;
 import com.gems.education.infrastructure.driving.rest.constants.RestConstants;
-import com.gems.education.infrastructure.driving.rest.exeption.StudentAlreadyExistsException;
-import com.gems.education.infrastructure.driving.rest.exeption.StudentNotFoundException;
+import com.gems.education.application.exceptions.StudentAlreadyExistsException;
+import com.gems.education.application.exceptions.StudentNotFoundException;
 import com.gems.education.infrastructure.driving.rest.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,10 +14,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Mono;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+  private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler(StudentAlreadyExistsException.class)
   public Mono<ResponseEntity<ErrorResponse>> handleStudentAlreadyExistsException(StudentAlreadyExistsException ex) {
@@ -37,8 +43,8 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
-  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException.class)
-  public Mono<ResponseEntity<ErrorResponse>> handleCourseNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.CourseNotFoundException ex) {
+  @ExceptionHandler(com.gems.education.application.exceptions.CourseNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleCourseNotFoundException(com.gems.education.application.exceptions.CourseNotFoundException ex) {
     ErrorResponse error = new ErrorResponse(
       RestConstants.COURSE_NOT_FOUND_CODE,
       ex.getMessage(),
@@ -47,8 +53,8 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
-  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.QuizNotFoundException.class)
-  public Mono<ResponseEntity<ErrorResponse>> handleQuizNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.QuizNotFoundException ex) {
+  @ExceptionHandler(com.gems.education.application.exceptions.QuizNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleQuizNotFoundException(com.gems.education.application.exceptions.QuizNotFoundException ex) {
     ErrorResponse error = new ErrorResponse(
       RestConstants.QUIZ_NOT_FOUND_CODE,
       ex.getMessage(),
@@ -57,8 +63,8 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
-  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException.class)
-  public Mono<ResponseEntity<ErrorResponse>> handleLearningPathNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.LearningPathNotFoundException ex) {
+  @ExceptionHandler(com.gems.education.application.exceptions.LearningPathNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleLearningPathNotFoundException(com.gems.education.application.exceptions.LearningPathNotFoundException ex) {
     ErrorResponse error = new ErrorResponse(
       RestConstants.LEARNING_PATH_NOT_FOUND_CODE,
       ex.getMessage(),
@@ -67,8 +73,8 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
-  @ExceptionHandler(com.gems.education.infrastructure.driving.rest.exeption.EnrollmentNotFoundException.class)
-  public Mono<ResponseEntity<ErrorResponse>> handleEnrollmentNotFoundException(com.gems.education.infrastructure.driving.rest.exeption.EnrollmentNotFoundException ex) {
+  @ExceptionHandler(com.gems.education.application.exceptions.EnrollmentNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleEnrollmentNotFoundException(com.gems.education.application.exceptions.EnrollmentNotFoundException ex) {
     ErrorResponse error = new ErrorResponse(
       RestConstants.ENROLLMENT_NOT_FOUND_CODE,
       ex.getMessage(),
@@ -137,8 +143,54 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error));
   }
 
+  /** The rules of the course reject the enrollment; reasons are EnrollmentPolicy codes. */
+  @ExceptionHandler(com.gems.education.application.exceptions.EnrollmentNotAllowedException.class)
+  public Mono<ResponseEntity<java.util.Map<String, Object>>> handleEnrollmentNotAllowed(
+      com.gems.education.application.exceptions.EnrollmentNotAllowedException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(java.util.Map.of(
+      "code", "ENROLLMENT_NOT_ALLOWED", "message", ex.getMessage(), "status", HttpStatus.CONFLICT.value(),
+      "reasons", ex.getReasons())));
+  }
+
+  @ExceptionHandler(CourseActivityException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleCourseActivityException(CourseActivityException ex) {
+    HttpStatus status = switch (ex.getCode()) {
+      case CourseActivityException.NOT_ENROLLED -> HttpStatus.FORBIDDEN;
+      case CourseActivityException.BLOCK_NOT_FOUND, CourseActivityException.SUBMISSION_NOT_FOUND,
+        CourseActivityException.SESSION_NOT_FOUND,
+        com.gems.education.application.CourseFeedbackUseCase.SURVEY_NOT_FOUND -> HttpStatus.NOT_FOUND;
+      case CourseActivityException.ATTEMPT_LIMIT_REACHED, CourseActivityException.SESSION_CLOSED,
+        CourseActivityException.PERIOD_CLOSED -> HttpStatus.CONFLICT;
+      default -> HttpStatus.BAD_REQUEST;
+    };
+    return Mono.just(ResponseEntity.status(status).body(new ErrorResponse(ex.getCode(), ex.getMessage(), status.value())));
+  }
+
+  /** An upload bigger than spring.webflux.multipart.max-disk-usage-per-part. */
+  @ExceptionHandler(org.springframework.core.io.buffer.DataBufferLimitException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleTooLarge(org.springframework.core.io.buffer.DataBufferLimitException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+      .body(new ErrorResponse("FILE_TOO_LARGE", "The file is too large", HttpStatus.PAYLOAD_TOO_LARGE.value())));
+  }
+
+  @ExceptionHandler(GroupNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleGroupNotFound(GroupNotFoundException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
+      .body(new ErrorResponse(GroupNotFoundException.CODE, ex.getMessage(), HttpStatus.NOT_FOUND.value())));
+  }
+
+  // Framework errors (unknown route, wrong method, malformed body...) keep their own status
+  // instead of being reported as a 500.
+  @ExceptionHandler(ResponseStatusException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleResponseStatusException(ResponseStatusException ex) {
+    HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+    ErrorResponse error = new ErrorResponse(status.name(), ex.getReason() != null ? ex.getReason() : status.getReasonPhrase(), status.value());
+    return Mono.just(ResponseEntity.status(status).body(error));
+  }
+
   @ExceptionHandler(Exception.class)
   public Mono<ResponseEntity<ErrorResponse>> handleGenericException(Exception ex) {
+    LOG.error("Unhandled exception", ex);
     ErrorResponse error = new ErrorResponse(
       RestConstants.INTERNAL_SERVER_ERROR_CODE,
       RestConstants.INTERNAL_SERVER_ERROR_MESSAGE,

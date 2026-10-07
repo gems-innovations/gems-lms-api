@@ -1,8 +1,11 @@
 package com.gems.auth.infrastructure.driving.rest;
 
+import com.gems.auth.application.ChangePasswordUseCase;
 import com.gems.auth.application.LoginUseCase;
+import com.gems.auth.application.PasswordRecoveryUseCase;
 import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.command.LoginCommand;
+import com.gems.auth.application.exceptions.PasswordChangeException;
 import com.gems.auth.application.command.RegisterUserCommand;
 import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.application.response.UserResponse;
@@ -26,6 +29,8 @@ class AuthControllerTest {
 
   private RegisterUserUseCase registerUserUseCase;
   private LoginUseCase loginUseCase;
+  private ChangePasswordUseCase changePasswordUseCase;
+  private PasswordRecoveryUseCase passwordRecoveryUseCase;
   private WebTestClient webTestClient;
 
   private UserResponse userResponse;
@@ -35,13 +40,19 @@ class AuthControllerTest {
   void setUp() {
     registerUserUseCase = Mockito.mock(RegisterUserUseCase.class);
     loginUseCase = Mockito.mock(LoginUseCase.class);
+    changePasswordUseCase = Mockito.mock(ChangePasswordUseCase.class);
+    passwordRecoveryUseCase = Mockito.mock(PasswordRecoveryUseCase.class);
 
-    AuthController authController = new AuthController(registerUserUseCase, loginUseCase);
+    AuthController authController = new AuthController(registerUserUseCase, loginUseCase, changePasswordUseCase,
+      passwordRecoveryUseCase);
     // Reactor Netty's client is built lazily on first use; on a loaded machine (or a slow
     // /mnt/c filesystem under WSL) that cold start alone can exceed the 5s default response
     // timeout, failing whichever test happens to run first. A longer timeout keeps this test
     // class robust without masking a real hang.
-    webTestClient = WebTestClient.bindToController(authController).build()
+    webTestClient = WebTestClient.bindToController(authController)
+      .webFilter(TestSecurity.superAdmin())
+      .controllerAdvice(new GlobalExceptionHandler(), new com.gems.shared.security.SecurityExceptionAdvice())
+      .build()
       .mutate().responseTimeout(Duration.ofSeconds(30)).build();
 
     LocalDateTime now = LocalDateTime.now();
@@ -71,7 +82,8 @@ class AuthControllerTest {
       true,
       now,
       now,
-      "jwt.token.value"
+      "jwt.token.value",
+      false
     );
   }
 
@@ -295,5 +307,45 @@ class AuthControllerTest {
         Assertions.assertNotNull(response.role());
         Assertions.assertNotNull(response.token());
       });
+  }
+
+  @Test
+  void changePasswordUsesTheCallersId() {
+    when(changePasswordUseCase.execute(9999L, "Old123!a", "New123!a")).thenReturn(Mono.empty());
+
+    webTestClient.post().uri("/api/v1/auth/change-password").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"currentPassword\":\"Old123!a\",\"newPassword\":\"New123!a\"}")
+      .exchange().expectStatus().isNoContent();
+  }
+
+  @Test
+  void wrongCurrentPasswordIsABadRequestNotAnAuthFailure() {
+    when(changePasswordUseCase.execute(anyLong(), any(), any())).thenReturn(Mono.error(
+      new PasswordChangeException(PasswordChangeException.WRONG_CURRENT_PASSWORD, "wrong")));
+
+    webTestClient.post().uri("/api/v1/auth/change-password").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"currentPassword\":\"x\",\"newPassword\":\"New123!a\"}")
+      .exchange().expectStatus().isBadRequest()
+      .expectBody().jsonPath("$.code").isEqualTo("WRONG_CURRENT_PASSWORD");
+  }
+
+  @Test
+  void forgotPasswordAlwaysAnswersAccepted() {
+    when(passwordRecoveryUseCase.requestReset("nobody@example.com")).thenReturn(Mono.empty());
+
+    webTestClient.post().uri("/api/v1/auth/forgot-password").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"email\":\"nobody@example.com\"}")
+      .exchange().expectStatus().isAccepted();
+  }
+
+  @Test
+  void resetPasswordRejectsInvalidTokens() {
+    when(passwordRecoveryUseCase.reset("bad", "New123!a")).thenReturn(Mono.error(
+      new PasswordChangeException(PasswordChangeException.INVALID_RESET_TOKEN, "invalid")));
+
+    webTestClient.post().uri("/api/v1/auth/reset-password").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"token\":\"bad\",\"newPassword\":\"New123!a\"}")
+      .exchange().expectStatus().isBadRequest()
+      .expectBody().jsonPath("$.code").isEqualTo("INVALID_RESET_TOKEN");
   }
 }

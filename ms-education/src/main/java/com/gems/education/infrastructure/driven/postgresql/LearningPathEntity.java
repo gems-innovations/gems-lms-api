@@ -17,6 +17,13 @@ public class LearningPathEntity {
 
   @Column("created_at")
   private LocalDateTime createdAt;
+  private String status;
+  /** Comma separated, like courses.tags. */
+  private String tags;
+  @Column("thumbnail_url")
+  private String thumbnailUrl;
+  @Column("updated_at")
+  private LocalDateTime updatedAt;
 
   public LearningPathEntity() {
   }
@@ -68,4 +75,13 @@ public class LearningPathEntity {
   public void setCreatedAt(LocalDateTime createdAt) {
     this.createdAt = createdAt;
   }
+
+  public String getStatus() { return status; }
+  public void setStatus(String status) { this.status = status; }
+  public String getTags() { return tags; }
+  public void setTags(String tags) { this.tags = tags; }
+  public String getThumbnailUrl() { return thumbnailUrl; }
+  public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+  public LocalDateTime getUpdatedAt() { return updatedAt; }
+  public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

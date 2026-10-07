@@ -8,7 +8,10 @@ import com.gems.auth.domain.values.UserId;
 import com.gems.auth.domain.values.UserName;
 import com.gems.auth.domain.values.UserRole;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 @Repository
 public class UserRepositoryAdapter implements UserGateway {
@@ -65,7 +68,7 @@ public class UserRepositoryAdapter implements UserGateway {
   }
 
   private User mapToDomain(UserEntity userEntity) {
-    return new User(
+    User user = new User(
       new UserId(userEntity.getUserId()),
       new UserName(userEntity.getFirstName()),
       new UserName(userEntity.getLastName()),
@@ -79,10 +82,12 @@ public class UserRepositoryAdapter implements UserGateway {
       userEntity.getUpdatedAt(),
       userEntity.isActive()
     );
+    user.setMustChangePassword(Boolean.TRUE.equals(userEntity.getMustChangePassword()));
+    return user;
   }
 
   private UserEntity mapToEntity(User user) {
-    return new UserEntity(
+    UserEntity entity = new UserEntity(
       user.getId() != null ? user.getId().getValue() : null,
       user.getFirstName().getValue(),
       user.getLastName().getValue(),
@@ -96,5 +101,34 @@ public class UserRepositoryAdapter implements UserGateway {
       user.getCreatedAt(),
       user.getUpdatedAt()
     );
+    entity.setMustChangePassword(user.mustChangePassword());
+    return entity;
+  }
+
+  @Override
+  public Mono<Map<String, Long>> countActiveUsersByInstitution() {
+    return userRepository.countActiveByInstitution()
+      .collectMap(InstitutionUserCount::institutionId, InstitutionUserCount::total);
+  }
+
+  @Override
+  public Mono<Void> updatePassword(UserId id, String encodedPassword) {
+    return userRepository.updatePassword(id.getValue(), encodedPassword).then();
+  }
+
+  @Override
+  public Flux<User> searchByInstitution(String institutionId, String search, int limit, long offset) {
+    return userRepository.searchByInstitution(institutionId, pattern(search), limit, offset).map(this::mapToDomain);
+  }
+
+  @Override
+  public Mono<Long> countByInstitution(String institutionId, String search) {
+    return userRepository.countSearchByInstitution(institutionId, pattern(search));
+  }
+
+  /** ILIKE pattern for a free-text search ('' = no filter); % and _ in the text are literal. */
+  private static String pattern(String search) {
+    if (search == null || search.isBlank()) return "";
+    return "%" + search.trim().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
   }
 }

@@ -1,5 +1,6 @@
 package com.gems.education.application;
 
+import com.gems.education.TestData;
 import com.gems.education.application.gateway.EnrollmentGateway;
 import com.gems.education.application.gateway.StudentGateway;
 import com.gems.education.application.response.EnrollmentResponse;
@@ -36,9 +37,8 @@ class GetStudentEnrollmentsUseCaseTest {
   @Test
   void shouldReturnStudentEnrollments() {
     Student student = new Student(10L, "Juan", "juan@gmail.com", LocalDate.of(2000, 1, 1), "Colombia", "Medellin", "CC", "123456");
-    Enrollment enrollment = new Enrollment(1L, 10L, 5L, LocalDateTime.now(), 20, null);
-
-    when(studentGateway.findById(any(StudentId.class))).thenReturn(Mono.just(student));
+    Enrollment enrollment = TestData.enrollment(1L, 10L, 5L, LocalDateTime.now(), 20, null);
+
     when(enrollmentGateway.findByStudentId(10L)).thenReturn(Flux.just(enrollment));
 
     Flux<EnrollmentResponse> result = getStudentEnrollmentsUseCase.execute(10L);
@@ -47,7 +47,8 @@ class GetStudentEnrollmentsUseCaseTest {
       .expectNextMatches(res -> res.getStudentId().equals(10L) && res.getProgress() == 20)
       .verifyComplete();
 
-    verify(studentGateway, times(1)).findById(any(StudentId.class));
+    // studentId is the ms-auth user id; the legacy students table is not consulted.
+    verifyNoInteractions(studentGateway);
     verify(enrollmentGateway, times(1)).findByStudentId(10L);
   }
 }

@@ -3,7 +3,7 @@ package com.gems.education.application;
 import com.gems.education.application.gateway.QuizGateway;
 import com.gems.education.application.response.QuizResponse;
 import com.gems.education.domain.entities.Quiz;
-import com.gems.education.infrastructure.driving.rest.exeption.QuizNotFoundException;
+import com.gems.education.application.exceptions.QuizNotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

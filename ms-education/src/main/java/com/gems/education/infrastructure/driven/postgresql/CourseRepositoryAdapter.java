@@ -10,9 +10,15 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Repository
 public class CourseRepositoryAdapter implements CourseGateway {
@@ -34,78 +40,116 @@ public class CourseRepositoryAdapter implements CourseGateway {
     this.template = template;
   }
 
+  /**
+   * Persists the course and synchronizes its module/lesson/content tree in place:
+   * items that carry an id are updated, items without id are inserted and items that
+   * are no longer present are deleted. Ids therefore stay stable across updates, which
+   * matters because quizzes (and student progress) reference lesson ids, and lessons
+   * cascade-delete their quizzes.
+   */
   @Override
   public Mono<Course> save(Course course) {
     CourseEntity courseEntity = mapToEntity(course);
     return courseRepository.save(courseEntity)
       .flatMap(savedCourse -> {
-        if (course.getModules() == null || course.getModules().isEmpty()) {
+        if (course.getModules() == null) {
           return Mono.just(mapToDomain(savedCourse, new ArrayList<>()));
         }
+        return syncModules(savedCourse.getId(), course.getModules())
+          .map(modules -> mapToDomain(savedCourse, modules));
+      });
+  }
 
-        // Clean up hierarchy on update to write updated list of modules/lessons
-        Mono<Void> cleanUp = Mono.empty();
-        if (course.getId() != null) {
-          cleanUp = moduleRepository.findByCourseId(savedCourse.getId())
-            .flatMap(existingModule -> 
-              lessonRepository.findByModuleId(existingModule.getId())
-                .flatMap(existingLesson -> 
-                  contentRepository.findByLessonId(existingLesson.getId())
-                    .flatMap(existingContent -> contentRepository.deleteById(existingContent.getId()))
-                    .then(lessonRepository.deleteById(existingLesson.getId()))
-                )
-                .then(moduleRepository.deleteById(existingModule.getId()))
-            )
-            .then();
-        }
+  @Override
+  public Mono<Long> findCourseIdByLessonId(Long lessonId) {
+    return template.getDatabaseClient().sql("""
+      SELECT m.course_id FROM lessons l JOIN modules m ON m.id = l.module_id WHERE l.id = :lessonId
+      """).bind("lessonId", lessonId)
+      .map((row, metadata) -> row.get("course_id", Long.class)).one();
+  }
 
-        return cleanUp.then(
-          Flux.fromIterable(course.getModules())
-            .flatMap(module -> {
-              ModuleEntity moduleEntity = new ModuleEntity(null, savedCourse.getId(), module.getTitle(), module.getOrderIndex(), java.time.LocalDateTime.now());
-              return moduleRepository.save(moduleEntity)
-                .flatMap(savedModule -> {
-                  if (module.getLessons() == null || module.getLessons().isEmpty()) {
-                    return Mono.just(new Module(savedModule.getId(), savedModule.getCourseId(), savedModule.getTitle(), savedModule.getOrderIndex(), new ArrayList<>()));
-                  }
-                  return Flux.fromIterable(module.getLessons())
-                    .flatMap(lesson -> {
-                      LessonEntity lessonEntity = new LessonEntity(null, savedModule.getId(), lesson.getTitle(), lesson.getOrderIndex(), java.time.LocalDateTime.now());
-                      return lessonRepository.save(lessonEntity)
-                        .flatMap(savedLesson -> {
-                          if (lesson.getContents() == null || lesson.getContents().isEmpty()) {
-                            return Mono.just(new Lesson(savedLesson.getId(), savedLesson.getModuleId(), savedLesson.getTitle(), savedLesson.getOrderIndex(), new ArrayList<>()));
-                          }
-                          return Flux.fromIterable(lesson.getContents())
-                            .flatMap(content -> {
-                              ContentEntity contentEntity = new ContentEntity(null, savedLesson.getId(), content.getType(), content.getValue(), content.getOrderIndex());
-                              return contentRepository.save(contentEntity)
-                                .map(savedContent -> new Content(savedContent.getId(), savedContent.getLessonId(), savedContent.getType(), savedContent.getValue(), savedContent.getOrderIndex()));
-                            })
-                            .collectList()
-                            .map(contents -> new Lesson(savedLesson.getId(), savedLesson.getModuleId(), savedLesson.getTitle(), savedLesson.getOrderIndex(), contents));
-                        });
-                    })
-                    .collectList()
-                    .map(lessons -> new Module(savedModule.getId(), savedModule.getCourseId(), savedModule.getTitle(), savedModule.getOrderIndex(), lessons));
-                });
-            })
-            .collectList()
-            .map(modules -> {
-              modules.forEach(m -> {
-                if (m.getLessons() != null) {
-                  m.getLessons().forEach(l -> {
-                    if (l.getContents() != null) {
-                      l.getContents().sort(Comparator.comparingInt(Content::getOrderIndex));
-                    }
-                  });
-                  m.getLessons().sort(Comparator.comparingInt(Lesson::getOrderIndex));
-                }
-              });
-              modules.sort(Comparator.comparingInt(Module::getOrderIndex));
-              return mapToDomain(savedCourse, modules);
-            })
-        );
+  private Mono<List<Module>> syncModules(Long courseId, List<Module> modules) {
+    return moduleRepository.findByCourseId(courseId).collectList()
+      .flatMap(existing -> {
+        Map<Long, ModuleEntity> byId = existing.stream()
+          .collect(Collectors.toMap(ModuleEntity::getId, Function.identity()));
+        Set<Long> kept = modules.stream().map(Module::getId).filter(byId::containsKey).collect(Collectors.toSet());
+
+        Mono<Void> removeMissing = Flux.fromIterable(existing)
+          .filter(e -> !kept.contains(e.getId()))
+          .concatMap(e -> moduleRepository.deleteById(e.getId()))
+          .then();
+
+        Flux<Module> upserts = Flux.fromIterable(modules)
+          .sort(Comparator.comparingInt(Module::getOrderIndex))
+          .concatMap(module -> {
+            ModuleEntity current = module.getId() != null ? byId.get(module.getId()) : null;
+            ModuleEntity entity = current != null
+              ? new ModuleEntity(current.getId(), courseId, module.getTitle(), module.getOrderIndex(), current.getCreatedAt())
+              : new ModuleEntity(null, courseId, module.getTitle(), module.getOrderIndex(), LocalDateTime.now());
+            entity.setDescription(module.getDescription());
+            return moduleRepository.save(entity)
+              .flatMap(saved -> syncLessons(saved.getId(), module.getLessons())
+                .map(lessons -> new Module(saved.getId(), saved.getCourseId(), saved.getTitle(), saved.getOrderIndex(), lessons)
+                  .details(saved.getDescription())));
+          });
+
+        return removeMissing.thenMany(upserts).collectList();
+      });
+  }
+
+  private Mono<List<Lesson>> syncLessons(Long moduleId, List<Lesson> lessons) {
+    List<Lesson> incoming = lessons != null ? lessons : List.of();
+    return lessonRepository.findByModuleId(moduleId).collectList()
+      .flatMap(existing -> {
+        Map<Long, LessonEntity> byId = existing.stream()
+          .collect(Collectors.toMap(LessonEntity::getId, Function.identity()));
+        Set<Long> kept = incoming.stream().map(Lesson::getId).filter(byId::containsKey).collect(Collectors.toSet());
+
+        Mono<Void> removeMissing = Flux.fromIterable(existing)
+          .filter(e -> !kept.contains(e.getId()))
+          .concatMap(e -> lessonRepository.deleteById(e.getId()))
+          .then();
+
+        Flux<Lesson> upserts = Flux.fromIterable(incoming)
+          .sort(Comparator.comparingInt(Lesson::getOrderIndex))
+          .concatMap(lesson -> {
+            LessonEntity current = lesson.getId() != null ? byId.get(lesson.getId()) : null;
+            LessonEntity entity = current != null
+              ? new LessonEntity(current.getId(), moduleId, lesson.getTitle(), lesson.getOrderIndex(), current.getCreatedAt())
+              : new LessonEntity(null, moduleId, lesson.getTitle(), lesson.getOrderIndex(), LocalDateTime.now());
+            entity.details(lesson.getDescription(), lesson.getIsFree());
+            return lessonRepository.save(entity)
+              .flatMap(saved -> syncContents(saved.getId(), lesson.getContents())
+                .map(contents -> new Lesson(saved.getId(), saved.getModuleId(), saved.getTitle(), saved.getOrderIndex(), contents)
+                  .details(saved.getDescription(), saved.getIsFree())));
+          });
+
+        return removeMissing.thenMany(upserts).collectList();
+      });
+  }
+
+  private Mono<List<Content>> syncContents(Long lessonId, List<Content> contents) {
+    List<Content> incoming = contents != null ? contents : List.of();
+    return contentRepository.findByLessonId(lessonId).collectList()
+      .flatMap(existing -> {
+        Set<Long> existingIds = existing.stream().map(ContentEntity::getId).collect(Collectors.toSet());
+        Set<Long> kept = incoming.stream().map(Content::getId).filter(existingIds::contains).collect(Collectors.toSet());
+
+        Mono<Void> removeMissing = Flux.fromIterable(existing)
+          .filter(e -> !kept.contains(e.getId()))
+          .concatMap(e -> contentRepository.deleteById(e.getId()))
+          .then();
+
+        Flux<Content> upserts = Flux.fromIterable(incoming)
+          .sort(Comparator.comparingInt(Content::getOrderIndex))
+          .concatMap(content -> {
+            Long id = content.getId() != null && existingIds.contains(content.getId()) ? content.getId() : null;
+            return contentRepository.save(new ContentEntity(id, lessonId, content.getType(), content.getValue(), content.getOrderIndex()))
+              .map(saved -> new Content(saved.getId(), saved.getLessonId(), saved.getType(), saved.getValue(), saved.getOrderIndex()));
+          });
+
+        return removeMissing.thenMany(upserts).collectList();
       });
   }
 
@@ -132,75 +176,65 @@ public class CourseRepositoryAdapter implements CourseGateway {
     return courseRepository.deleteById(id);
   }
 
+  /** The course tree in three queries (modules, their lessons, their contents), whatever its size. */
   private Mono<Course> loadFullCourse(CourseEntity courseEntity) {
-    return moduleRepository.findByCourseId(courseEntity.getId())
-      .flatMap(moduleEntity -> 
-        lessonRepository.findByModuleId(moduleEntity.getId())
-          .flatMap(lessonEntity -> 
-            contentRepository.findByLessonId(lessonEntity.getId())
-              .map(contentEntity -> new Content(
-                contentEntity.getId(),
-                contentEntity.getLessonId(),
-                contentEntity.getType(),
-                contentEntity.getValue(),
-                contentEntity.getOrderIndex()
-              ))
-              .collectList()
-              .map(contents -> {
-                contents.sort(Comparator.comparingInt(Content::getOrderIndex));
-                return new Lesson(
-                  lessonEntity.getId(),
-                  lessonEntity.getModuleId(),
-                  lessonEntity.getTitle(),
-                  lessonEntity.getOrderIndex(),
-                  contents
-                );
-              })
-          )
-          .collectList()
-          .map(lessons -> {
-            lessons.sort(Comparator.comparingInt(Lesson::getOrderIndex));
-            return new Module(
-              moduleEntity.getId(),
-              moduleEntity.getCourseId(),
-              moduleEntity.getTitle(),
-              moduleEntity.getOrderIndex(),
-              lessons
-            );
-          })
-      )
-      .collectList()
-      .map(modules -> {
-        modules.sort(Comparator.comparingInt(Module::getOrderIndex));
-        return mapToDomain(courseEntity, modules);
-      });
+    return moduleRepository.findByCourseId(courseEntity.getId()).collectList().flatMap(moduleEntities -> {
+      if (moduleEntities.isEmpty()) return Mono.just(mapToDomain(courseEntity, new ArrayList<>()));
+      return lessonRepository.findByModuleIdIn(moduleEntities.stream().map(ModuleEntity::getId).toList()).collectList()
+        .flatMap(lessonEntities -> (lessonEntities.isEmpty()
+            ? Mono.just(List.<ContentEntity>of())
+            : contentRepository.findByLessonIdIn(lessonEntities.stream().map(LessonEntity::getId).toList()).collectList())
+          .map(contentEntities -> mapToDomain(courseEntity, assemble(moduleEntities, lessonEntities, contentEntities))));
+    });
+  }
+
+  private static List<Module> assemble(List<ModuleEntity> moduleEntities,
+                                                 List<LessonEntity> lessonEntities,
+                                                 List<ContentEntity> contentEntities) {
+    Map<Long, List<Content>> contentsByLesson = new HashMap<>();
+    for (ContentEntity c : contentEntities) {
+      contentsByLesson.computeIfAbsent(c.getLessonId(), k -> new ArrayList<>())
+        .add(new Content(c.getId(), c.getLessonId(), c.getType(), c.getValue(), c.getOrderIndex()));
+    }
+    Map<Long, List<Lesson>> lessonsByModule = new HashMap<>();
+    for (LessonEntity l : lessonEntities) {
+      List<Content> contents = contentsByLesson.getOrDefault(l.getId(), new ArrayList<>());
+      contents.sort(Comparator.comparingInt(Content::getOrderIndex));
+      lessonsByModule.computeIfAbsent(l.getModuleId(), k -> new ArrayList<>())
+        .add(new Lesson(l.getId(), l.getModuleId(), l.getTitle(), l.getOrderIndex(), contents)
+          .details(l.getDescription(), l.getIsFree()));
+    }
+    List<Module> modules = new ArrayList<>();
+    for (ModuleEntity m : moduleEntities) {
+      List<Lesson> lessons = lessonsByModule.getOrDefault(m.getId(), new ArrayList<>());
+      lessons.sort(Comparator.comparingInt(Lesson::getOrderIndex));
+      modules.add(new Module(m.getId(), m.getCourseId(), m.getTitle(), m.getOrderIndex(), lessons).details(m.getDescription()));
+    }
+    modules.sort(Comparator.comparingInt(Module::getOrderIndex));
+    return modules;
   }
 
   @Override
-  public Flux<Course> findPage(String search, String status, String difficulty, int offset, int limit) {
-    org.springframework.data.relational.core.query.Criteria criteria =
-      org.springframework.data.relational.core.query.Criteria.empty();
-    if (search != null && !search.isBlank()) {
-      criteria = criteria.and(
-        org.springframework.data.relational.core.query.Criteria.where("title").like("%" + search.trim() + "%").ignoreCase(true));
-    }
-    if (status != null && !status.isBlank()) {
-      criteria = criteria.and(org.springframework.data.relational.core.query.Criteria.where("status").is(status));
-    }
-    if (difficulty != null && !difficulty.isBlank()) {
-      criteria = criteria.and(org.springframework.data.relational.core.query.Criteria.where("difficulty").is(difficulty));
-    }
+  public Flux<Course> findPage(String search, String status, String difficulty, String institutionId, int offset, int limit) {
     org.springframework.data.relational.core.query.Query query =
-      org.springframework.data.relational.core.query.Query.query(criteria)
+      org.springframework.data.relational.core.query.Query.query(pageCriteria(search, status, difficulty, institutionId))
         .sort(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "created_at"))
         .offset(offset)
         .limit(limit);
 
-    return template.select(query, CourseEntity.class).flatMap(this::loadFullCourse);
+    // flatMapSequential keeps the "newest first" order of the query.
+    return template.select(query, CourseEntity.class).flatMapSequential(this::loadFullCourse);
   }
 
   @Override
-  public Mono<Long> count(String search, String status, String difficulty) {
+  public Mono<Long> count(String search, String status, String difficulty, String institutionId) {
+    return template.count(
+      org.springframework.data.relational.core.query.Query.query(pageCriteria(search, status, difficulty, institutionId)),
+      CourseEntity.class);
+  }
+
+  private org.springframework.data.relational.core.query.Criteria pageCriteria(
+      String search, String status, String difficulty, String institutionId) {
     org.springframework.data.relational.core.query.Criteria criteria =
       org.springframework.data.relational.core.query.Criteria.empty();
     if (search != null && !search.isBlank()) {
@@ -213,18 +247,12 @@ public class CourseRepositoryAdapter implements CourseGateway {
     if (difficulty != null && !difficulty.isBlank()) {
       criteria = criteria.and(org.springframework.data.relational.core.query.Criteria.where("difficulty").is(difficulty));
     }
-    return template.count(org.springframework.data.relational.core.query.Query.query(criteria), CourseEntity.class);
+    if (institutionId != null && !institutionId.isBlank()) {
+      criteria = criteria.and(org.springframework.data.relational.core.query.Criteria.where("institution_id").is(institutionId));
+    }
+    return criteria;
   }
 
-  @Override
-  public Mono<Void> incrementEnrolledCount(Long courseId) {
-    return courseRepository.findById(courseId)
-      .flatMap(entity -> {
-        entity.setEnrolledCount((entity.getEnrolledCount() == null ? 0 : entity.getEnrolledCount()) + 1);
-        return courseRepository.save(entity);
-      })
-      .then();
-  }
 
   private List<String> splitTags(String tags) {
     if (tags == null || tags.isBlank()) return new ArrayList<>();

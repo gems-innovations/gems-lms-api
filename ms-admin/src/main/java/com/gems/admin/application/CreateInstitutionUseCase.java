@@ -73,8 +73,16 @@ public class CreateInstitutionUseCase {
         }
         branding.setUpdatedAt(LocalDateTime.now());
 
+        // Reuse a leftover branding row for this id (unique company_id) instead of colliding with it.
+        Mono<Branding> brandingToSave = brandingGateway.findByCompanyId(id)
+          .map(existing -> {
+            branding.setBrandingId(existing.getBrandingId());
+            return branding;
+          })
+          .defaultIfEmpty(branding);
+
         return institutionGateway.save(institution)
-          .flatMap(savedInstitution -> brandingGateway.save(branding)
+          .flatMap(savedInstitution -> brandingToSave.flatMap(brandingGateway::save)
             .map(savedBranding -> InstitutionResponseMapper.toResponse(savedInstitution, savedBranding)));
       });
   }

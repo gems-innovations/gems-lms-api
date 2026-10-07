@@ -27,8 +27,8 @@ class BrandingTest {
 
     // When
     Branding branding = new Branding(
-      brandingId, companyId, domain, logoUrl, faviconUrl,
-      primaryColor, secondaryColor, accentColor, textColor,
+      brandingId, companyId, domain, "logo-text", logoUrl, "https://cdn.example.com/icon.png", faviconUrl,
+      primaryColor, secondaryColor, accentColor, textColor, "#0F172A", true,
       theme, loginBackgroundUrl, customCss, updatedAt
     );
 
@@ -46,6 +46,10 @@ class BrandingTest {
     assertEquals(loginBackgroundUrl, branding.getLoginBackgroundUrl());
     assertEquals(customCss, branding.getCustomCss());
     assertEquals(updatedAt, branding.getUpdatedAt());
+    assertEquals("logo-text", branding.getType());
+    assertEquals("https://cdn.example.com/icon.png", branding.getIconUrl());
+    assertEquals("#0F172A", branding.getBackgroundColor());
+    assertEquals(true, branding.getDarkMode());
   }
 
   @Test

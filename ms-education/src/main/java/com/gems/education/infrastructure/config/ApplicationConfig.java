@@ -5,6 +5,8 @@ import com.gems.education.application.gateway.*;
 import com.gems.education.infrastructure.driven.postgresql.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.r2dbc.core.DatabaseClient;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 @Configuration
 public class ApplicationConfig {
@@ -114,8 +116,9 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public LearningPathGateway learningPathGateway(ILearningPathRepository lpRepo, ILearningPathCourseRepository lpcRepo, CourseGateway courseGateway) {
-    return new LearningPathRepositoryAdapter(lpRepo, lpcRepo, courseGateway);
+  public LearningPathGateway learningPathGateway(ILearningPathRepository lpRepo, ILearningPathCourseRepository lpcRepo,
+                                                  CourseGateway courseGateway, IPathEnrollmentRepository enrollmentRepo) {
+    return new LearningPathRepositoryAdapter(lpRepo, lpcRepo, courseGateway, enrollmentRepo);
   }
 
   @Bean
@@ -149,18 +152,53 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public EnrollmentGateway enrollmentGateway(IEnrollmentRepository enrollmentRepository) {
-    return new EnrollmentRepositoryAdapter(enrollmentRepository);
+  public EnrollmentGateway enrollmentGateway(IEnrollmentRepository enrollmentRepository, DatabaseClient db,
+                                               TransactionalOperator tx) {
+    return new EnrollmentRepositoryAdapter(enrollmentRepository, db, tx);
   }
 
   @Bean
-  public EnrollStudentUseCase enrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
-    return new EnrollStudentUseCase(enrollmentGateway, courseGateway);
+  public EnrollStudentUseCase enrollStudentUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway,
+                                                   EnrollmentRulesUseCase enrollmentRulesUseCase) {
+    return new EnrollStudentUseCase(enrollmentGateway, courseGateway, enrollmentRulesUseCase);
   }
 
   @Bean
-  public BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway) {
-    return new BulkEnrollStudentsUseCase(enrollmentGateway, courseGateway);
+  public BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase(EnrollmentGateway enrollmentGateway, CourseGateway courseGateway,
+                                                             EnrollmentRulesUseCase enrollmentRulesUseCase) {
+    return new BulkEnrollStudentsUseCase(enrollmentGateway, courseGateway, enrollmentRulesUseCase);
+  }
+
+  @Bean
+  public com.gems.education.application.CourseRiskUseCase courseRiskUseCase(GradebookUseCase gradebookUseCase,
+      EnrollmentGateway enrollmentGateway, com.gems.education.application.AchievementsUseCase.ActivityDays activityDays,
+      com.gems.education.application.gateway.NotificationGateway notificationGateway) {
+    return new com.gems.education.application.CourseRiskUseCase(gradebookUseCase, enrollmentGateway, activityDays,
+      notificationGateway, java.time.Clock.systemDefaultZone());
+  }
+
+  @Bean
+  public com.gems.education.application.AchievementsUseCase achievementsUseCase(
+      com.gems.education.application.AchievementsUseCase.ActivityDays activityDays,
+      com.gems.education.application.gateway.CourseActivityGateway courseActivityGateway, EnrollmentGateway enrollmentGateway) {
+    return new com.gems.education.application.AchievementsUseCase(activityDays, courseActivityGateway, enrollmentGateway,
+      java.time.Clock.systemDefaultZone());
+  }
+
+  @Bean
+  public com.gems.education.application.PeriodClosingUseCase periodClosingUseCase(
+      AcademicPeriodGateway academicPeriodGateway, EnrollmentRulesGateway enrollmentRulesGateway,
+      CourseGateway courseGateway, EnrollmentGateway enrollmentGateway, GradebookUseCase gradebookUseCase) {
+    return new com.gems.education.application.PeriodClosingUseCase(academicPeriodGateway, enrollmentRulesGateway,
+      courseGateway, enrollmentGateway, gradebookUseCase, java.time.Clock.systemDefaultZone());
+  }
+
+  @Bean
+  public EnrollmentRulesUseCase enrollmentRulesUseCase(EnrollmentRulesGateway enrollmentRulesGateway,
+                                                       AcademicPeriodGateway academicPeriodGateway,
+                                                       CourseGateway courseGateway, EnrollmentGateway enrollmentGateway) {
+    return new EnrollmentRulesUseCase(enrollmentRulesGateway, academicPeriodGateway, courseGateway, enrollmentGateway,
+      java.time.Clock.systemDefaultZone());
   }
 
   @Bean
@@ -187,5 +225,96 @@ public class ApplicationConfig {
   public DeleteEnrollmentUseCase deleteEnrollmentUseCase(EnrollmentGateway enrollmentGateway) {
     return new DeleteEnrollmentUseCase(enrollmentGateway);
   }
-}
+  @Bean
+  public SubmitQuizAttemptUseCase submitQuizAttemptUseCase(EnrollmentGateway enrollmentGateway,
+                                                           CourseActivityGateway activityGateway,
+                                                           ContentBlockGateway contentBlockGateway,
+                                                           QuizComposer quizComposer,
+                                                           QuizSessionGateway quizSessionGateway) {
+    return new SubmitQuizAttemptUseCase(enrollmentGateway, activityGateway, contentBlockGateway, quizComposer,
+      quizSessionGateway, java.time.Clock.systemDefaultZone());
+  }
 
+  @Bean
+  public CourseCommunityUseCase courseCommunityUseCase(AnnouncementGateway announcementGateway, ForumGateway forumGateway,
+                                                       EnrollmentGateway enrollmentGateway,
+                                                       NotificationUseCase notificationUseCase) {
+    return new CourseCommunityUseCase(announcementGateway, forumGateway, enrollmentGateway, notificationUseCase);
+  }
+
+  @Bean
+  public QuestionBankUseCase questionBankUseCase(QuestionBankGateway questionBankGateway) {
+    return new QuestionBankUseCase(questionBankGateway);
+  }
+
+  @Bean
+  public SubmitAssignmentUseCase submitAssignmentUseCase(EnrollmentGateway enrollmentGateway,
+                                                         CourseActivityGateway activityGateway,
+                                                         ContentBlockGateway contentBlockGateway) {
+    return new SubmitAssignmentUseCase(enrollmentGateway, activityGateway, contentBlockGateway);
+  }
+
+  @Bean
+  public GradeSubmissionUseCase gradeSubmissionUseCase(CourseActivityGateway activityGateway,
+                                                       ContentBlockGateway contentBlockGateway) {
+    return new GradeSubmissionUseCase(activityGateway, contentBlockGateway);
+  }
+
+  @Bean
+  public GradebookUseCase gradebookUseCase(ContentBlockGateway contentBlockGateway, EnrollmentGateway enrollmentGateway,
+                                           CourseActivityGateway activityGateway, GradebookGateway gradebookGateway) {
+    return new GradebookUseCase(contentBlockGateway, enrollmentGateway, activityGateway, gradebookGateway);
+  }
+
+  @Bean
+  public InstitutionReportUseCase institutionReportUseCase(CourseGateway courseGateway, EnrollmentGateway enrollmentGateway,
+                                                          CourseActivityGateway activityGateway) {
+    return new InstitutionReportUseCase(courseGateway, enrollmentGateway, activityGateway);
+  }
+
+  @Bean
+  public GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase(EnrollmentGateway enrollmentGateway) {
+    return new GetEnrollmentsByInstitutionUseCase(enrollmentGateway);
+  }
+
+  @Bean
+  public GetCourseActivityUseCase getCourseActivityUseCase(CourseActivityGateway activityGateway) {
+    return new GetCourseActivityUseCase(activityGateway);
+  }
+
+  @Bean
+  public GroupUseCase groupUseCase(GroupGateway groupGateway) {
+    return new GroupUseCase(groupGateway);
+  }
+
+  @Bean
+  public PathEnrollmentUseCase pathEnrollmentUseCase(PathEnrollmentGateway pathEnrollmentGateway,
+                                                     LearningPathGateway learningPathGateway,
+                                                     EnrollmentGateway enrollmentGateway,
+                                                     CourseActivityGateway activityGateway) {
+    return new PathEnrollmentUseCase(pathEnrollmentGateway, learningPathGateway, enrollmentGateway, activityGateway);
+  }
+
+  @Bean
+  public CourseFeedbackUseCase courseFeedbackUseCase(CourseFeedbackGateway courseFeedbackGateway,
+                                                     EnrollmentGateway enrollmentGateway) {
+    return new CourseFeedbackUseCase(courseFeedbackGateway, enrollmentGateway);
+  }
+
+  @Bean
+  public NotificationUseCase notificationUseCase(NotificationGateway notificationGateway,
+                                                 com.gems.education.application.gateway.EmailNoticeGateway emailNotices) {
+    return new NotificationUseCase(notificationGateway, emailNotices);
+  }
+
+  @Bean
+  public CertificateUseCase certificateUseCase(CertificateGateway certificateGateway,
+      EnrollmentGateway enrollmentGateway, PathEnrollmentGateway pathEnrollmentGateway,
+      CourseGateway courseGateway, LearningPathGateway learningPathGateway,
+      UserDirectory userDirectory, NotificationUseCase notificationUseCase,
+      @org.springframework.beans.factory.annotation.Value("${open.institution.id:gems-abierto}") String openInstitutionId) {
+    return new CertificateUseCase(certificateGateway, enrollmentGateway, pathEnrollmentGateway,
+      courseGateway, learningPathGateway, userDirectory).withNotifications(notificationUseCase)
+      .withoutCertificatesFor(openInstitutionId);
+  }
+}

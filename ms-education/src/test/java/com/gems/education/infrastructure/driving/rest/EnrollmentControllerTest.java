@@ -1,151 +1,151 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.TestData;
 import com.gems.education.application.*;
-import com.gems.education.application.command.BulkEnrollmentCommand;
-import com.gems.education.application.command.EnrollmentCommand;
 import com.gems.education.application.response.EnrollmentResponse;
 import com.gems.education.infrastructure.driving.rest.request.BulkEnrollmentRequest;
 import com.gems.education.infrastructure.driving.rest.request.EnrollmentRequest;
+import com.gems.shared.security.AuthenticatedUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-class EnrollmentControllerTest {
-
-  private EnrollStudentUseCase enrollStudentUseCase;
-  private BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase;
-  private GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase;
-  private GetEnrollmentsByCourseUseCase getEnrollmentsByCourseUseCase;
-  private UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase;
-  private DeleteEnrollmentUseCase deleteEnrollmentUseCase;
-  private GetEnrollmentByIdUseCase getEnrollmentByIdUseCase;
+class EnrollmentControllerTest extends ControllerTestSupport {
+  private final EnrollStudentUseCase enrollStudentUseCase = mock(EnrollStudentUseCase.class);
+  private final BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase = mock(BulkEnrollStudentsUseCase.class);
+  private final GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase = mock(GetStudentEnrollmentsUseCase.class);
+  private final GetEnrollmentsByCourseUseCase getEnrollmentsByCourseUseCase = mock(GetEnrollmentsByCourseUseCase.class);
+  private final UpdateEnrollmentProgressUseCase updateEnrollmentProgressUseCase = mock(UpdateEnrollmentProgressUseCase.class);
+  private final DeleteEnrollmentUseCase deleteEnrollmentUseCase = mock(DeleteEnrollmentUseCase.class);
+  private final GetEnrollmentsByInstitutionUseCase getEnrollmentsByInstitutionUseCase = mock(GetEnrollmentsByInstitutionUseCase.class);
   private EnrollmentController controller;
+
+  /** Enrollment 20 belongs to the student (id 5) in course 1 of inst-1. */
+  private final EnrollmentResponse studentEnrollment =
+    TestData.enrollmentResponse(20L, STUDENT.userId(), 1L, LocalDateTime.now(), 0, null);
+
+  private final com.gems.education.application.AchievementsUseCase achievements =
+    org.mockito.Mockito.mock(com.gems.education.application.AchievementsUseCase.class);
 
   @BeforeEach
   void setUp() {
-    enrollStudentUseCase = mock(EnrollStudentUseCase.class);
-    bulkEnrollStudentsUseCase = mock(BulkEnrollStudentsUseCase.class);
-    getStudentEnrollmentsUseCase = mock(GetStudentEnrollmentsUseCase.class);
-    getEnrollmentsByCourseUseCase = mock(GetEnrollmentsByCourseUseCase.class);
-    updateEnrollmentProgressUseCase = mock(UpdateEnrollmentProgressUseCase.class);
-    deleteEnrollmentUseCase = mock(DeleteEnrollmentUseCase.class);
-    getEnrollmentByIdUseCase = mock(GetEnrollmentByIdUseCase.class);
+    givenCourses();
+    when(achievements.recordActivity(org.mockito.ArgumentMatchers.any())).thenReturn(Mono.empty());
+    when(getEnrollmentByIdUseCase.execute(20L)).thenReturn(Mono.just(studentEnrollment));
+    controller = new EnrollmentController(enrollStudentUseCase, bulkEnrollStudentsUseCase, getStudentEnrollmentsUseCase,
+      getEnrollmentsByCourseUseCase, updateEnrollmentProgressUseCase, deleteEnrollmentUseCase, getEnrollmentByIdUseCase,
+      getEnrollmentsByInstitutionUseCase, access, members, achievements);
+  }
 
-    controller = new EnrollmentController(
-      enrollStudentUseCase,
-      bulkEnrollStudentsUseCase,
-      getStudentEnrollmentsUseCase,
-      getEnrollmentsByCourseUseCase,
-      updateEnrollmentProgressUseCase,
-      deleteEnrollmentUseCase,
-      getEnrollmentByIdUseCase
-    );
+  private WebTestClient as(AuthenticatedUser caller) {
+    return client(controller, caller);
   }
 
   @Test
-  void shouldGetEnrollmentById() {
-    EnrollmentResponse response = new EnrollmentResponse(1L, 10L, 5L, LocalDateTime.now(), 0, null);
-    when(getEnrollmentByIdUseCase.execute(1L)).thenReturn(Mono.just(response));
+  void studentEnrollsThemselves() {
+    when(enrollStudentUseCase.execute(any(), org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(Mono.just(studentEnrollment));
 
-    StepVerifier.create(controller.getEnrollmentById(1L))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals(10L, entity.getBody().getStudentId());
-      })
-      .verifyComplete();
+    as(STUDENT).post().uri("/api/v1/enrollments").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new EnrollmentRequest(STUDENT.userId(), 1L))
+      .exchange().expectStatus().isCreated()
+      .expectBody().jsonPath("$.studentId").isEqualTo(5);
+    // Enrolling themselves: every enrollment rule applies.
+    verify(enrollStudentUseCase).execute(any(), org.mockito.ArgumentMatchers.eq(false));
   }
 
   @Test
-  void shouldEnrollStudent() {
-    EnrollmentResponse response = new EnrollmentResponse(1L, 10L, 5L, LocalDateTime.now(), 0, null);
-    when(enrollStudentUseCase.execute(any(EnrollmentCommand.class))).thenReturn(Mono.just(response));
-
-    EnrollmentRequest request = new EnrollmentRequest(10L, 5L);
-
-    StepVerifier.create(controller.enrollStudent(request))
-      .assertNext(entity -> {
-        assertEquals(201, entity.getStatusCode().value());
-        assertEquals(10L, entity.getBody().getStudentId());
-      })
-      .verifyComplete();
+  void studentCannotEnrollSomeoneElse() {
+    as(STUDENT).post().uri("/api/v1/enrollments").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new EnrollmentRequest(99L, 1L))
+      .exchange().expectStatus().isForbidden();
+    verifyNoInteractions(enrollStudentUseCase);
   }
 
   @Test
-  void shouldBulkEnroll() {
-    EnrollmentResponse response = new EnrollmentResponse(1L, 10L, 5L, LocalDateTime.now(), 0, null);
-    when(bulkEnrollStudentsUseCase.execute(any(BulkEnrollmentCommand.class))).thenReturn(Flux.just(response));
+  void bulkEnrollmentIsForStaffOfTheCourse() {
+    when(bulkEnrollStudentsUseCase.execute(any())).thenReturn(Flux.just(studentEnrollment));
+    BulkEnrollmentRequest request = new BulkEnrollmentRequest(List.of(5L, 6L), 1L);
 
-    BulkEnrollmentRequest request = new BulkEnrollmentRequest(List.of(10L), 5L);
-
-    StepVerifier.create(controller.bulkEnrollStudents(request))
-      .assertNext(entity -> {
-        assertEquals(201, entity.getStatusCode().value());
-        StepVerifier.create(entity.getBody())
-          .assertNext(res -> assertEquals(10L, res.getStudentId()))
-          .verifyComplete();
-      })
-      .verifyComplete();
+    as(INSTRUCTOR).post().uri("/api/v1/enrollments/bulk").contentType(MediaType.APPLICATION_JSON).bodyValue(request)
+      .exchange().expectStatus().isCreated();
+    as(STUDENT).post().uri("/api/v1/enrollments/bulk").contentType(MediaType.APPLICATION_JSON).bodyValue(request)
+      .exchange().expectStatus().isForbidden();
+    as(OTHER_ADMIN).post().uri("/api/v1/enrollments/bulk").contentType(MediaType.APPLICATION_JSON).bodyValue(request)
+      .exchange().expectStatus().isForbidden();
   }
 
   @Test
-  void shouldGetStudentEnrollments() {
-    EnrollmentResponse response = new EnrollmentResponse(1L, 10L, 5L, LocalDateTime.now(), 0, null);
-    when(getStudentEnrollmentsUseCase.execute(10L)).thenReturn(Flux.just(response));
+  void staffCannotEnrollPeopleFromOutsideTheInstitution() {
+    when(members.requireMembers(any(), eq("inst-1"))).thenReturn(Mono.error(
+      new com.gems.shared.security.ForbiddenException("not a member")));
 
-    StepVerifier.create(controller.getStudentEnrollments(10L))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        StepVerifier.create(entity.getBody())
-          .assertNext(res -> assertEquals(10L, res.getStudentId()))
-          .verifyComplete();
-      })
-      .verifyComplete();
+    as(INSTRUCTOR).post().uri("/api/v1/enrollments/bulk").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new BulkEnrollmentRequest(List.of(99L), 1L))
+      .exchange().expectStatus().isForbidden();
+    as(INSTRUCTOR).post().uri("/api/v1/enrollments").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue(new EnrollmentRequest(99L, 1L))
+      .exchange().expectStatus().isForbidden();
+    verifyNoInteractions(bulkEnrollStudentsUseCase, enrollStudentUseCase);
   }
 
   @Test
-  void shouldGetEnrollmentsByCourse() {
-    EnrollmentResponse response = new EnrollmentResponse(1L, 10L, 5L, LocalDateTime.now(), 0, null);
-    when(getEnrollmentsByCourseUseCase.execute(5L)).thenReturn(Flux.just(response));
+  void studentSeesOnlyTheirOwnEnrollments() {
+    when(getStudentEnrollmentsUseCase.execute(5L)).thenReturn(Flux.just(studentEnrollment));
 
-    StepVerifier.create(controller.getEnrollmentsByCourse(5L))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        StepVerifier.create(entity.getBody())
-          .assertNext(res -> assertEquals(10L, res.getStudentId()))
-          .verifyComplete();
-      })
-      .verifyComplete();
+    as(STUDENT).get().uri("/api/v1/enrollments/student/5").exchange().expectStatus().isOk()
+      .expectBodyList(EnrollmentResponse.class).hasSize(1);
+    as(STUDENT).get().uri("/api/v1/enrollments/student/6").exchange().expectStatus().isForbidden();
   }
 
   @Test
-  void shouldUpdateProgress() {
-    EnrollmentResponse response = new EnrollmentResponse(1L, 10L, 5L, LocalDateTime.now(), 40, null);
-    when(updateEnrollmentProgressUseCase.execute(1L, 40)).thenReturn(Mono.just(response));
+  void staffOfAnotherInstitutionDoNotSeeTheseEnrollments() {
+    when(getStudentEnrollmentsUseCase.execute(5L)).thenReturn(Flux.just(studentEnrollment));
 
-    StepVerifier.create(controller.updateEnrollmentProgress(1L, 40))
-      .assertNext(entity -> {
-        assertEquals(200, entity.getStatusCode().value());
-        assertEquals(40, entity.getBody().getProgress());
-      })
-      .verifyComplete();
+    as(OTHER_ADMIN).get().uri("/api/v1/enrollments/student/5").exchange().expectStatus().isOk()
+      .expectBodyList(EnrollmentResponse.class).hasSize(0);
   }
 
   @Test
-  void shouldDeleteEnrollment() {
-    when(deleteEnrollmentUseCase.execute(1L)).thenReturn(Mono.empty());
+  void studentUpdatesTheirOwnProgressWithDetail() {
+    when(updateEnrollmentProgressUseCase.execute(eq(20L), eq(50), anyString())).thenReturn(Mono.just(studentEnrollment));
 
-    StepVerifier.create(controller.deleteEnrollment(1L))
-      .assertNext(entity -> {
-        assertEquals(204, entity.getStatusCode().value());
-      })
-      .verifyComplete();
+    as(STUDENT).put().uri("/api/v1/enrollments/20/progress").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"progress\":50,\"progressData\":\"{}\"}")
+      .exchange().expectStatus().isOk();
+    verify(updateEnrollmentProgressUseCase).execute(20L, 50, "{}");
+  }
+
+  @Test
+  void anotherStudentCannotTouchTheProgress() {
+    as(new AuthenticatedUser(6L, "STUDENT", "inst-1")).put().uri("/api/v1/enrollments/20/progress?progress=100")
+      .exchange().expectStatus().isForbidden();
+    verifyNoInteractions(updateEnrollmentProgressUseCase);
+  }
+
+  @Test
+  void institutionEnrollmentsAreForItsStaff() {
+    when(getEnrollmentsByInstitutionUseCase.execute("inst-1")).thenReturn(Flux.just(studentEnrollment));
+
+    as(ADMIN).get().uri("/api/v1/enrollments/institution/inst-1").exchange().expectStatus().isOk()
+      .expectBodyList(EnrollmentResponse.class).hasSize(1);
+    as(STUDENT).get().uri("/api/v1/enrollments/institution/inst-1").exchange().expectStatus().isForbidden();
+    as(OTHER_ADMIN).get().uri("/api/v1/enrollments/institution/inst-1").exchange().expectStatus().isForbidden();
+  }
+
+  @Test
+  void onlyStaffDeleteEnrollments() {
+    when(deleteEnrollmentUseCase.execute(20L)).thenReturn(Mono.empty());
+
+    as(STUDENT).delete().uri("/api/v1/enrollments/20").exchange().expectStatus().isForbidden();
+    as(ADMIN).delete().uri("/api/v1/enrollments/20").exchange().expectStatus().isNoContent();
   }
 }

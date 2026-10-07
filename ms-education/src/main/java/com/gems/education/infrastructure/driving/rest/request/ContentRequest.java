@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public class ContentRequest {
+  // Present when updating an existing content; keeps its id stable across course updates.
+  private Long id;
+
   @NotBlank(message = "Content type is required")
   private String type;
 
@@ -44,5 +47,13 @@ public class ContentRequest {
 
   public void setOrderIndex(Integer orderIndex) {
     this.orderIndex = orderIndex;
+  }
+
+  public Long getId() {
+    return id;
+  }
+
+  public void setId(Long id) {
+    this.id = id;
   }
 }

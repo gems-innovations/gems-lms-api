@@ -28,10 +28,12 @@ final class CourseResponseMapper {
                 .map(c -> new ContentResponse(c.getId(), c.getLessonId(), c.getType(), c.getValue(), c.getOrderIndex()))
                 .collect(Collectors.toList());
             }
-            return new LessonResponse(l.getId(), l.getModuleId(), l.getTitle(), l.getOrderIndex(), contentResponses);
+            return new LessonResponse(l.getId(), l.getModuleId(), l.getTitle(), l.getOrderIndex(), contentResponses)
+              .details(l.getDescription(), l.getIsFree());
           }).collect(Collectors.toList());
         }
-        return new ModuleResponse(m.getId(), m.getCourseId(), m.getTitle(), m.getOrderIndex(), lessonResponses);
+        return new ModuleResponse(m.getId(), m.getCourseId(), m.getTitle(), m.getOrderIndex(), lessonResponses)
+          .details(m.getDescription());
       }).collect(Collectors.toList());
     }
 

@@ -1,7 +1,6 @@
 package com.gems.admin.infrastructure.driving.rest;
 
 import com.gems.admin.application.*;
-import com.gems.admin.application.command.InstitutionCommand;
 import com.gems.admin.application.response.InstitutionListResponse;
 import com.gems.admin.application.response.InstitutionResponse;
 import com.gems.admin.infrastructure.driving.rest.mapper.InstitutionMapper;
@@ -15,6 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.gems.shared.security.AuthenticatedUser;
+import com.gems.shared.security.CurrentUser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -57,8 +58,8 @@ public class InstitutionController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public Mono<ResponseEntity<InstitutionResponse>> createInstitution(@Valid @RequestBody InstitutionRequest request) {
-    InstitutionCommand command = InstitutionMapper.toCommand(request);
-    return createInstitutionUseCase.execute(command)
+    return CurrentUser.require(AuthenticatedUser::isSuperAdmin, "Only the super admin can create institutions")
+      .flatMap(caller -> createInstitutionUseCase.execute(InstitutionMapper.toCommand(request)))
       .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
   }
 
@@ -77,7 +78,10 @@ public class InstitutionController {
       @RequestParam(required = false) String status,
       @RequestParam(defaultValue = "1") int page,
       @RequestParam(defaultValue = "10") int limit) {
-    return getAllInstitutionsUseCase.execute(search, status, page, limit)
+    // Everyone but the super admin only gets their own institution.
+    return CurrentUser.get().flatMap(caller -> caller.isSuperAdmin()
+        ? getAllInstitutionsUseCase.execute(search, status, page, limit)
+        : ownInstitution(caller))
       .map(ResponseEntity::ok);
   }
 
@@ -95,7 +99,8 @@ public class InstitutionController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public Mono<ResponseEntity<InstitutionResponse>> getInstitutionById(@PathVariable String id) {
-    return getInstitutionByIdUseCase.execute(id)
+    return CurrentUser.require(caller -> caller.belongsTo(id), "You can only see your institution")
+      .flatMap(caller -> getInstitutionByIdUseCase.execute(id))
       .map(ResponseEntity::ok);
   }
 
@@ -117,8 +122,13 @@ public class InstitutionController {
   public Mono<ResponseEntity<InstitutionResponse>> updateInstitution(
     @PathVariable String id,
     @Valid @RequestBody InstitutionRequest request) {
-    InstitutionCommand command = InstitutionMapper.toCommand(request);
-    return updateInstitutionUseCase.execute(id, command)
+    return CurrentUser.require(caller -> caller.isSuperAdmin() || (caller.isAdmin() && caller.belongsTo(id)),
+        "Only the super admin or the institution admin can edit it")
+      .flatMap(caller -> {
+        // Suspending or activating an institution is up to the super admin.
+        if (!caller.isSuperAdmin()) request.setStatus(null);
+        return updateInstitutionUseCase.execute(id, InstitutionMapper.toCommand(request));
+      })
       .map(ResponseEntity::ok);
   }
 
@@ -135,7 +145,16 @@ public class InstitutionController {
       content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
   })
   public Mono<ResponseEntity<Void>> deleteInstitution(@PathVariable String id) {
-    return deleteInstitutionUseCase.execute(id)
+    return CurrentUser.require(AuthenticatedUser::isSuperAdmin, "Only the super admin can delete institutions")
+      .flatMap(caller -> deleteInstitutionUseCase.execute(id))
       .then(Mono.just(ResponseEntity.noContent().build()));
+  }
+
+  private Mono<InstitutionListResponse> ownInstitution(AuthenticatedUser caller) {
+    if (caller.institutionId() == null) {
+      return Mono.just(new InstitutionListResponse(java.util.List.of(), 0, 1, 1, 0, false, false));
+    }
+    return getInstitutionByIdUseCase.execute(caller.institutionId())
+      .map(inst -> new InstitutionListResponse(java.util.List.of(inst), 1, 1, 1, 1, false, false));
   }
 }

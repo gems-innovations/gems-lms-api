@@ -1,5 +1,6 @@
 package com.gems.education.application;
 
+import com.gems.education.TestData;
 import com.gems.education.application.command.ContentCommand;
 import com.gems.education.application.command.CourseCommand;
 import com.gems.education.application.command.LessonCommand;
@@ -43,7 +44,7 @@ class CreateCourseUseCaseTest {
     List<LessonCommand> lessonCommands = List.of(new LessonCommand("Lesson 1", 1, contentCommands));
     List<ModuleCommand> moduleCommands = List.of(new ModuleCommand("Module 1", 1, lessonCommands));
 
-    courseCommand = new CourseCommand(
+    courseCommand = TestData.courseCommand(
       "Java Course",
       "Java fundamentals",
       "DRAFT",
@@ -55,7 +56,7 @@ class CreateCourseUseCaseTest {
     List<Lesson> lessons = List.of(new Lesson(1L, 1L, "Lesson 1", 1, contents));
     List<Module> modules = List.of(new Module(1L, 1L, "Module 1", 1, lessons));
 
-    savedCourse = new Course(
+    savedCourse = TestData.course(
       1L,
       "Java Course",
       "Java fundamentals",

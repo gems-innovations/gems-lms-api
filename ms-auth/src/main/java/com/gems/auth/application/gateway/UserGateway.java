@@ -6,6 +6,8 @@ import com.gems.auth.domain.values.UserId;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 public interface UserGateway {
   Mono<User> save(User user);
   Mono<User> findById(UserId id);
@@ -15,4 +17,15 @@ public interface UserGateway {
   Mono<Void> deleteById(UserId id);
   Flux<User> findByInstitutionId(String institutionId);
   Flux<User> findAll();
+
+  /** Active users per institution id (institutions without users are absent). */
+  Mono<Map<String, Long>> countActiveUsersByInstitution();
+
+  /** Replaces the password hash and clears the "must change password" flag. */
+  Mono<Void> updatePassword(UserId id, String encodedPassword);
+
+  /** A page of the institution's users whose name, username or e-mail contains {@code search}. */
+  Flux<User> searchByInstitution(String institutionId, String search, int limit, long offset);
+
+  Mono<Long> countByInstitution(String institutionId, String search);
 }

@@ -1,0 +1,30 @@
+package com.gems.education.domain.entities;
+
+import java.time.LocalDateTime;
+
+/**
+ * An in-app notification. It goes either to one user ({@code recipientUserId}) or to the staff of an
+ * institution ({@code recipientUserId} null). {@code read} is the state for the user reading it.
+ */
+public record Notification(
+  Long id,
+  String institutionId,
+  Long recipientUserId,
+  String type,
+  String title,
+  String message,
+  Long courseId,
+  Long referenceId,
+  LocalDateTime createdAt,
+  boolean read
+) {
+  public static final String SUBMISSION = "submission";
+  public static final String GRADED = "graded";
+  public static final String ANNOUNCEMENT = "announcement";
+  public static final String FORUM = "forum";
+  public static final String REMINDER = "reminder";
+  public static final String ENROLLED = "enrolled";
+  public static final String CERTIFICATE = "certificate";
+  /** Weekly at most: streak at risk, "we miss you", top of the course (from the daily engagement job). */
+  public static final String MOTIVATION = "motivation";
+}

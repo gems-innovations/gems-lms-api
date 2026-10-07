@@ -1,5 +1,7 @@
 package com.gems.education.application.command;
 
+import com.gems.education.domain.entities.LearningPathStep;
+
 import java.util.List;
 
 public class LearningPathCommand {
@@ -7,6 +9,11 @@ public class LearningPathCommand {
   private String description;
   private String institutionId;
   private List<Long> courseIds;
+  /** Optional fields: null keeps the current value on update. */
+  private String status;
+  private List<String> tags;
+  private String thumbnailUrl;
+  private List<LearningPathStep> steps;
 
   public LearningPathCommand() {
   }
@@ -49,4 +56,13 @@ public class LearningPathCommand {
   public void setCourseIds(List<Long> courseIds) {
     this.courseIds = courseIds;
   }
+
+  public String getStatus() { return status; }
+  public void setStatus(String status) { this.status = status; }
+  public List<String> getTags() { return tags; }
+  public void setTags(List<String> tags) { this.tags = tags; }
+  public String getThumbnailUrl() { return thumbnailUrl; }
+  public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+  public List<LearningPathStep> getSteps() { return steps; }
+  public void setSteps(List<LearningPathStep> steps) { this.steps = steps; }
 }
