@@ -40,10 +40,14 @@ public class EngagementEmailJob {
 
   private final DatabaseClient db;
   private final EmailNoticeGateway emails;
+  private final com.gems.education.application.NotificationUseCase notifications;
   private final byte[] internalKey;
   private final Clock clock;
 
-  public EngagementEmailJob(DatabaseClient db, EmailNoticeGateway emails, @Value("${jwt.secret}") String internalKey) {
+  public EngagementEmailJob(DatabaseClient db, EmailNoticeGateway emails,
+                            com.gems.education.application.NotificationUseCase notifications,
+                            @Value("${jwt.secret}") String internalKey) {
+    this.notifications = notifications;
     this.db = db;
     this.emails = emails;
     this.internalKey = internalKey.getBytes(StandardCharsets.UTF_8);
@@ -70,11 +74,13 @@ public class EngagementEmailJob {
     return Mono.zip(activeEnrollments(), activityDays(today.minusDays(60)), sentLog(today.minusDays(30)))
       .flatMapMany(t -> Flux.fromIterable(students(t.getT1(), t.getT2(), t.getT3(), today)))
       .concatMap(student -> Mono.justOrEmpty(EngagementPlanner.plan(student, today))
-        .flatMap(email -> emails.sendTip(student.studentId(), email.subject(), email.message(), email.linkPath(),
+        // Shown in the bell too, so it also reaches students who turned motivation e-mails off.
+        .flatMap(email -> notifications.motivation(student.studentId(), email.courseId(), email.subject(), email.message())
+          .then(emails.sendTip(student.studentId(), email.subject(), email.message(), email.linkPath(),
             email.linkLabel())
           .then(db.sql("INSERT INTO engagement_emails(student_id, kind, sent_on) VALUES (:s, :k, :d)")
             .bind("s", student.studentId()).bind("k", email.kind()).bind("d", today).then())
-          .thenReturn(1L)))
+          .thenReturn(1L))))
       .reduce(0L, Long::sum);
   }
 

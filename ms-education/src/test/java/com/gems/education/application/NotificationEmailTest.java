@@ -44,6 +44,13 @@ class NotificationEmailTest {
   }
 
   @Test
+  void aFailedBellNoticeNeverBreaksTheEnrolment() {
+    org.mockito.Mockito.doReturn(Mono.error(new IllegalStateException("db down"))).when(gateway).save(any());
+    StepVerifier.create(useCase.enrolled(7L, 9L, "Álgebra", false)).verifyComplete();
+    verify(email).send(eq(List.of(7L)), contains("Álgebra"), anyString(), eq("/learn/courses/9"), anyString());
+  }
+
+  @Test
   void aCertificateIsEmailedToTheStudent() {
     StepVerifier.create(useCase.certificateIssued(7L, "Álgebra", "ABC123")).verifyComplete();
     verify(email).send(eq(List.of(7L)), contains("Álgebra"), anyString(), anyString(), anyString());

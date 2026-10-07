@@ -72,7 +72,10 @@ public class NotificationUseCase {
     String subject = byStaff ? "Te inscribieron en " + courseTitle : "Ya estás en " + courseTitle;
     String message = (byStaff ? "Tu institución te inscribió en «" + courseTitle + "». " : "Te inscribiste en «" + courseTitle + "». ")
       + "Empieza con la primera lección: son cortas y puedes hacerlas a tu ritmo.";
-    return email.send(java.util.List.of(studentId), subject, message, "/learn/courses/" + courseId, "Empezar el curso");
+    return gateway.save(new Notification(null, null, studentId, Notification.ENROLLED, subject, message, courseId, null,
+        LocalDateTime.now(), false))
+      .onErrorResume(e -> Mono.empty()) // a lost bell notice must never undo the enrolment
+      .then(email.send(java.util.List.of(studentId), subject, message, "/learn/courses/" + courseId, "Empezar el curso"));
   }
 
   /** The teacher's reminder, also by e-mail so it reaches students who stopped opening the app. */
@@ -83,9 +86,20 @@ public class NotificationUseCase {
 
   /** A new certificate: course or learning path completed. */
   public Mono<Void> certificateIssued(Long studentId, String title, String code) {
-    return email.send(java.util.List.of(studentId), "¡Completaste " + title + "!",
-      "Terminaste «" + title + "» y tu certificado ya está listo. Cualquiera puede comprobarlo con el código " + code + ".",
-      "/certificates/verify/" + code, "Ver mi certificado");
+    String subject = "¡Completaste " + title + "!";
+    String message = "Terminaste «" + title + "» y tu certificado ya está listo. Cualquiera puede comprobarlo con el código "
+      + code + ".";
+    // The code goes in the message: the bell opens the verification page from it.
+    return gateway.save(new Notification(null, null, studentId, Notification.CERTIFICATE, subject, message, null, null,
+        LocalDateTime.now(), false))
+      .onErrorResume(e -> Mono.empty())
+      .then(email.send(java.util.List.of(studentId), subject, message, "/certificates/verify/" + code, "Ver mi certificado"));
+  }
+
+  /** Motivation notice in the app (the daily job also e-mails it to students who keep tips on). */
+  public Mono<Notification> motivation(Long studentId, Long courseId, String title, String message) {
+    return gateway.save(new Notification(null, null, studentId, Notification.MOTIVATION, title, message, courseId, null,
+      LocalDateTime.now(), false));
   }
 
   /** Tells the thread author that someone replied. */

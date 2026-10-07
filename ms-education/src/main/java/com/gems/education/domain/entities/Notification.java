@@ -23,4 +23,8 @@ public record Notification(
   public static final String ANNOUNCEMENT = "announcement";
   public static final String FORUM = "forum";
   public static final String REMINDER = "reminder";
+  public static final String ENROLLED = "enrolled";
+  public static final String CERTIFICATE = "certificate";
+  /** Weekly at most: streak at risk, "we miss you", top of the course (from the daily engagement job). */
+  public static final String MOTIVATION = "motivation";
 }

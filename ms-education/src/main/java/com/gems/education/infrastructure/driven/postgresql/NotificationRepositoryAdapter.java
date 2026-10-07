@@ -32,9 +32,10 @@ public class NotificationRepositoryAdapter implements NotificationGateway {
         + "(institution_id, recipient_user_id, type, title, message, course_id, reference_id, created_at) "
         + "VALUES (:institutionId, :recipient, :type, :title, :message, :courseId, :referenceId, :createdAt) "
         + "RETURNING *, false AS is_read")
-      .bind("institutionId", n.institutionId())
       .bind("type", n.type()).bind("title", n.title()).bind("message", n.message())
       .bind("createdAt", n.createdAt());
+    // Personal notices (enrolment, certificate, motivation) may have no institution.
+    spec = n.institutionId() == null ? spec.bindNull("institutionId", String.class) : spec.bind("institutionId", n.institutionId());
     spec = n.recipientUserId() == null ? spec.bindNull("recipient", Long.class) : spec.bind("recipient", n.recipientUserId());
     spec = n.courseId() == null ? spec.bindNull("courseId", Long.class) : spec.bind("courseId", n.courseId());
     spec = n.referenceId() == null ? spec.bindNull("referenceId", Long.class) : spec.bind("referenceId", n.referenceId());
