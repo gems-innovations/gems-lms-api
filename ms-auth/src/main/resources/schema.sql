@@ -51,3 +51,12 @@ CREATE INDEX IF NOT EXISTS idx_audit_events_institution_time
     ON audit_events(institution_id, occurred_at DESC);
 CREATE INDEX IF NOT EXISTS idx_audit_events_actor_time
     ON audit_events(actor_user_id, occurred_at DESC);
+
+-- E-mail verification: one row per user. Only the SHA-256 hash of the link token is stored.
+CREATE TABLE IF NOT EXISTS email_verifications (
+    user_id BIGINT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    sent_at TIMESTAMP NOT NULL,
+    verified_at TIMESTAMP
+);

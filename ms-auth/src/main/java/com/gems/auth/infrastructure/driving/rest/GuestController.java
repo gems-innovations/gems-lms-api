@@ -1,5 +1,6 @@
 package com.gems.auth.infrastructure.driving.rest;
 
+import com.gems.auth.application.EmailVerificationUseCase;
 import com.gems.auth.application.GuestAccessUseCase;
 import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.infrastructure.constants.AuthInfraConstants;
@@ -28,11 +29,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Tag(name = "Authentication")
 public class GuestController {
   private final GuestAccessUseCase guests;
+  private final EmailVerificationUseCase verification;
   private final int maxPerHour;
   /** Guests created per client address in the current hour (each instance keeps its own count). */
   private final Map<String, int[]> created = new ConcurrentHashMap<>();
 
-  public GuestController(GuestAccessUseCase guests, @Value("${guest.max-per-hour:30}") int maxPerHour) {
+  public GuestController(GuestAccessUseCase guests, EmailVerificationUseCase verification,
+                         @Value("${guest.max-per-hour:30}") int maxPerHour) {
+    this.verification = verification;
     this.guests = guests;
     this.maxPerHour = maxPerHour;
   }
@@ -63,7 +67,8 @@ public class GuestController {
       return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name, last name, email and password are required"));
     }
     return CurrentUser.get()
-      .flatMap(caller -> guests.claim(caller.userId(), body.firstName(), body.lastName(), body.email(), body.password()))
+      .flatMap(caller -> guests.claim(caller.userId(), body.firstName(), body.lastName(), body.email(), body.password())
+        .doOnSuccess(session -> verification.send(caller.userId()).onErrorResume(e -> Mono.empty()).subscribe()))
       .map(ResponseEntity::ok);
   }
 

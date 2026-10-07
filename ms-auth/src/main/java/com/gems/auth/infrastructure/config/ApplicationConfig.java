@@ -11,7 +11,10 @@ import com.gems.auth.application.RegisterUserUseCase;
 import com.gems.auth.application.ToggleUserStatusUseCase;
 import com.gems.auth.application.UpdateUserUseCase;
 import com.gems.auth.application.AuditUseCase;
+import com.gems.auth.application.EmailVerificationUseCase;
 import com.gems.auth.application.gateway.AuditGateway;
+import com.gems.auth.application.gateway.EmailVerificationGateway;
+import com.gems.auth.application.gateway.EmailVerificationNotifier;
 import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
 import com.gems.auth.application.gateway.PasswordResetGateway;
@@ -96,5 +99,12 @@ public class ApplicationConfig {
                                                          PasswordResetNotifier notifier,
                                                          PasswordEncoderGateway passwordEncoderGateway) {
     return new PasswordRecoveryUseCase(userGateway, resetGateway, notifier, passwordEncoderGateway);
+  }
+
+  @Bean
+  public EmailVerificationUseCase emailVerificationUseCase(UserGateway userGateway,
+                                                           EmailVerificationGateway verificationGateway,
+                                                           EmailVerificationNotifier notifier) {
+    return new EmailVerificationUseCase(userGateway, verificationGateway, notifier);
   }
 }
