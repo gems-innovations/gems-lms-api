@@ -68,3 +68,15 @@ CREATE TABLE IF NOT EXISTS email_preferences (
     tips BOOLEAN NOT NULL DEFAULT TRUE,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Proof of each authorization (Ley 1581 de 2012, Decreto 1377 de 2013 arts. 7-8): what, which policy version,
+-- granted or revoked, and when. Rows are never updated: a change of mind is a new row.
+CREATE TABLE IF NOT EXISTS consents (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    kind VARCHAR(30) NOT NULL,
+    policy_version VARCHAR(20) NOT NULL,
+    granted BOOLEAN NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_consents_user ON consents(user_id, kind, created_at DESC);

@@ -14,6 +14,7 @@ import com.gems.auth.application.AuditUseCase;
 import com.gems.auth.application.EmailVerificationUseCase;
 import com.gems.auth.application.EmailPreferencesUseCase;
 import com.gems.auth.application.PreferenceTokens;
+import com.gems.auth.application.gateway.ConsentGateway;
 import com.gems.auth.application.gateway.CourseNoticeNotifier;
 import com.gems.auth.application.gateway.EmailPreferencesGateway;
 import com.gems.auth.application.gateway.AuditGateway;
@@ -116,7 +117,10 @@ public class ApplicationConfig {
   @Bean
   public EmailPreferencesUseCase emailPreferencesUseCase(UserGateway userGateway, EmailPreferencesGateway preferencesGateway,
                                                          CourseNoticeNotifier notifier,
+                                                         ConsentGateway consents,
+                                                         @Value("${app.legal.policy-version:2026-10}") String policyVersion,
                                                          @Value("${jwt.secret}") String secret) {
-    return new EmailPreferencesUseCase(userGateway, preferencesGateway, notifier, new PreferenceTokens(secret));
+    return new EmailPreferencesUseCase(userGateway, preferencesGateway, notifier, new PreferenceTokens(secret),
+      consents, policyVersion);
   }
 }

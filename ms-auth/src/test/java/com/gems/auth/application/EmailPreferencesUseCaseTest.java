@@ -74,8 +74,31 @@ class EmailPreferencesUseCaseTest {
   }
 
   @Test
+  void tipsAreOffByDefault() {
+    org.junit.jupiter.api.Assertions.assertFalse(EmailPreferences.DEFAULTS.tips());
+    org.junit.jupiter.api.Assertions.assertTrue(EmailPreferences.DEFAULTS.courseNotices());
+  }
+
+  @Test
+  void turningTipsOnLeavesProofOfTheAuthorization() {
+    var consents = mock(com.gems.auth.application.gateway.ConsentGateway.class);
+    var withProof = new EmailPreferencesUseCase(users, preferences, notifier, tokens, consents, "2026-10");
+    when(preferences.find(7L)).thenReturn(Mono.just(EmailPreferences.DEFAULTS));
+    when(preferences.save(eq(7L), any())).thenReturn(Mono.empty());
+    when(consents.record(any(), anyString(), anyString(), org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(Mono.empty());
+
+    StepVerifier.create(withProof.update(7L, new EmailPreferences(true, true))).expectNextCount(1).verifyComplete();
+    verify(consents).record(7L, "tips", "2026-10", true);
+
+    when(preferences.find(7L)).thenReturn(Mono.just(new EmailPreferences(true, true)));
+    StepVerifier.create(withProof.update(7L, new EmailPreferences(false, true))).expectNextCount(1).verifyComplete();
+    verify(consents, org.mockito.Mockito.times(1)).record(any(), anyString(), anyString(), org.mockito.ArgumentMatchers.anyBoolean());
+  }
+
+  @Test
   void theLinkInTheEmailChangesPreferencesWithoutSigningIn() {
     when(preferences.save(eq(7L), any())).thenReturn(Mono.empty());
+    when(preferences.find(7L)).thenReturn(Mono.just(EmailPreferences.DEFAULTS));
 
     StepVerifier.create(useCase.updateWithToken(tokens.create(7L), new EmailPreferences(false, false)))
       .expectNext(new EmailPreferences(false, false)).verifyComplete();

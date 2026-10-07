@@ -1,5 +1,6 @@
 package com.gems.auth.application;
 
+import com.gems.auth.application.gateway.ConsentGateway;
 import com.gems.auth.application.gateway.CourseNoticeNotifier;
 import com.gems.auth.application.gateway.EmailPreferencesGateway;
 import com.gems.auth.application.gateway.UserGateway;
@@ -20,9 +21,18 @@ public class EmailPreferencesUseCase {
   private final EmailPreferencesGateway preferences;
   private final CourseNoticeNotifier notifier;
   private final PreferenceTokens tokens;
+  private final ConsentGateway consents;
+  private final String policyVersion;
 
   public EmailPreferencesUseCase(UserGateway users, EmailPreferencesGateway preferences, CourseNoticeNotifier notifier,
                                  PreferenceTokens tokens) {
+    this(users, preferences, notifier, tokens, (userId, kind, version, granted) -> Mono.empty(), "");
+  }
+
+  public EmailPreferencesUseCase(UserGateway users, EmailPreferencesGateway preferences, CourseNoticeNotifier notifier,
+                                 PreferenceTokens tokens, ConsentGateway consents, String policyVersion) {
+    this.consents = consents;
+    this.policyVersion = policyVersion;
     this.users = users;
     this.preferences = preferences;
     this.notifier = notifier;
@@ -33,8 +43,13 @@ public class EmailPreferencesUseCase {
     return preferences.find(userId);
   }
 
+  /** Turning tips on or off leaves proof of the new choice (it is a promotional authorization). */
   public Mono<EmailPreferences> update(Long userId, EmailPreferences changed) {
-    return preferences.save(userId, changed).thenReturn(changed);
+    return preferences.find(userId)
+      .flatMap(before -> before.tips() == changed.tips() ? Mono.<Void>empty()
+        : consents.record(userId, ConsentGateway.TIPS, policyVersion, changed.tips()))
+      .then(preferences.save(userId, changed))
+      .thenReturn(changed);
   }
 
   /** From the link in an e-mail, without signing in. Empty if the token is not valid. */

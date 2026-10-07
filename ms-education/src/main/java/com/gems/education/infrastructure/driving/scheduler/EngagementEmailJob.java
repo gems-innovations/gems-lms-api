@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Once a day (7 p.m., Bogotá) decides and sends the motivation e-mails of {@link EngagementPlanner}.
+ * Monday to Saturday (11 a.m., Bogotá, never on public holidays) decides and sends the motivation e-mails of {@link EngagementPlanner}.
  * ms-auth applies each student's «tips» preference and skips guests. What was sent is logged in
  * {@code engagement_emails}, so nothing is repeated.
  */
@@ -54,8 +54,16 @@ public class EngagementEmailJob {
     this.clock = Clock.system(BOGOTA);
   }
 
-  @Scheduled(cron = "${engagement.cron:0 0 19 * * *}", zone = "America/Bogota")
+  /**
+   * Lunes a sábado a las 11 a. m. y nunca en festivos: dentro del horario que la Ley 2300 de 2023 permite
+   * para mensajes promocionales (lun-vie 7 a. m.-7 p. m., sáb 8 a. m.-3 p. m., sin domingos ni festivos).
+   */
+  @Scheduled(cron = "${engagement.cron:0 0 11 * * MON-SAT}", zone = "America/Bogota")
   public void daily() {
+    if (com.gems.education.application.ColombianHolidays.isHoliday(LocalDate.now(clock))) {
+      log.info("Engagement e-mails skipped: public holiday");
+      return;
+    }
     run().subscribe(sent -> log.info("Engagement e-mails sent: {}", sent),
       error -> log.warn("Engagement e-mails failed: {}", error.getMessage()));
   }

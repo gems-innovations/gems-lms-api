@@ -1,6 +1,9 @@
 package com.gems.auth.infrastructure.driving.rest;
 
+import com.gems.auth.application.EmailPreferences;
+import com.gems.auth.application.EmailPreferencesUseCase;
 import com.gems.auth.application.EmailVerificationUseCase;
+import com.gems.auth.application.gateway.ConsentGateway;
 import com.gems.auth.application.GuestAccessUseCase;
 import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.infrastructure.constants.AuthInfraConstants;
@@ -30,20 +33,33 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GuestController {
   private final GuestAccessUseCase guests;
   private final EmailVerificationUseCase verification;
+  private final EmailPreferencesUseCase preferences;
+  private final ConsentGateway consents;
+  private final String policyVersion;
   private final int maxPerHour;
   /** Guests created per client address in the current hour (each instance keeps its own count). */
   private final Map<String, int[]> created = new ConcurrentHashMap<>();
 
   public GuestController(GuestAccessUseCase guests, EmailVerificationUseCase verification,
+                         EmailPreferencesUseCase preferences, ConsentGateway consents,
+                         @Value("${app.legal.policy-version:2026-10}") String policyVersion,
                          @Value("${guest.max-per-hour:30}") int maxPerHour) {
     this.verification = verification;
+    this.preferences = preferences;
+    this.consents = consents;
+    this.policyVersion = policyVersion;
     this.guests = guests;
     this.maxPerHour = maxPerHour;
   }
 
   public record StartRequest(String nickname) {}
 
-  public record ClaimRequest(String firstName, String lastName, String email, String password) {}
+  /**
+   * @param acceptDataPolicy required: the user authorizes the processing of their data (Ley 1581 de 2012)
+   * @param acceptTips       optional, unchecked by default: reminders and ideas by e-mail
+   */
+  public record ClaimRequest(String firstName, String lastName, String email, String password,
+                             Boolean acceptDataPolicy, Boolean acceptTips) {}
 
   @PostMapping
   @Operation(summary = "Start as a guest", description = "Creates a guest student in the open institution and signs them in.")
@@ -66,8 +82,17 @@ public class GuestController {
     if (body == null || isBlank(body.firstName()) || isBlank(body.lastName()) || isBlank(body.email()) || isBlank(body.password())) {
       return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name, last name, email and password are required"));
     }
+    if (!Boolean.TRUE.equals(body.acceptDataPolicy())) {
+      return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must accept the data processing policy"));
+    }
+    boolean tips = Boolean.TRUE.equals(body.acceptTips());
     return CurrentUser.get()
       .flatMap(caller -> guests.claim(caller.userId(), body.firstName(), body.lastName(), body.email(), body.password())
+        // Proof of the authorization, and tips only if the user ticked them.
+        .flatMap(session -> consents.record(caller.userId(), ConsentGateway.DATA_POLICY, policyVersion, true)
+          .then(consents.record(caller.userId(), ConsentGateway.TIPS, policyVersion, tips))
+          .then(preferences.update(caller.userId(), new EmailPreferences(true, tips)))
+          .thenReturn(session))
         .doOnSuccess(session -> verification.send(caller.userId()).onErrorResume(e -> Mono.empty()).subscribe()))
       .map(ResponseEntity::ok);
   }
