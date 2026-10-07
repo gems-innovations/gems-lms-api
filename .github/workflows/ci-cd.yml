@@ -89,6 +89,9 @@ jobs:
     needs: docker-build-push
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     environment: ${{ github.ref == 'refs/heads/main' && 'pdn' || github.ref == 'refs/heads/qa' && 'qa' || 'dev' }}
     steps:
     - uses: actions/checkout@v7
@@ -104,15 +107,25 @@ jobs:
 
     - name: Deploy to ${{ env.DEPLOY_ENV }}
       uses: appleboy/ssh-action@v1.0.3
+      env:
+        GHCR_USER: ${{ github.actor }}
+        GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         host: ${{ secrets.VM_HOST }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
+        envs: GHCR_USER,GHCR_TOKEN
         script: |
           set -eu
           cd /home/${{ secrets.VM_USER }}/app
           sh ops/validate-production-env.sh .env
           docker compose --env-file .env config --quiet
-          docker compose --env-file .env pull
+          # Sesión de ghcr propia del despliegue (token temporal del workflow), aparte de la del sistema.
+          export DOCKER_CONFIG="$HOME/app/.docker-ci"
+          mkdir -p "$DOCKER_CONFIG"
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          # Solo las imágenes de este repo; gems-web la publica y la despliega gems-lms-web.
+          docker compose --env-file .env pull api-gateway ms-auth ms-admin ms-education postgres-auth postgres-admin postgres-education redis
           docker compose --env-file .env up -d --remove-orphans
+          docker logout ghcr.io
           docker image prune -f
