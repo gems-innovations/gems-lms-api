@@ -33,6 +33,14 @@ import reactor.core.publisher.Mono;
 @RequestMapping(AuthInfraConstants.AUTH_API_BASE_PATH)
 @Tag(name = "Auth", description = "User management and authentication endpoints")
 public class AuthController {
+
+  /** Optional so the controller can be built in tests without e-mail. */
+  private com.gems.auth.infrastructure.driven.notification.AccountEmails accountEmails;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  void setAccountEmails(com.gems.auth.infrastructure.driven.notification.AccountEmails accountEmails) {
+    this.accountEmails = accountEmails;
+  }
   private final RegisterUserUseCase registerUserUseCase;
   private final LoginUseCase loginUseCase;
   private final ChangePasswordUseCase changePasswordUseCase;
@@ -52,7 +60,8 @@ public class AuthController {
   @SecurityRequirement(name = "bearerAuth")
   public Mono<ResponseEntity<Void>> changePassword(@RequestBody ChangePasswordRequest request) {
     return CurrentUser.forPasswordChange()
-      .flatMap(caller -> changePasswordUseCase.execute(caller.userId(), request.currentPassword(), request.newPassword()))
+      .flatMap(caller -> changePasswordUseCase.execute(caller.userId(), request.currentPassword(), request.newPassword())
+        .then(Mono.fromRunnable(() -> { if (accountEmails != null) accountEmails.passwordChanged(caller.userId()); })))
       .thenReturn(ResponseEntity.noContent().<Void>build());
   }
 
@@ -119,6 +128,7 @@ public class AuthController {
         UserController.ensureCanAssign(caller, request.getRole(), request.getInstitutionId());
         return registerUserUseCase.execute(UserMapper.toDomain(request));
       })
+      .doOnNext(created -> { if (accountEmails != null) accountEmails.created(created.userId()); })
       .map(userResponse -> ResponseEntity.status(HttpStatus.CREATED).body(userResponse));
   }
 

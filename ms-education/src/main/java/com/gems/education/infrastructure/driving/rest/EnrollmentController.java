@@ -29,6 +29,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/enrollments")
 public class EnrollmentController {
+
+  /** Optional so the class can be built in tests without e-mail. */
+  private com.gems.education.application.NotificationUseCase notifications;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  void setNotifications(com.gems.education.application.NotificationUseCase notifications) {
+    this.notifications = notifications;
+  }
   private final EnrollStudentUseCase enrollStudentUseCase;
   private final BulkEnrollStudentsUseCase bulkEnrollStudentsUseCase;
   private final GetStudentEnrollmentsUseCase getStudentEnrollmentsUseCase;
@@ -80,8 +88,12 @@ public class EnrollmentController {
         : access.editableCourse(request.getCourseId())
           .flatMap(course -> members.requireMembers(List.of(request.getStudentId()), course.getInstitutionId())
             .thenReturn(course)))
-      .flatMap(course -> CurrentUser.get().flatMap(caller ->
-        enrollStudentUseCase.execute(EnrollmentMapper.toCommand(request), !caller.isUser(request.getStudentId()))))
+      .flatMap(course -> CurrentUser.get().flatMap(caller -> {
+        boolean byStaff = !caller.isUser(request.getStudentId());
+        return enrollStudentUseCase.execute(EnrollmentMapper.toCommand(request), byStaff)
+          .flatMap(created -> notifications == null ? Mono.just(created)
+            : notifications.enrolled(request.getStudentId(), course.getId(), course.getTitle(), byStaff).thenReturn(created));
+      }))
       .map(response -> ResponseEntity.status(HttpStatus.CREATED).body(response));
   }
 

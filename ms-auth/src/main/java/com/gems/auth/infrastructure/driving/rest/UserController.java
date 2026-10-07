@@ -33,6 +33,14 @@ import java.util.Map;
 @RestController
 @RequestMapping(RestConstants.USERS_API_BASE_PATH)
 public class UserController {
+
+  /** Optional so the controller can be built in tests without e-mail. */
+  private com.gems.auth.infrastructure.driven.notification.AccountEmails accountEmails;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  void setAccountEmails(com.gems.auth.infrastructure.driven.notification.AccountEmails accountEmails) {
+    this.accountEmails = accountEmails;
+  }
   private final DeleteUserUseCase deleteUserUseCase;
   private final GetUsersByInstitutionUseCase getUsersByInstitutionUseCase;
   private final GetUserByIdUseCase getUserByIdUseCase;
@@ -120,6 +128,7 @@ public class UserController {
   public Mono<ResponseEntity<UserResponse>> toggleUserStatus(@PathVariable("id") Long id) {
     return manageable(id)
       .flatMap(target -> toggleUserStatusUseCase.execute(new UserId(id)))
+      .doOnNext(updated -> { if (updated.active() && accountEmails != null) accountEmails.activated(updated.userId()); })
       .map(ResponseEntity::ok);
   }
 

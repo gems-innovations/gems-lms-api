@@ -33,6 +33,8 @@ public class SecurityConfig {
     "/api/v1/auth/login",
     "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password", "/api/v1/auth/verify-email", "/api/v1/auth/email-preferences/by-link",
     "/api/v1/auth/guest",
+    // Service-to-service, protected by the internal key (never routed by the gateway).
+    "/internal/notifications/email-address", "/internal/notifications/tip",
     "/actuator/health/**", "/actuator/prometheus",
     "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html"
   };

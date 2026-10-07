@@ -37,21 +37,24 @@ public class SmtpCourseNoticeNotifier implements CourseNoticeNotifier {
                       String preferencesToken) {
     try {
       String link = frontendUrl + linkPath;
-      String preferencesUrl = frontendUrl + "/correo/preferencias?t="
-        + URLEncoder.encode(preferencesToken, StandardCharsets.UTF_8);
+      // Without a token it is an account or request notice: it always goes out and has no opt-out link.
+      String preferencesUrl = preferencesToken == null ? null
+        : frontendUrl + "/correo/preferencias?t=" + URLEncoder.encode(preferencesToken, StandardCharsets.UTF_8);
       MimeMessage message = mailSender.createMimeMessage();
       MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
       helper.setFrom(from);
       helper.setTo(email);
       helper.setSubject(subject);
       List<String> paragraphs = List.of(text);
-      String footer = "Recibes este aviso porque estudias o enseñas en un curso de GEMS.";
+      String footer = preferencesUrl == null ? "Es un aviso sobre tu cuenta o una solicitud que hiciste en GEMS."
+        : "Recibes este aviso porque estudias o enseñas en un curso de GEMS.";
       helper.setText(
-        BrandedEmailTemplate.text(firstName, paragraphs, link, footer + "\nElegir qué correos recibo: " + preferencesUrl),
+        BrandedEmailTemplate.text(firstName, paragraphs, link,
+          preferencesUrl == null ? footer : footer + "\nElegir qué correos recibo: " + preferencesUrl),
         BrandedEmailTemplate.html(firstName, paragraphs, linkLabel == null ? "Abrir en GEMS" : linkLabel, link, footer,
           preferencesUrl));
       // Lets mail apps show their own "unsubscribe" button.
-      message.setHeader("List-Unsubscribe", "<" + preferencesUrl + ">");
+      if (preferencesUrl != null) message.setHeader("List-Unsubscribe", "<" + preferencesUrl + ">");
       return message;
     } catch (MessagingException e) {
       throw new IllegalStateException("Could not build the course notice e-mail", e);

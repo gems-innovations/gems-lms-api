@@ -76,7 +76,10 @@ public class JwtAuthenticationFilter implements WebFilter {
             || path.equals("/api/v1/auth/reset-password")
             || path.equals("/api/v1/auth/verify-email")
             || path.equals("/api/v1/auth/email-preferences/by-link")
-            || path.equals("/api/v1/auth/guest")) {
+            || path.equals("/api/v1/auth/guest")
+            || path.equals("/internal/notifications/email-address")
+            || path.equals("/internal/notifications/tip")
+            || path.equals("/internal/engagement/run")) {
             return true;
         }
         

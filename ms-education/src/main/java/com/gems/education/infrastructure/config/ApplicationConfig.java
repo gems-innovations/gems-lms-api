@@ -311,8 +311,8 @@ public class ApplicationConfig {
   public CertificateUseCase certificateUseCase(CertificateGateway certificateGateway,
       EnrollmentGateway enrollmentGateway, PathEnrollmentGateway pathEnrollmentGateway,
       CourseGateway courseGateway, LearningPathGateway learningPathGateway,
-      UserDirectory userDirectory) {
+      UserDirectory userDirectory, NotificationUseCase notificationUseCase) {
     return new CertificateUseCase(certificateGateway, enrollmentGateway, pathEnrollmentGateway,
-      courseGateway, learningPathGateway, userDirectory);
+      courseGateway, learningPathGateway, userDirectory).withNotifications(notificationUseCase);
   }
 }

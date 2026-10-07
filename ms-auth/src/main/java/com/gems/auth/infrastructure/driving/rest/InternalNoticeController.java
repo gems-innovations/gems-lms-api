@@ -33,7 +33,17 @@ public class InternalNoticeController {
     this.internalKey = internalKey.getBytes(StandardCharsets.UTF_8);
   }
 
-  public record NoticeRequest(List<Long> userIds, String subject, String message, String linkPath, String linkLabel) {
+  /** To the given users, or (when {@code staffOfInstitution} is set) to that institution's teachers and admins. */
+  public record NoticeRequest(List<Long> userIds, String subject, String message, String linkPath, String linkLabel,
+                              String staffOfInstitution) {
+  }
+
+  public record TipRequest(Long userId, String subject, String message, String linkPath, String linkLabel) {
+  }
+
+  /** To an address that is not a user yet, or to every super admin when {@code to} is "super-admins". */
+  public record AddressNoticeRequest(String to, String name, String subject, String message, String linkPath,
+                                     String linkLabel) {
   }
 
   /** Answers at once; the e-mails are sent in the background so the caller is never slowed down. */
@@ -42,17 +52,59 @@ public class InternalNoticeController {
     if (!MessageDigest.isEqual(internalKey, key.getBytes(StandardCharsets.UTF_8))) {
       return Mono.error(new ForbiddenException("Invalid internal key"));
     }
-    if (request == null || request.userIds() == null || request.userIds().isEmpty()
+    boolean toStaff = request != null && !isBlank(request.staffOfInstitution());
+    if (request == null || (!toStaff && (request.userIds() == null || request.userIds().isEmpty()))
         || isBlank(request.subject()) || isBlank(request.message())) {
       return Mono.just(ResponseEntity.badRequest().build());
     }
     return CurrentUser.get().map(caller -> {
-      preferences.sendCourseNotice(request.userIds(), trim(request.subject(), 120), trim(request.message(), 1000),
-          request.linkPath(), trim(request.linkLabel(), 40))
+      String subject = trim(request.subject(), 120);
+      String message = trim(request.message(), 1000);
+      String label = trim(request.linkLabel(), 40);
+      (toStaff
+        ? preferences.sendToStaff(request.staffOfInstitution(), subject, message, request.linkPath(), label)
+        : preferences.sendCourseNotice(request.userIds(), subject, message, request.linkPath(), label))
         .subscribe(sent -> log.debug("Course notice e-mailed to {} users", sent),
           error -> log.warn("Course notice e-mail failed: {}", error.getMessage()));
       return ResponseEntity.accepted().<Void>build();
     });
+  }
+
+  /**
+   * For actions without a signed-in user (a public institution request): only the internal key is checked,
+   * and this path is never routed by the gateway.
+   */
+  @PostMapping("/internal/notifications/email-address")
+  public Mono<ResponseEntity<Void>> sendToAddress(@RequestHeader("X-Internal-Key") String key,
+                                                  @RequestBody AddressNoticeRequest request) {
+    if (!MessageDigest.isEqual(internalKey, key.getBytes(StandardCharsets.UTF_8))) {
+      return Mono.error(new ForbiddenException("Invalid internal key"));
+    }
+    if (request == null || isBlank(request.to()) || isBlank(request.subject()) || isBlank(request.message())) {
+      return Mono.just(ResponseEntity.badRequest().build());
+    }
+    String subject = trim(request.subject(), 120);
+    String message = trim(request.message(), 2000);
+    String label = trim(request.linkLabel(), 40);
+    ("super-admins".equals(request.to())
+      ? preferences.sendToSuperAdmins(subject, message, request.linkPath(), label).then()
+      : preferences.sendToAddress(request.to(), trim(request.name(), 80), subject, message, request.linkPath(), label))
+      .subscribe(done -> { }, error -> log.warn("Address notice e-mail failed: {}", error.getMessage()));
+    return Mono.just(ResponseEntity.accepted().build());
+  }
+
+  /** Motivation e-mails from ms-education's daily job (no user session): internal key only. */
+  @PostMapping("/internal/notifications/tip")
+  public Mono<ResponseEntity<Void>> sendTip(@RequestHeader("X-Internal-Key") String key, @RequestBody TipRequest request) {
+    if (!MessageDigest.isEqual(internalKey, key.getBytes(StandardCharsets.UTF_8))) {
+      return Mono.error(new ForbiddenException("Invalid internal key"));
+    }
+    if (request == null || request.userId() == null || isBlank(request.subject()) || isBlank(request.message())) {
+      return Mono.just(ResponseEntity.badRequest().build());
+    }
+    return preferences.sendTip(request.userId(), trim(request.subject(), 120), trim(request.message(), 1000),
+        request.linkPath(), trim(request.linkLabel(), 40))
+      .thenReturn(ResponseEntity.accepted().build());
   }
 
   private static boolean isBlank(String s) {

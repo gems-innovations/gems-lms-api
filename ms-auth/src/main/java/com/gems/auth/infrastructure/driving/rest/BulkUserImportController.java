@@ -38,6 +38,14 @@ import java.util.stream.Collectors;
 @Tag(name = "Authentication")
 @SecurityRequirement(name = "bearerAuth")
 public class BulkUserImportController {
+
+  /** Optional so the controller can be built in tests without e-mail. */
+  private com.gems.auth.infrastructure.driven.notification.AccountEmails accountEmails;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  void setAccountEmails(com.gems.auth.infrastructure.driven.notification.AccountEmails accountEmails) {
+    this.accountEmails = accountEmails;
+  }
   static final int MAX_ROWS = 2000;
 
   private final RegisterUserUseCase registerUserUseCase;
@@ -86,6 +94,7 @@ public class BulkUserImportController {
         if (dryRun) return Mono.just(result(rowNumber, email, "valid", null));
 
         return registerUserUseCase.execute(UserMapper.toDomain(row))
+          .doOnNext(created -> { if (accountEmails != null) accountEmails.created(created.userId()); })
           .map(created -> new RowResult(rowNumber, email, "created", null, created.userId(), created.temporaryPassword()))
           .onErrorResume(UserAlreadyExistsException.class, e -> Mono.just(result(rowNumber, email, "exists", "Ya existe una cuenta con este correo")))
           .onErrorResume(IllegalArgumentException.class, e -> Mono.just(result(rowNumber, email, "invalid", e.getMessage())));

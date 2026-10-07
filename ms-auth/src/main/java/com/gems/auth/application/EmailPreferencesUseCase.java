@@ -4,6 +4,7 @@ import com.gems.auth.application.gateway.CourseNoticeNotifier;
 import com.gems.auth.application.gateway.EmailPreferencesGateway;
 import com.gems.auth.application.gateway.UserGateway;
 import com.gems.auth.domain.values.UserId;
+import com.gems.auth.domain.values.UserRole;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -61,5 +62,62 @@ public class EmailPreferencesUseCase {
           .thenReturn(1L)
           .onErrorResume(e -> Mono.just(0L))))
       .reduce(0L, Long::sum);
+  }
+
+  /** Motivation e-mail: only to active, registered users who keep «tips» on; includes the opt-out link. */
+  public Mono<Long> sendTip(Long userId, String subject, String message, String linkPath, String linkLabel) {
+    return users.findById(new UserId(userId))
+      .filter(user -> Boolean.TRUE.equals(user.isActive()) && !GuestAccessUseCase.isGuest(user.getEmail().getValue()))
+      .filterWhen(user -> preferences.find(userId).map(EmailPreferences::tips))
+      .flatMap(user -> notifier.sendNotice(user.getEmail().getValue(), user.getFirstName().getValue(), subject,
+          message, safePath(linkPath), linkLabel, tokens.create(userId))
+        .thenReturn(1L))
+      .defaultIfEmpty(0L)
+      .onErrorResume(e -> Mono.just(0L));
+  }
+
+  /** Course notice for the teachers and administrators of an institution (a delivery, a forum question). */
+  public Mono<Long> sendToStaff(String institutionId, String subject, String message, String linkPath,
+                                String linkLabel) {
+    if (institutionId == null || institutionId.isBlank()) return Mono.just(0L);
+    return users.findByInstitutionId(institutionId)
+      .filter(user -> user.getRole() == UserRole.INSTRUCTOR || user.getRole() == UserRole.ADMIN)
+      .map(user -> user.getId().getValue())
+      .collectList()
+      .flatMap(ids -> sendCourseNotice(ids, subject, message, linkPath, linkLabel));
+  }
+
+  /** Notice for every super admin (new institution requests). Not subject to course-notice preferences. */
+  public Mono<Long> sendToSuperAdmins(String subject, String message, String linkPath, String linkLabel) {
+    return users.findAll()
+      .filter(user -> user.getRole() == UserRole.SUPER_ADMIN && Boolean.TRUE.equals(user.isActive()))
+      .concatMap(user -> notifier.sendNotice(user.getEmail().getValue(), user.getFirstName().getValue(), subject,
+          message, safePath(linkPath), linkLabel, null)
+        .thenReturn(1L).onErrorResume(e -> Mono.just(0L)))
+      .reduce(0L, Long::sum);
+  }
+
+  /**
+   * About the account itself (created, password changed, activated). Always sent to registered users,
+   * whatever their preferences, because it can matter for their security.
+   */
+  public Mono<Void> sendAccountNotice(Long userId, String subject, String message, String linkPath, String linkLabel) {
+    return users.findById(new UserId(userId))
+      .filter(user -> !GuestAccessUseCase.isGuest(user.getEmail().getValue()))
+      .flatMap(user -> notifier.sendNotice(user.getEmail().getValue(), user.getFirstName().getValue(), subject,
+        message, safePath(linkPath), linkLabel, null))
+      .onErrorResume(e -> Mono.empty());
+  }
+
+  /** To someone who is not a user yet (whoever asked for an institution space). */
+  public Mono<Void> sendToAddress(String email, String name, String subject, String message, String linkPath,
+                                  String linkLabel) {
+    if (email == null || !email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")) return Mono.empty();
+    return notifier.sendNotice(email.trim(), name, subject, message, safePath(linkPath), linkLabel, null)
+      .onErrorResume(e -> Mono.empty());
+  }
+
+  private static String safePath(String linkPath) {
+    return linkPath != null && linkPath.startsWith("/") && !linkPath.startsWith("//") ? linkPath : "/";
   }
 }

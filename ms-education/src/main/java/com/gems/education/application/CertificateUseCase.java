@@ -17,6 +17,14 @@ public class CertificateUseCase {
   private final LearningPathGateway paths;
   private final UserDirectory users;
 
+  /** Set by the configuration; null in tests. */
+  private NotificationUseCase notifications;
+
+  public CertificateUseCase withNotifications(NotificationUseCase notifications) {
+    this.notifications = notifications;
+    return this;
+  }
+
   public CertificateUseCase(CertificateGateway certificates, EnrollmentGateway enrollments,
       PathEnrollmentGateway pathEnrollments, CourseGateway courses, LearningPathGateway paths,
       UserDirectory users) {
@@ -52,7 +60,9 @@ public class CertificateUseCase {
     return certificates.find(user.id(), type, resourceId)
       .switchIfEmpty(Mono.defer(() -> certificates.save(new Certificate(null, code(), user.id(),
         user.fullName(), user.institutionId(), type, resourceId, title, instructor, completedAt,
-        LocalDateTime.now(), null))));
+        LocalDateTime.now(), null))
+        .flatMap(saved -> notifications == null ? Mono.just(saved)
+          : notifications.certificateIssued(user.id(), title, saved.code()).thenReturn(saved))));
   }
 
   private static String code() {

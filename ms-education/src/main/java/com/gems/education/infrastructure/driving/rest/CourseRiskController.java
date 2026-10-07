@@ -14,6 +14,14 @@ import reactor.core.publisher.Mono;
 @RestController
 @RequestMapping("/api/v1/courses/{courseId}/at-risk")
 public class CourseRiskController {
+
+  /** Optional so the class can be built in tests without e-mail. */
+  private com.gems.education.application.NotificationUseCase notifications;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  void setNotifications(com.gems.education.application.NotificationUseCase notifications) {
+    this.notifications = notifications;
+  }
   private final CourseRiskUseCase risk;
   private final EducationAccess access;
 
@@ -38,7 +46,9 @@ public class CourseRiskController {
       .flatMap(course -> risk.course(courseId)
         .filter(r -> r.atRisk().stream().anyMatch(x -> x.studentId().equals(studentId)))
         .switchIfEmpty(Mono.error(new IllegalArgumentException("The student is not at risk in this course")))
-        .then(risk.remind(course.getInstitutionId(), courseId, course.getTitle(), studentId, body == null ? null : body.message())))
+        .then(risk.remind(course.getInstitutionId(), courseId, course.getTitle(), studentId, body == null ? null : body.message()))
+        .flatMap(sent -> notifications == null ? Mono.just(sent)
+          : notifications.reminderEmail(studentId, courseId, course.getTitle(), sent.message()).thenReturn(sent)))
       .thenReturn(ResponseEntity.noContent().<Void>build());
   }
 }

@@ -37,6 +37,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @RestController
 public class PublicCatalogController {
+
+  /** Optional so the class can be built in tests without e-mail. */
+  private com.gems.education.application.gateway.EmailNoticeGateway emails;
+
+  @org.springframework.beans.factory.annotation.Autowired(required = false)
+  void setEmails(com.gems.education.application.gateway.EmailNoticeGateway emails) {
+    this.emails = emails;
+  }
   private static final int MAX_REQUESTS_PER_DAY = 5;
 
   private final CourseGateway courses;
@@ -120,7 +128,22 @@ public class PublicCatalogController {
     spec = body.students() == null ? spec.bindNull("students", Integer.class) : spec.bind("students", Math.max(0, body.students()));
     spec = blank(body.message()) ? spec.bindNull("message", String.class) : spec.bind("message", cut(body.message(), 2000));
     return spec.map((row, meta) -> row.get("id", Long.class)).one()
+      .flatMap(id -> notifyRequest(body).thenReturn(id))
       .map(id -> ResponseEntity.status(HttpStatus.CREATED).body(Map.<String, Object>of("id", id, "status", "received")));
+  }
+
+  private Mono<Void> notifyRequest(InstitutionRequest body) {
+    if (emails == null) return Mono.empty();
+    String name = cut(body.institutionName(), 160);
+    return emails.sendToAddress(body.email().trim(), cut(body.contactName(), 80), "Recibimos tu solicitud para " + name,
+        "Gracias por querer enseñar con GEMS. Recibimos la solicitud de «" + name + "» y te escribiremos pronto a este "
+          + "correo para crear tu espacio. Mientras tanto, puedes ver cómo se estudia en nuestros cursos gratis.",
+        "/", "Ver los cursos gratis")
+      .then(emails.sendToAddress(com.gems.education.application.gateway.EmailNoticeGateway.SUPER_ADMINS, null,
+        "Nueva solicitud de espacio: " + name,
+        cut(body.contactName(), 120) + " (" + body.email().trim() + ") pidió un espacio para «" + name + "»"
+          + (body.students() == null ? "" : ", con hasta " + body.students() + " personas") + ".",
+        "/solicitudes", "Ver las solicitudes"));
   }
 
   /** The super admin follows up the requests. */

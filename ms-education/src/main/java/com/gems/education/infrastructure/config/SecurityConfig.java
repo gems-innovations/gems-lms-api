@@ -33,6 +33,8 @@ public class SecurityConfig {
     "/actuator/health/**", "/actuator/prometheus",
     "/api/v1/files/public/**", "/api/v1/certificates/verify/**",
     "/api/v1/public/**",
+    // Service-to-service, protected by the internal key (never routed by the gateway).
+    "/internal/engagement/run",
     "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html"
   };
 

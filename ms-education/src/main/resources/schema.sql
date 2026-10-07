@@ -472,3 +472,12 @@ CREATE TABLE IF NOT EXISTS institution_requests (
     status VARCHAR(20) NOT NULL DEFAULT 'new',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Correos de motivación enviados (racha, te extrañamos, top): evita repetirlos.
+CREATE TABLE IF NOT EXISTS engagement_emails (
+    id BIGSERIAL PRIMARY KEY,
+    student_id BIGINT NOT NULL,
+    kind VARCHAR(20) NOT NULL,
+    sent_on DATE NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_engagement_emails_student ON engagement_emails(student_id, sent_on);
