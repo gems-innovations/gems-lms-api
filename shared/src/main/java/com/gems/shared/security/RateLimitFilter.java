@@ -106,7 +106,7 @@ public class RateLimitFilter implements WebFilter {
         }
     }
 
-    static String getClientId(ServerHttpRequest request) {
+    public static String getClientId(ServerHttpRequest request) {
         java.net.InetSocketAddress remote = request.getRemoteAddress();
         java.net.InetAddress peer = remote != null ? remote.getAddress() : null;
         boolean fromProxy = peer != null && (peer.isLoopbackAddress() || peer.isSiteLocalAddress());

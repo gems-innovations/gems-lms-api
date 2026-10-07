@@ -46,6 +46,14 @@ public class ApplicationConfig {
     return new DeleteUserUseCase(userGateway, learningData);
   }
 
+  /** Guests start in the open institution, where the free public courses live. */
+  @Bean
+  public com.gems.auth.application.GuestAccessUseCase guestAccessUseCase(UserGateway userGateway,
+      PasswordEncoderGateway passwordEncoderGateway, JwtGateway jwtGateway,
+      @org.springframework.beans.factory.annotation.Value("${open.institution.id:gems-abierto}") String openInstitutionId) {
+    return new com.gems.auth.application.GuestAccessUseCase(userGateway, passwordEncoderGateway, jwtGateway, openInstitutionId);
+  }
+
   @Bean
   public LoginUseCase loginUseCase(UserGateway userGateway,
                                    PasswordEncoderGateway passwordEncoderGateway,

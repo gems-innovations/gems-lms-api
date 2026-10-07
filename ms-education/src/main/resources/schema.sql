@@ -458,3 +458,17 @@ CREATE TABLE IF NOT EXISTS feedback_snippets (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_feedback_snippets_text ON feedback_snippets(owner_id, md5(text));
+
+-- Instituciones que piden su propio espacio desde la página pública.
+CREATE TABLE IF NOT EXISTS institution_requests (
+    id BIGSERIAL PRIMARY KEY,
+    institution_name VARCHAR(160) NOT NULL,
+    contact_name VARCHAR(120) NOT NULL,
+    email VARCHAR(160) NOT NULL,
+    phone VARCHAR(40),
+    role VARCHAR(60),
+    students INT,
+    message VARCHAR(2000),
+    status VARCHAR(20) NOT NULL DEFAULT 'new',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

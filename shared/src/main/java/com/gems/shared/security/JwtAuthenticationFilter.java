@@ -73,7 +73,8 @@ public class JwtAuthenticationFilter implements WebFilter {
     private boolean shouldSkipAuthentication(String path) {
         if (path.equals(loginPath)
             || path.equals("/api/v1/auth/forgot-password")
-            || path.equals("/api/v1/auth/reset-password")) {
+            || path.equals("/api/v1/auth/reset-password")
+            || path.equals("/api/v1/auth/guest")) {
             return true;
         }
         
@@ -81,6 +82,7 @@ public class JwtAuthenticationFilter implements WebFilter {
                path.equals("/actuator/prometheus") ||
                path.startsWith("/api/v1/files/public/") ||
                path.startsWith("/api/v1/certificates/verify/") ||
+               path.startsWith("/api/v1/public/") ||
                path.startsWith("/swagger-ui") ||
                path.startsWith("/api-docs") ||
                path.startsWith("/v3/api-docs") ||

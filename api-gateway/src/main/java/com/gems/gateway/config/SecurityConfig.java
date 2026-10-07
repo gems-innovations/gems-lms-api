@@ -32,8 +32,10 @@ public class SecurityConfig {
   private static final String[] PUBLIC_PATHS = {
     "/api/v1/auth/login",
     "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password",
+    "/api/v1/auth/guest",
     "/actuator/health/**", "/actuator/prometheus",
     "/api/v1/files/public/**", "/api/v1/certificates/verify/**",
+    "/api/v1/public/**",
     "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html"
   };
 
