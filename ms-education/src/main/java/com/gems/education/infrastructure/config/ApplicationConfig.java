@@ -311,8 +311,10 @@ public class ApplicationConfig {
   public CertificateUseCase certificateUseCase(CertificateGateway certificateGateway,
       EnrollmentGateway enrollmentGateway, PathEnrollmentGateway pathEnrollmentGateway,
       CourseGateway courseGateway, LearningPathGateway learningPathGateway,
-      UserDirectory userDirectory, NotificationUseCase notificationUseCase) {
+      UserDirectory userDirectory, NotificationUseCase notificationUseCase,
+      @org.springframework.beans.factory.annotation.Value("${open.institution.id:gems-abierto}") String openInstitutionId) {
     return new CertificateUseCase(certificateGateway, enrollmentGateway, pathEnrollmentGateway,
-      courseGateway, learningPathGateway, userDirectory).withNotifications(notificationUseCase);
+      courseGateway, learningPathGateway, userDirectory).withNotifications(notificationUseCase)
+      .withoutCertificatesFor(openInstitutionId);
   }
 }

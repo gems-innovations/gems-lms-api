@@ -25,6 +25,14 @@ public class CertificateUseCase {
     return this;
   }
 
+  /** Institución de los cursos gratis: no emiten certificado (muestran el resultado final en el reproductor). */
+  private String openInstitutionId;
+
+  public CertificateUseCase withoutCertificatesFor(String openInstitutionId) {
+    this.openInstitutionId = openInstitutionId;
+    return this;
+  }
+
   public CertificateUseCase(CertificateGateway certificates, EnrollmentGateway enrollments,
       PathEnrollmentGateway pathEnrollments, CourseGateway courses, LearningPathGateway paths,
       UserDirectory users) {
@@ -41,7 +49,9 @@ public class CertificateUseCase {
     return users.find(studentId).flatMapMany(profile -> Flux.merge(
         enrollments.findByStudentId(studentId)
           .filter(e -> "completed".equals(e.getStatus()) && e.getCompletedAt() != null)
-          .flatMap(e -> courses.findById(e.getCourseId()).flatMap(course -> issue(profile,
+          .flatMap(e -> courses.findById(e.getCourseId())
+            .filter(course -> openInstitutionId == null || !openInstitutionId.equals(course.getInstitutionId()))
+            .flatMap(course -> issue(profile,
             "COURSE", course.getId(), course.getTitle(), course.getInstructorName(), e.getCompletedAt()))),
         pathEnrollments.findByStudent(studentId)
           .filter(e -> PathEnrollment.COMPLETED.equals(e.status()) && e.completedAt() != null)

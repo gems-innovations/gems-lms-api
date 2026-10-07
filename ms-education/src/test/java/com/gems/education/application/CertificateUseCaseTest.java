@@ -57,6 +57,22 @@ class CertificateUseCaseTest {
   }
 
   @Test
+  void freeOpenCoursesDoNotIssueCertificates() {
+    var now = LocalDateTime.now();
+    var completed = TestData.enrollment(1L, 5L, 10L, now.minusDays(2), 100, now);
+    completed.setStatus("completed");
+    var openCourse = TestData.course(10L, "Curso gratis", null, "published", "gems-abierto", now, now, List.of());
+    when(users.find(5L)).thenReturn(Mono.just(new UserDirectory.UserProfile(5L, "Ana Ruiz", "gems-abierto")));
+    when(enrollments.findByStudentId(5L)).thenReturn(Flux.just(completed));
+    when(pathEnrollments.findByStudent(5L)).thenReturn(Flux.empty());
+    when(courses.findById(10L)).thenReturn(Mono.just(openCourse));
+    when(certificates.findByStudent(5L)).thenReturn(Flux.empty());
+
+    StepVerifier.create(useCase.withoutCertificatesFor("gems-abierto").sync(5L)).verifyComplete();
+    verify(certificates, never()).save(any());
+  }
+
+  @Test
   void verificationRejectsRevokedCredentials() {
     var revoked = new Certificate(1L, "GEMS-ABC", 5L, "Ana", "inst-1", "COURSE", 10L,
       "Curso", null, LocalDateTime.now(), LocalDateTime.now(), LocalDateTime.now());
