@@ -1,0 +1,65 @@
+package com.gems.auth.application;
+
+import com.gems.auth.application.gateway.CourseNoticeNotifier;
+import com.gems.auth.application.gateway.EmailPreferencesGateway;
+import com.gems.auth.application.gateway.UserGateway;
+import com.gems.auth.domain.values.UserId;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Collection;
+import java.util.Objects;
+
+/** What e-mail each user receives, the one-click opt-out, and course notices sent on behalf of ms-education. */
+public class EmailPreferencesUseCase {
+  /** A single notice never reaches more people than this (a large course announcement). */
+  public static final int MAX_RECIPIENTS = 1000;
+
+  private final UserGateway users;
+  private final EmailPreferencesGateway preferences;
+  private final CourseNoticeNotifier notifier;
+  private final PreferenceTokens tokens;
+
+  public EmailPreferencesUseCase(UserGateway users, EmailPreferencesGateway preferences, CourseNoticeNotifier notifier,
+                                 PreferenceTokens tokens) {
+    this.users = users;
+    this.preferences = preferences;
+    this.notifier = notifier;
+    this.tokens = tokens;
+  }
+
+  public Mono<EmailPreferences> get(Long userId) {
+    return preferences.find(userId);
+  }
+
+  public Mono<EmailPreferences> update(Long userId, EmailPreferences changed) {
+    return preferences.save(userId, changed).thenReturn(changed);
+  }
+
+  /** From the link in an e-mail, without signing in. Empty if the token is not valid. */
+  public Mono<EmailPreferences> getWithToken(String token) {
+    return Mono.justOrEmpty(tokens.userOf(token)).flatMap(preferences::find);
+  }
+
+  public Mono<EmailPreferences> updateWithToken(String token, EmailPreferences changed) {
+    return Mono.justOrEmpty(tokens.userOf(token)).flatMap(userId -> update(userId, changed));
+  }
+
+  /**
+   * Sends the notice to each active, registered user who keeps course notices on. Guests have no real
+   * address and are skipped. Emits how many e-mails were handed to the mail server.
+   */
+  public Mono<Long> sendCourseNotice(Collection<Long> userIds, String subject, String message, String linkPath,
+                                     String linkLabel) {
+    String path = linkPath != null && linkPath.startsWith("/") && !linkPath.startsWith("//") ? linkPath : "/learn/home";
+    return Flux.fromIterable(userIds).filter(Objects::nonNull).distinct().take(MAX_RECIPIENTS)
+      .concatMap(id -> users.findById(new UserId(id))
+        .filter(user -> Boolean.TRUE.equals(user.isActive()) && !GuestAccessUseCase.isGuest(user.getEmail().getValue()))
+        .filterWhen(user -> preferences.find(id).map(EmailPreferences::courseNotices))
+        .flatMap(user -> notifier.sendNotice(user.getEmail().getValue(), user.getFirstName().getValue(), subject,
+            message, path, linkLabel, tokens.create(id))
+          .thenReturn(1L)
+          .onErrorResume(e -> Mono.just(0L))))
+      .reduce(0L, Long::sum);
+  }
+}

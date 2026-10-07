@@ -1,6 +1,7 @@
 package com.gems.auth.infrastructure.driven.notification;
 
 import com.gems.auth.application.gateway.EmailVerificationNotifier;
+import com.gems.auth.application.gateway.CourseNoticeNotifier;
 import com.gems.auth.application.gateway.PasswordResetNotifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,22 @@ public class NotificationConfig {
       return new UndeliveredEmailVerificationNotifier();
     }
     return new SmtpEmailVerificationNotifier(sender(host, port, username, password, starttls), from, frontendUrl);
+  }
+
+  @Bean
+  public CourseNoticeNotifier courseNoticeNotifier(
+      @Value("${app.frontend-url:http://localhost:4200}") String frontendUrl,
+      @Value("${app.mail.host:}") String host,
+      @Value("${app.mail.port:587}") int port,
+      @Value("${app.mail.username:}") String username,
+      @Value("${app.mail.password:}") String password,
+      @Value("${app.mail.starttls:true}") boolean starttls,
+      @Value("${app.mail.from:no-reply@gems.lms}") String from) {
+    if (host.isBlank()) {
+      log.warn("MAIL_HOST is not set: course notices will stay in the app only");
+      return new UndeliveredCourseNoticeNotifier();
+    }
+    return new SmtpCourseNoticeNotifier(sender(host, port, username, password, starttls), from, frontendUrl);
   }
 
   private static JavaMailSenderImpl sender(String host, int port, String username, String password, boolean starttls) {

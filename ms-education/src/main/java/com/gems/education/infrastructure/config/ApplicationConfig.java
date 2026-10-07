@@ -302,8 +302,9 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public NotificationUseCase notificationUseCase(NotificationGateway notificationGateway) {
-    return new NotificationUseCase(notificationGateway);
+  public NotificationUseCase notificationUseCase(NotificationGateway notificationGateway,
+                                                 com.gems.education.application.gateway.EmailNoticeGateway emailNotices) {
+    return new NotificationUseCase(notificationGateway, emailNotices);
   }
 
   @Bean

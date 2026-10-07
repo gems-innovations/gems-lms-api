@@ -60,3 +60,11 @@ CREATE TABLE IF NOT EXISTS email_verifications (
     sent_at TIMESTAMP NOT NULL,
     verified_at TIMESTAMP
 );
+
+-- What e-mail a user wants. No row = defaults (both on). Guests never receive e-mail.
+CREATE TABLE IF NOT EXISTS email_preferences (
+    user_id BIGINT PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+    course_notices BOOLEAN NOT NULL DEFAULT TRUE,
+    tips BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

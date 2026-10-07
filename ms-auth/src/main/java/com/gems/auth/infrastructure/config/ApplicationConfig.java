@@ -12,6 +12,10 @@ import com.gems.auth.application.ToggleUserStatusUseCase;
 import com.gems.auth.application.UpdateUserUseCase;
 import com.gems.auth.application.AuditUseCase;
 import com.gems.auth.application.EmailVerificationUseCase;
+import com.gems.auth.application.EmailPreferencesUseCase;
+import com.gems.auth.application.PreferenceTokens;
+import com.gems.auth.application.gateway.CourseNoticeNotifier;
+import com.gems.auth.application.gateway.EmailPreferencesGateway;
 import com.gems.auth.application.gateway.AuditGateway;
 import com.gems.auth.application.gateway.EmailVerificationGateway;
 import com.gems.auth.application.gateway.EmailVerificationNotifier;
@@ -22,6 +26,7 @@ import com.gems.auth.application.gateway.PasswordResetNotifier;
 import com.gems.auth.application.gateway.UserGateway;
 import com.gems.auth.infrastructure.driven.postgresql.IUserRepository;
 import com.gems.auth.infrastructure.driven.postgresql.UserRepositoryAdapter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -106,5 +111,12 @@ public class ApplicationConfig {
                                                            EmailVerificationGateway verificationGateway,
                                                            EmailVerificationNotifier notifier) {
     return new EmailVerificationUseCase(userGateway, verificationGateway, notifier);
+  }
+
+  @Bean
+  public EmailPreferencesUseCase emailPreferencesUseCase(UserGateway userGateway, EmailPreferencesGateway preferencesGateway,
+                                                         CourseNoticeNotifier notifier,
+                                                         @Value("${jwt.secret}") String secret) {
+    return new EmailPreferencesUseCase(userGateway, preferencesGateway, notifier, new PreferenceTokens(secret));
   }
 }
