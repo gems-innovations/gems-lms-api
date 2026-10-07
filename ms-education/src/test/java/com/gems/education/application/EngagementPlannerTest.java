@@ -42,22 +42,38 @@ class EngagementPlannerTest {
   }
 
   @Test
-  void missYouAfterThreeSevenAndFourteenDays() {
-    for (int[] c : new int[][]{{3, 0}, {7, 1}, {14, 2}}) {
+  void missYouByStageOfAbsence() {
+    for (int[] c : new int[][]{{3, 0}, {5, 0}, {7, 1}, {10, 1}, {14, 2}, {30, 2}}) {
       var kind = List.of(EngagementPlanner.MISS_3, EngagementPlanner.MISS_7, EngagementPlanner.MISS_14).get(c[1]);
       var email = EngagementPlanner.plan(student(daysEndingAgo(WEDNESDAY, c[0], 1), course(40, null, 1)), WEDNESDAY);
       assertThat(email).get().extracting(EngagementPlanner.Email::kind).isEqualTo(kind);
     }
-    assertThat(EngagementPlanner.plan(student(daysEndingAgo(WEDNESDAY, 5, 1), course(40, null, 1)), WEDNESDAY)).isEmpty();
+    assertThat(EngagementPlanner.plan(student(daysEndingAgo(WEDNESDAY, 2, 1), course(40, null, 1)), WEDNESDAY)).isEmpty();
+    assertThat(EngagementPlanner.plan(student(daysEndingAgo(WEDNESDAY, 31, 1), course(40, null, 1)), WEDNESDAY)).isEmpty();
   }
 
   @Test
-  void neverRepeatsAKindOrSendsTwiceADay() {
+  void aStageSkippedByTheWeeklyCapStillGoesOutLater() {
+    var days = daysEndingAgo(WEDNESDAY, 10, 1);
+    var afterMiss3 = new EngagementPlanner.Student(1L, List.of(course(40, null, 1)), days, false, Set.of(EngagementPlanner.MISS_3));
+    assertThat(EngagementPlanner.plan(afterMiss3, WEDNESDAY)).get()
+      .extracting(EngagementPlanner.Email::kind).isEqualTo(EngagementPlanner.MISS_7);
+  }
+
+  @Test
+  void stopsWritingAfterTheLastReminder() {
+    var days = daysEndingAgo(WEDNESDAY, 20, 1);
+    var done = new EngagementPlanner.Student(1L, List.of(course(40, null, 1)), days, false, Set.of(EngagementPlanner.MISS_14));
+    assertThat(EngagementPlanner.plan(done, WEDNESDAY)).isEmpty();
+  }
+
+  @Test
+  void neverRepeatsAKindOrSendsTwiceAWeek() {
     var days = daysEndingAgo(WEDNESDAY, 3, 1);
     var repeated = new EngagementPlanner.Student(1L, List.of(course(40, null, 1)), days, false, Set.of(EngagementPlanner.MISS_3));
-    var sentToday = new EngagementPlanner.Student(1L, List.of(course(40, null, 1)), days, true, Set.of());
+    var sentThisWeek = new EngagementPlanner.Student(1L, List.of(course(40, null, 1)), days, true, Set.of());
     assertThat(EngagementPlanner.plan(repeated, WEDNESDAY)).isEmpty();
-    assertThat(EngagementPlanner.plan(sentToday, WEDNESDAY)).isEmpty();
+    assertThat(EngagementPlanner.plan(sentThisWeek, WEDNESDAY)).isEmpty();
   }
 
   @Test

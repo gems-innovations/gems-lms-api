@@ -96,7 +96,7 @@ public class EngagementEmailJob {
       .collect(HashMap::new, (map, e) -> map.computeIfAbsent(e.getKey(), k -> new HashSet<>()).add(e.getValue()));
   }
 
-  /** Kinds sent per student in the last 30 days, and who got something today. */
+  /** Kinds sent per student in the last 30 days (also tells who got something this week). */
   private Mono<Map<Long, List<Map.Entry<String, LocalDate>>>> sentLog(LocalDate from) {
     return db.sql("SELECT student_id, kind, sent_on FROM engagement_emails WHERE sent_on >= :from").bind("from", from)
       .map((r, m) -> Map.entry(r.get("student_id", Long.class), Map.entry(r.get("kind", String.class),
@@ -120,7 +120,8 @@ public class EngagementEmailJob {
       Set<LocalDate> active = days.getOrDefault(id, Set.of());
       LocalDate lastActive = active.stream().max(LocalDate::compareTo).orElse(LocalDate.MIN);
       List<Map.Entry<String, LocalDate>> log = sent.getOrDefault(id, List.of());
-      boolean sentToday = log.stream().anyMatch(e -> e.getValue().equals(today));
+      // At most one motivation e-mail a week, whatever its kind.
+      boolean sentThisWeek = log.stream().anyMatch(e -> e.getValue().isAfter(today.minusDays(7)));
       // Only what was sent during the current absence counts (a new absence can get "miss3" again);
       // «top» counts for the past 6 days so it stays weekly.
       Set<String> kinds = new HashSet<>();
@@ -129,7 +130,7 @@ public class EngagementEmailJob {
           kinds.add(e.getKey());
         }
       });
-      students.add(new EngagementPlanner.Student(id, courses, active, sentToday, kinds));
+      students.add(new EngagementPlanner.Student(id, courses, active, sentThisWeek, kinds));
     });
     return students;
   }

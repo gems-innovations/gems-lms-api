@@ -9,8 +9,9 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Decides which motivation e-mail (if any) a student gets today, Duolingo style: streak at risk,
- * "we miss you" after 3/7/14 days away, and a weekly "you're in the top X%" with real course data.
+ * Decides which motivation e-mail (if any) a student gets today, Duolingo style but never more than one a
+ * week: streak at risk,
+ * "we miss you" after 3, 7 and 14 days away (up to 30), and a weekly "you're in the top X%" with real course data.
  * Pure logic: no I/O, so every rule is easy to test.
  */
 public final class EngagementPlanner {
@@ -33,10 +34,10 @@ public final class EngagementPlanner {
 
   /**
    * @param activeDays    days with activity, any order (the last ~60 are enough)
-   * @param alreadySentToday whether any motivation e-mail already went out today
+   * @param sentThisWeek whether any motivation e-mail went out in the last 7 days (at most one a week)
    * @param sentKinds     kinds already sent during the current absence (so "miss3" is not repeated)
    */
-  public record Student(Long studentId, List<Course> courses, Set<LocalDate> activeDays, boolean alreadySentToday,
+  public record Student(Long studentId, List<Course> courses, Set<LocalDate> activeDays, boolean sentThisWeek,
                         Set<String> sentKinds) {
   }
 
@@ -47,7 +48,7 @@ public final class EngagementPlanner {
   }
 
   public static Optional<Email> plan(Student s, LocalDate today) {
-    if (s.alreadySentToday() || s.courses().isEmpty() || s.activeDays().isEmpty()) return Optional.empty();
+    if (s.sentThisWeek() || s.courses().isEmpty() || s.activeDays().isEmpty()) return Optional.empty();
     LocalDate last = s.activeDays().stream().max(Comparator.naturalOrder()).orElseThrow();
     if (!last.isBefore(today)) {
       return today.getDayOfWeek() == DayOfWeek.MONDAY ? top(s) : Optional.empty();
@@ -65,18 +66,21 @@ public final class EngagementPlanner {
       }
       return Optional.empty();
     }
-    if (away == 3 && !s.sentKinds().contains(MISS_3)) {
+    // Windows instead of exact days: with one e-mail a week, a stage skipped by the cap still goes out later.
+    // A later stage replaces the earlier ones, and after 30 days away we stop writing.
+    if (away > 30 || s.sentKinds().contains(MISS_14)) return Optional.empty();
+    if (away >= 3 && away < 7 && !s.sentKinds().contains(MISS_3)) {
       return Optional.of(new Email(MISS_3, course.courseId(), "Te extrañamos en " + course.title(),
-        "Hace 3 días no pasas por «" + course.title() + "». Tu avance sigue ahí, justo donde lo dejaste: "
+        "Hace unos días no pasas por «" + course.title() + "». Tu avance sigue ahí, justo donde lo dejaste: "
           + "retómalo con una lección de 10 minutos.", link, "Seguir donde iba"));
     }
-    if (away == 7 && !s.sentKinds().contains(MISS_7)) {
+    if (away >= 7 && away < 14 && !s.sentKinds().contains(MISS_7)) {
       String progress = course.progress() > 0 ? "Vas en " + course.progress() + " %: te falta menos de lo que crees. "
         : "Empezar es lo más difícil y ya lo hiciste. ";
       return Optional.of(new Email(MISS_7, course.courseId(), "Tu curso te espera: " + course.title(),
-        progress + "Una semana sin estudiar se recupera con una sola lección.", link, "Volver al curso"));
+        progress + "Unos días sin estudiar se recuperan con una sola lección.", link, "Volver al curso"));
     }
-    if (away == 14 && !s.sentKinds().contains(MISS_14)) {
+    if (away >= 14) {
       return Optional.of(new Email(MISS_14, course.courseId(), "¿Seguimos con " + course.title() + "?",
         "Han pasado dos semanas. Si este no es el momento, está bien: tu avance queda guardado. Y si quieres "
           + "retomarlo, una lección hoy es el mejor comienzo. No te volveremos a escribir por esto.",
