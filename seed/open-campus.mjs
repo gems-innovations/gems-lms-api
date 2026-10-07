@@ -34,7 +34,7 @@ const course = {
   description: 'Curso gratis de muestra para practicar las dos habilidades que más piden los exámenes de admisión: razonamiento lógico-matemático y comprensión de lectura. Lecciones cortas, ejercicios con explicación y un simulacro final.',
   status: 'published', difficulty: 'beginner', tags: ['Admisión', 'Razonamiento lógico', 'Lectura crítica', 'Gratis'],
   instructorName: 'Equipo GEMS', institutionId: OPEN,
-  thumbnailUrl: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=800&q=70',
+  thumbnailUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&q=70',
   modules: [
     { title: 'Razonamiento lógico', orderIndex: 1, description: 'Proporciones, porcentajes, secuencias y deducciones.', lessons: [
       { title: 'Antes de empezar', orderIndex: 1, isFree: true, contents: [
