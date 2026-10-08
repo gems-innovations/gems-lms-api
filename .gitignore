@@ -45,3 +45,6 @@ bin/
 data/uploads/
 **/data/uploads/
 /backups/
+
+# JVM crash dumps
+hs_err_pid*.log

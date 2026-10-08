@@ -2,9 +2,9 @@ package com.gems.education.infrastructure.driving.scheduler;
 
 import com.gems.education.application.EngagementPlanner;
 import com.gems.education.application.gateway.EmailNoticeGateway;
+import com.gems.shared.security.InternalApiKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -41,16 +39,16 @@ public class EngagementEmailJob {
   private final DatabaseClient db;
   private final EmailNoticeGateway emails;
   private final com.gems.education.application.NotificationUseCase notifications;
-  private final byte[] internalKey;
+  private final InternalApiKey internalKey;
   private final Clock clock;
 
   public EngagementEmailJob(DatabaseClient db, EmailNoticeGateway emails,
                             com.gems.education.application.NotificationUseCase notifications,
-                            @Value("${jwt.secret}") String internalKey) {
+                            InternalApiKey internalKey) {
     this.notifications = notifications;
     this.db = db;
     this.emails = emails;
-    this.internalKey = internalKey.getBytes(StandardCharsets.UTF_8);
+    this.internalKey = internalKey;
     this.clock = Clock.system(BOGOTA);
   }
 
@@ -70,10 +68,8 @@ public class EngagementEmailJob {
 
   /** Runs it now (to try it locally). Service-to-service only: internal key, not routed by the gateway. */
   @PostMapping("/internal/engagement/run")
-  public Mono<ResponseEntity<Map<String, Long>>> runNow(@RequestHeader("X-Internal-Key") String key) {
-    if (!MessageDigest.isEqual(internalKey, key.getBytes(StandardCharsets.UTF_8))) {
-      return Mono.just(ResponseEntity.status(403).build());
-    }
+  public Mono<ResponseEntity<Map<String, Long>>> runNow(@RequestHeader(InternalApiKey.HEADER) String key) {
+    internalKey.require(key);
     return run().map(sent -> ResponseEntity.ok(Map.of("sent", sent)));
   }
 

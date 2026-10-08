@@ -41,7 +41,7 @@ class CertificateUseCaseTest {
     when(users.find(5L)).thenReturn(Mono.just(new UserDirectory.UserProfile(5L, "Ana Ruiz", "inst-1")));
     when(enrollments.findByStudentId(5L)).thenReturn(Flux.just(completed, active));
     when(pathEnrollments.findByStudent(5L)).thenReturn(Flux.just(pathEnrollment));
-    when(courses.findById(10L)).thenReturn(Mono.just(course));
+    when(courses.findHeaderById(10L)).thenReturn(Mono.just(course));
     when(paths.findById(20L)).thenReturn(Mono.just(path));
     when(certificates.find(eq(5L), any(), any())).thenReturn(Mono.empty());
     when(certificates.save(any())).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
@@ -65,7 +65,7 @@ class CertificateUseCaseTest {
     when(users.find(5L)).thenReturn(Mono.just(new UserDirectory.UserProfile(5L, "Ana Ruiz", "gems-abierto")));
     when(enrollments.findByStudentId(5L)).thenReturn(Flux.just(completed));
     when(pathEnrollments.findByStudent(5L)).thenReturn(Flux.empty());
-    when(courses.findById(10L)).thenReturn(Mono.just(openCourse));
+    when(courses.findHeaderById(10L)).thenReturn(Mono.just(openCourse));
     when(certificates.findByStudent(5L)).thenReturn(Flux.empty());
 
     StepVerifier.create(useCase.withoutCertificatesFor("gems-abierto").sync(5L)).verifyComplete();

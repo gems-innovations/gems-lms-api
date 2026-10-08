@@ -41,6 +41,7 @@ public class FileController {
   /** Foto de perfil: cualquier usuario la sube; se guarda como pública, solo imágenes rasterizadas. */
   static final String AVATAR = "avatar";
   static final long AVATAR_MAX_BYTES = 2L * 1024 * 1024;
+  private static final String SVG_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox";
   private static final java.util.Set<String> AVATAR_TYPES = java.util.Set.of("image/png", "image/jpeg", "image/webp", "image/gif");
 
   private final FileStorage storage;
@@ -117,13 +118,20 @@ public class FileController {
   }
 
   private Mono<ResponseEntity<Resource>> serve(StoredFile f, CacheControl cache) {
-    return storage.read(f.id()).map(resource -> ResponseEntity.ok()
-      .contentType(MediaType.parseMediaType(f.contentType()))
-      .cacheControl(cache)
-      .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition
-        .builder(PUBLIC.equals(f.scope()) ? "inline" : "attachment")
-        .filename(f.name(), StandardCharsets.UTF_8).build().toString())
-      .body(resource));
+    return storage.read(f.id()).map(resource -> {
+      ResponseEntity.BodyBuilder response = ResponseEntity.ok()
+        .contentType(MediaType.parseMediaType(f.contentType()))
+        .cacheControl(cache)
+        .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition
+          .builder(PUBLIC.equals(f.scope()) ? "inline" : "attachment")
+          .filename(f.name(), StandardCharsets.UTF_8).build().toString());
+      if (f.contentType().toLowerCase(java.util.Locale.ROOT).startsWith("image/svg")) {
+        // An SVG opened directly is a document that may carry scripts: it still works as an <img>
+        // but runs nothing when navigated to.
+        response.header("Content-Security-Policy", SVG_CSP);
+      }
+      return response.body(resource);
+    });
   }
 
   private Mono<Void> insert(String id, AuthenticatedUser caller, String scope, String name, String type, long size) {

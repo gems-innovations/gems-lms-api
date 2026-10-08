@@ -94,7 +94,7 @@ public class PeriodClosingUseCase {
 
   private Flux<PeriodGradeRecord> records(Long periodId, Long courseId, LocalDateTime now) {
     return Mono.zip(
-        courses.findById(courseId).map(c -> c.getTitle() == null ? "Curso " + courseId : c.getTitle()).defaultIfEmpty("Curso " + courseId),
+        courses.findHeaderById(courseId).map(c -> c.getTitle() == null ? "Curso " + courseId : c.getTitle()).defaultIfEmpty("Curso " + courseId),
         gradebook.course(courseId),
         enrollments.findByCourseId(courseId).collectMap(Enrollment::getId, Function.identity()))
       .flatMapMany(t -> {

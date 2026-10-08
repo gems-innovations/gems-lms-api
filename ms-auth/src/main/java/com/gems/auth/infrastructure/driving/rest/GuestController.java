@@ -9,6 +9,7 @@ import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.infrastructure.constants.AuthInfraConstants;
 import com.gems.shared.security.CurrentUser;
 import com.gems.shared.security.RateLimitFilter;
+import com.gems.shared.web.ClientQuota;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,10 +23,6 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.time.Instant;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /** Free access without registering: start as a guest, claim the account later. */
 @RestController
 @RequestMapping(AuthInfraConstants.AUTH_API_BASE_PATH + "/guest")
@@ -36,9 +33,8 @@ public class GuestController {
   private final EmailPreferencesUseCase preferences;
   private final ConsentGateway consents;
   private final String policyVersion;
-  private final int maxPerHour;
-  /** Guests created per client address in the current hour (each instance keeps its own count). */
-  private final Map<String, int[]> created = new ConcurrentHashMap<>();
+  /** Guests created per client address and hour (each instance keeps its own count). */
+  private final ClientQuota creations;
 
   public GuestController(GuestAccessUseCase guests, EmailVerificationUseCase verification,
                          EmailPreferencesUseCase preferences, ConsentGateway consents,
@@ -49,7 +45,7 @@ public class GuestController {
     this.consents = consents;
     this.policyVersion = policyVersion;
     this.guests = guests;
-    this.maxPerHour = maxPerHour;
+    this.creations = new ClientQuota(maxPerHour, 3600);
   }
 
   public record StartRequest(String nickname) {}
@@ -65,12 +61,9 @@ public class GuestController {
   @Operation(summary = "Start as a guest", description = "Creates a guest student in the open institution and signs them in.")
   public Mono<ResponseEntity<LoginResponse>> start(@RequestBody(required = false) StartRequest body, ServerWebExchange exchange) {
     String client = RateLimitFilter.getClientId(exchange.getRequest());
-    int hour = (int) (Instant.now().getEpochSecond() / 3600);
-    int[] slot = created.compute(client, (k, v) -> v == null || v[0] != hour ? new int[]{hour, 1} : new int[]{hour, v[1] + 1});
-    if (slot[1] > maxPerHour) {
+    if (!creations.tryAcquire(client)) {
       return Mono.error(new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many guest sessions from this network. Try again later"));
     }
-    if (created.size() > 50_000) created.entrySet().removeIf(e -> e.getValue()[0] != hour);
     return guests.start(body == null ? null : body.nickname())
       .map(session -> ResponseEntity.status(HttpStatus.CREATED).body(session));
   }

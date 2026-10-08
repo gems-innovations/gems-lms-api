@@ -6,6 +6,7 @@ import com.gems.education.domain.entities.Course;
 import com.gems.education.domain.entities.LearningPath;
 import com.gems.education.domain.entities.LearningPathStep;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -22,17 +23,21 @@ public class LearningPathRepositoryAdapter implements LearningPathGateway {
   private final ILearningPathCourseRepository learningPathCourseRepository;
   private final CourseGateway courseGateway;
   private final IPathEnrollmentRepository pathEnrollmentRepository;
+  private final TransactionalOperator tx;
 
   public LearningPathRepositoryAdapter(ILearningPathRepository learningPathRepository,
                                        ILearningPathCourseRepository learningPathCourseRepository,
                                        CourseGateway courseGateway,
-                                       IPathEnrollmentRepository pathEnrollmentRepository) {
+                                       IPathEnrollmentRepository pathEnrollmentRepository,
+                                       TransactionalOperator tx) {
     this.learningPathRepository = learningPathRepository;
     this.learningPathCourseRepository = learningPathCourseRepository;
     this.courseGateway = courseGateway;
     this.pathEnrollmentRepository = pathEnrollmentRepository;
+    this.tx = tx;
   }
 
+  /** The path and its ordered courses are replaced in one transaction (never a path without its steps). */
   @Override
   public Mono<LearningPath> save(LearningPath learningPath) {
     LocalDateTime createdAt = learningPath.getCreatedAt() != null ? learningPath.getCreatedAt() : LocalDateTime.now();
@@ -49,7 +54,7 @@ public class LearningPathRepositoryAdapter implements LearningPathGateway {
     entity.setUpdatedAt(LocalDateTime.now());
     List<Course> courses = learningPath.getCourses() == null ? List.of() : learningPath.getCourses();
 
-    return learningPathRepository.save(entity)
+    return tx.transactional(learningPathRepository.save(entity)
       .flatMap(savedPath -> {
         Mono<Void> cleanUp = learningPath.getId() != null
           ? learningPathCourseRepository.deleteByLearningPathId(savedPath.getId())
@@ -68,7 +73,7 @@ public class LearningPathRepositoryAdapter implements LearningPathGateway {
             })
             .collectList()
             .flatMap(saved -> withEnrolledCount(mapToDomain(savedPath, saved, steps(courses, learningPath)))));
-      });
+      }));
   }
 
   @Override

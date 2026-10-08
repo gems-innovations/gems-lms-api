@@ -38,10 +38,12 @@ public class RegisterUserUseCase {
         boolean passwordWasGenerated = command.password() == null || command.password().isBlank();
         String rawPassword = passwordWasGenerated ? generateTemporaryPassword() : command.password();
         String userPassword = new Password(rawPassword).getValue();
-        String encodedPassword = passwordEncoderGateway.encode(userPassword);
 
-        return resolveUsername(command.username(), command.firstName(), command.lastName())
-          .flatMap(username -> {
+        return Mono.zip(Blocking.offload(() -> passwordEncoderGateway.encode(userPassword)),
+            resolveUsername(command.username(), command.firstName(), command.lastName()))
+          .flatMap(encodedAndUsername -> {
+            String encodedPassword = encodedAndUsername.getT1();
+            String username = encodedAndUsername.getT2();
             User user = new User(
               command.firstName(),
               command.lastName(),

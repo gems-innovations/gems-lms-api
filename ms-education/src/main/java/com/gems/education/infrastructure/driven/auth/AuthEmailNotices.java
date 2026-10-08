@@ -2,6 +2,7 @@ package com.gems.education.infrastructure.driven.auth;
 
 import com.gems.education.application.gateway.EmailNoticeGateway;
 import com.gems.shared.security.CurrentUser;
+import com.gems.shared.security.InternalApiKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,11 +21,11 @@ public class AuthEmailNotices implements EmailNoticeGateway {
   private static final Logger log = LoggerFactory.getLogger(AuthEmailNotices.class);
 
   private final WebClient client;
-  private final String internalKey;
+  private final InternalApiKey internalKey;
 
   public AuthEmailNotices(WebClient.Builder builder,
                           @Value("${services.auth.url:http://localhost:8081}") String authUrl,
-                          @Value("${jwt.secret}") String internalKey) {
+                          InternalApiKey internalKey) {
     this.client = builder.baseUrl(authUrl).build();
     this.internalKey = internalKey;
   }
@@ -50,7 +51,7 @@ public class AuthEmailNotices implements EmailNoticeGateway {
                                   String linkLabel) {
     return client.post()
       .uri("/internal/notifications/email-address")
-      .header("X-Internal-Key", internalKey)
+      .header(InternalApiKey.HEADER, internalKey.value())
       .bodyValue(Map.of("to", to, "name", name == null ? "" : name, "subject", subject, "message", message,
         "linkPath", linkPath, "linkLabel", linkLabel))
       .retrieve()
@@ -68,7 +69,7 @@ public class AuthEmailNotices implements EmailNoticeGateway {
   public Mono<Void> sendTip(Long userId, String subject, String message, String linkPath, String linkLabel) {
     return client.post()
       .uri("/internal/notifications/tip")
-      .header("X-Internal-Key", internalKey)
+      .header(InternalApiKey.HEADER, internalKey.value())
       .bodyValue(Map.of("userId", userId, "subject", subject, "message", message, "linkPath", linkPath,
         "linkLabel", linkLabel))
       .retrieve()
@@ -86,7 +87,7 @@ public class AuthEmailNotices implements EmailNoticeGateway {
       .flatMap(token -> client.post()
         .uri("/internal/notifications/email")
         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
-        .header("X-Internal-Key", internalKey)
+        .header(InternalApiKey.HEADER, internalKey.value())
         .bodyValue(body)
         .retrieve()
         .toBodilessEntity()

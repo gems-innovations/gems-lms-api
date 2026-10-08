@@ -1,7 +1,6 @@
 package com.gems.auth.infrastructure.driven.encoder;
 
 import com.gems.auth.application.gateway.PasswordEncoderGateway;
-import com.gems.auth.domain.values.Password;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 

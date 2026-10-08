@@ -112,21 +112,14 @@ class JwtAdapterTest {
   }
 
   @Test
-  void shouldGenerateTokenWithShortSecret() {
+  void shouldRejectShortSecretInsteadOfPaddingIt() {
     // Given
     JwtAdapter shortSecretAdapter = new JwtAdapter();
     ReflectionTestUtils.setField(shortSecretAdapter, "jwtSecret", "short");
     ReflectionTestUtils.setField(shortSecretAdapter, "jwtExpiration", 3600);
-    Long userId = 100L;
-    String role = "USER";
 
-    // When
-    String token = shortSecretAdapter.generateToken(userId, role);
-
-    // Then
-    assertNotNull(token);
-    Boolean isValid = shortSecretAdapter.validateToken(token);
-    assertTrue(isValid);
+    // When / Then
+    assertThrows(RuntimeException.class, () -> shortSecretAdapter.generateToken(100L, "USER"));
   }
 
   @Test

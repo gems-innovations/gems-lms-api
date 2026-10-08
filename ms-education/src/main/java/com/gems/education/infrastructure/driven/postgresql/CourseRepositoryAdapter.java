@@ -7,6 +7,7 @@ import com.gems.education.domain.entities.Lesson;
 import com.gems.education.domain.entities.Module;
 import org.springframework.data.r2dbc.core.R2dbcEntityTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -27,17 +28,20 @@ public class CourseRepositoryAdapter implements CourseGateway {
   private final ILessonRepository lessonRepository;
   private final IContentRepository contentRepository;
   private final R2dbcEntityTemplate template;
+  private final TransactionalOperator tx;
 
   public CourseRepositoryAdapter(ICourseRepository courseRepository,
                                  IModuleRepository moduleRepository,
                                  ILessonRepository lessonRepository,
                                  IContentRepository contentRepository,
-                                 R2dbcEntityTemplate template) {
+                                 R2dbcEntityTemplate template,
+                                 TransactionalOperator tx) {
     this.courseRepository = courseRepository;
     this.moduleRepository = moduleRepository;
     this.lessonRepository = lessonRepository;
     this.contentRepository = contentRepository;
     this.template = template;
+    this.tx = tx;
   }
 
   /**
@@ -45,19 +49,30 @@ public class CourseRepositoryAdapter implements CourseGateway {
    * items that carry an id are updated, items without id are inserted and items that
    * are no longer present are deleted. Ids therefore stay stable across updates, which
    * matters because quizzes (and student progress) reference lesson ids, and lessons
-   * cascade-delete their quizzes.
+   * cascade-delete their quizzes. It all happens in one transaction: a failure half way leaves
+   * the stored tree as it was instead of half rewritten.
    */
   @Override
   public Mono<Course> save(Course course) {
     CourseEntity courseEntity = mapToEntity(course);
-    return courseRepository.save(courseEntity)
+    return tx.transactional(courseRepository.save(courseEntity)
       .flatMap(savedCourse -> {
         if (course.getModules() == null) {
           return Mono.just(mapToDomain(savedCourse, new ArrayList<>()));
         }
         return syncModules(savedCourse.getId(), course.getModules())
           .map(modules -> mapToDomain(savedCourse, modules));
-      });
+      }));
+  }
+
+  @Override
+  public Mono<Course> findHeaderById(Long id) {
+    return courseRepository.findById(id).map(entity -> mapToDomain(entity, new ArrayList<>()));
+  }
+
+  @Override
+  public Flux<Course> findHeadersByInstitutionId(String institutionId) {
+    return courseRepository.findByInstitutionId(institutionId).map(entity -> mapToDomain(entity, new ArrayList<>()));
   }
 
   @Override
@@ -155,20 +170,17 @@ public class CourseRepositoryAdapter implements CourseGateway {
 
   @Override
   public Mono<Course> findById(Long id) {
-    return courseRepository.findById(id)
-      .flatMap(this::loadFullCourse);
+    return loadFullCourses(courseRepository.findById(id).flux()).next();
   }
 
   @Override
   public Flux<Course> findByInstitutionId(String institutionId) {
-    return courseRepository.findByInstitutionId(institutionId)
-      .flatMap(this::loadFullCourse);
+    return loadFullCourses(courseRepository.findByInstitutionId(institutionId));
   }
 
   @Override
   public Flux<Course> findAll() {
-    return courseRepository.findAll()
-      .flatMap(this::loadFullCourse);
+    return loadFullCourses(courseRepository.findAll());
   }
 
   @Override
@@ -176,16 +188,43 @@ public class CourseRepositoryAdapter implements CourseGateway {
     return courseRepository.deleteById(id);
   }
 
-  /** The course tree in three queries (modules, their lessons, their contents), whatever its size. */
-  private Mono<Course> loadFullCourse(CourseEntity courseEntity) {
-    return moduleRepository.findByCourseId(courseEntity.getId()).collectList().flatMap(moduleEntities -> {
-      if (moduleEntities.isEmpty()) return Mono.just(mapToDomain(courseEntity, new ArrayList<>()));
-      return lessonRepository.findByModuleIdIn(moduleEntities.stream().map(ModuleEntity::getId).toList()).collectList()
-        .flatMap(lessonEntities -> (lessonEntities.isEmpty()
-            ? Mono.just(List.<ContentEntity>of())
-            : contentRepository.findByLessonIdIn(lessonEntities.stream().map(LessonEntity::getId).toList()).collectList())
-          .map(contentEntities -> mapToDomain(courseEntity, assemble(moduleEntities, lessonEntities, contentEntities))));
+  /**
+   * The course trees in four queries (courses, their modules, lessons and contents) however many courses
+   * there are, instead of three more queries per course. The order of {@code courses} is kept.
+   */
+  private Flux<Course> loadFullCourses(Flux<CourseEntity> courses) {
+    return courses.collectList().flatMapMany(courseEntities -> {
+      if (courseEntities.isEmpty()) return Flux.empty();
+      return moduleRepository.findByCourseIdIn(courseEntities.stream().map(CourseEntity::getId).toList()).collectList()
+        .flatMap(moduleEntities -> lessonsOf(moduleEntities).flatMap(lessonEntities -> contentsOf(lessonEntities)
+          .map(contentEntities -> trees(courseEntities, moduleEntities, lessonEntities, contentEntities))))
+        .flatMapMany(Flux::fromIterable);
     });
+  }
+
+  private Mono<List<LessonEntity>> lessonsOf(List<ModuleEntity> modules) {
+    return modules.isEmpty() ? Mono.just(List.of())
+      : lessonRepository.findByModuleIdIn(modules.stream().map(ModuleEntity::getId).toList()).collectList();
+  }
+
+  private Mono<List<ContentEntity>> contentsOf(List<LessonEntity> lessons) {
+    return lessons.isEmpty() ? Mono.just(List.of())
+      : contentRepository.findByLessonIdIn(lessons.stream().map(LessonEntity::getId).toList()).collectList();
+  }
+
+  private List<Course> trees(List<CourseEntity> courses, List<ModuleEntity> modules, List<LessonEntity> lessons,
+                             List<ContentEntity> contents) {
+    Map<Long, List<ModuleEntity>> modulesByCourse = modules.stream().collect(Collectors.groupingBy(ModuleEntity::getCourseId));
+    Map<Long, List<LessonEntity>> lessonsByModule = lessons.stream().collect(Collectors.groupingBy(LessonEntity::getModuleId));
+    Map<Long, List<ContentEntity>> contentsByLesson = contents.stream().collect(Collectors.groupingBy(ContentEntity::getLessonId));
+    return courses.stream().map(course -> {
+      List<ModuleEntity> courseModules = modulesByCourse.getOrDefault(course.getId(), List.of());
+      List<LessonEntity> courseLessons = courseModules.stream()
+        .flatMap(m -> lessonsByModule.getOrDefault(m.getId(), List.of()).stream()).toList();
+      List<ContentEntity> courseContents = courseLessons.stream()
+        .flatMap(l -> contentsByLesson.getOrDefault(l.getId(), List.of()).stream()).toList();
+      return mapToDomain(course, assemble(courseModules, courseLessons, courseContents));
+    }).toList();
   }
 
   private static List<Module> assemble(List<ModuleEntity> moduleEntities,
@@ -222,8 +261,8 @@ public class CourseRepositoryAdapter implements CourseGateway {
         .offset(offset)
         .limit(limit);
 
-    // flatMapSequential keeps the "newest first" order of the query.
-    return template.select(query, CourseEntity.class).flatMapSequential(this::loadFullCourse);
+    // The order of the query ("newest first") is kept.
+    return loadFullCourses(template.select(query, CourseEntity.class));
   }
 
   @Override

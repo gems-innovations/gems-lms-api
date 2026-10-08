@@ -14,8 +14,10 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+-- email and username are UNIQUE (each has its own index), so the plain indexes this file used to create
+-- on them only duplicated it and slowed every write.
+DROP INDEX IF EXISTS idx_users_email;
+DROP INDEX IF EXISTS idx_users_username;
 CREATE INDEX IF NOT EXISTS idx_users_active ON users(active);
 CREATE INDEX IF NOT EXISTS idx_users_institution_id ON users(institution_id);
 

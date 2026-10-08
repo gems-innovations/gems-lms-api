@@ -49,7 +49,7 @@ public class CertificateUseCase {
     return users.find(studentId).flatMapMany(profile -> Flux.merge(
         enrollments.findByStudentId(studentId)
           .filter(e -> "completed".equals(e.getStatus()) && e.getCompletedAt() != null)
-          .flatMap(e -> courses.findById(e.getCourseId())
+          .flatMap(e -> courses.findHeaderById(e.getCourseId())
             .filter(course -> openInstitutionId == null || !openInstitutionId.equals(course.getInstitutionId()))
             .flatMap(course -> issue(profile,
             "COURSE", course.getId(), course.getTitle(), course.getInstructorName(), e.getCompletedAt()))),

@@ -160,9 +160,22 @@ public class CourseActivityController {
     return gradeSubmissionUseCase.execute(id, request.grade(), request.feedback());
   }
 
+  private static final int MAX_FILE_URLS = 20;
+  private static final int MAX_FILE_URL_LENGTH = 2048;
+
+  /** The delivered links, which staff later open: bounded in number and size and never a script-bearing scheme. */
   private String toJson(List<String> values) {
+    if (values == null) return null;
+    if (values.size() > MAX_FILE_URLS) throw new IllegalArgumentException("At most " + MAX_FILE_URLS + " files per delivery");
+    for (String value : values) {
+      String link = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
+      if (link.length() > MAX_FILE_URL_LENGTH || link.startsWith("javascript:")
+          || link.startsWith("data:") || link.startsWith("vbscript:")) {
+        throw new IllegalArgumentException("Invalid file URLs");
+      }
+    }
     try {
-      return values == null ? null : mapper.writeValueAsString(values);
+      return mapper.writeValueAsString(values);
     } catch (Exception e) {
       throw new IllegalArgumentException("Invalid file URLs");
     }

@@ -25,8 +25,6 @@ import com.gems.auth.application.gateway.PasswordEncoderGateway;
 import com.gems.auth.application.gateway.PasswordResetGateway;
 import com.gems.auth.application.gateway.PasswordResetNotifier;
 import com.gems.auth.application.gateway.UserGateway;
-import com.gems.auth.infrastructure.driven.postgresql.IUserRepository;
-import com.gems.auth.infrastructure.driven.postgresql.UserRepositoryAdapter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,11 +35,6 @@ public class ApplicationConfig {
   @Bean
   public AuditUseCase auditUseCase(AuditGateway auditGateway) {
     return new AuditUseCase(auditGateway);
-  }
-
-  @Bean
-  public UserGateway userGateway(IUserRepository userRepository) {
-    return new UserRepositoryAdapter(userRepository);
   }
 
   @Bean

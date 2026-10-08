@@ -31,7 +31,7 @@ Usuarios de desarrollo (contraseña: `DEV_PASSWORD` del `.env` local, que `dev-u
 
 ### Trampas conocidas
 
-- **Git Bash en Windows**: MSYS convierte variables que parecen rutas (`AUTH_LOGIN_PATH=/api/v1/auth/login`)
+- **Git Bash en Windows**: MSYS convierte variables que parecen rutas (p. ej. `CUALQUIER_RUTA=/api/v1/auth/login`)
   en rutas de Windows al lanzar Java, y el login responde 401 vacío. `dev-up.sh` exporta
   `MSYS_NO_PATHCONV=1` y `MSYS2_ENV_CONV_EXCL='*'`. `start-microservices.sh` no lo hace.
 - **Tildes con curl en Git Bash**: los argumentos se recodifican y el back responde 500 por JSON inválido.

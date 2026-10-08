@@ -1,5 +1,7 @@
 package com.gems.gateway.audit;
 
+import com.gems.shared.security.InternalApiKey;
+import com.gems.shared.security.RateLimitFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,10 +24,10 @@ public class AuditTrailFilter implements GlobalFilter, Ordered {
   private static final Set<HttpMethod> MUTATIONS = Set.of(HttpMethod.POST, HttpMethod.PUT,
     HttpMethod.PATCH, HttpMethod.DELETE);
   private final WebClient auth;
-  private final String auditKey;
+  private final InternalApiKey auditKey;
 
   public AuditTrailFilter(@Value("${AUTH_SERVICE_URL:http://localhost:8081}") String authUrl,
-                          @Value("${jwt.secret}") String auditKey) {
+                          InternalApiKey auditKey) {
     this.auth = WebClient.builder().baseUrl(authUrl).build();
     this.auditKey = auditKey;
   }
@@ -50,7 +52,7 @@ public class AuditTrailFilter implements GlobalFilter, Ordered {
       clientIp(exchange), exchange.getRequest().getHeaders().getFirst(HttpHeaders.USER_AGENT));
     return auth.post().uri("/internal/audit/events")
       .header(HttpHeaders.AUTHORIZATION, authorization)
-      .header("X-Audit-Key", auditKey)
+      .header("X-Audit-Key", auditKey.value())
       .bodyValue(event).retrieve().toBodilessEntity().then();
   }
 
@@ -70,11 +72,13 @@ public class AuditTrailFilter implements GlobalFilter, Ordered {
     return "UPDATE";
   }
 
+  /**
+   * Same rule as the rate limiter: forwarding headers count only when they come from a trusted
+   * proxy and the hop appended by that proxy is used, so a client cannot write its own address
+   * into the audit trail.
+   */
   private static String clientIp(ServerWebExchange exchange) {
-    String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
-    if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
-    return exchange.getRequest().getRemoteAddress() == null ? null
-      : exchange.getRequest().getRemoteAddress().getAddress().getHostAddress();
+    return RateLimitFilter.getClientId(exchange.getRequest());
   }
 
   private record AuditRequest(String action, String method, String path, int status,

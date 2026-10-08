@@ -2,37 +2,31 @@ package com.gems.auth.infrastructure.driving.rest;
 
 import com.gems.auth.application.AuditUseCase;
 import com.gems.auth.domain.entities.AuditEvent;
-import com.gems.shared.security.AuthenticatedUser;
 import com.gems.shared.security.CurrentUser;
-import com.gems.shared.security.ForbiddenException;
+import com.gems.shared.security.InternalApiKey;
 import com.gems.shared.web.Paging;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 public class AuditController {
   private final AuditUseCase audit;
-  private final byte[] internalKey;
+  private final InternalApiKey internalKey;
 
-  public AuditController(AuditUseCase audit, @Value("${jwt.secret}") String internalKey) {
+  public AuditController(AuditUseCase audit, InternalApiKey internalKey) {
     this.audit = audit;
-    this.internalKey = internalKey.getBytes(StandardCharsets.UTF_8);
+    this.internalKey = internalKey;
   }
 
   @PostMapping("/internal/audit/events")
   public Mono<ResponseEntity<Void>> record(@RequestHeader("X-Audit-Key") String key,
                                            @RequestBody AuditRequest request) {
-    if (!MessageDigest.isEqual(internalKey, key.getBytes(StandardCharsets.UTF_8))) {
-      return Mono.error(new ForbiddenException("Invalid audit signature"));
-    }
+    internalKey.require(key);
     return CurrentUser.forPasswordChange().flatMap(caller -> audit.record(caller.userId(), caller.role(),
       caller.institutionId(), request.action(), request.method(), request.path(), request.status(),
       request.clientIp(), request.userAgent())).thenReturn(ResponseEntity.noContent().build());

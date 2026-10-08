@@ -4,6 +4,7 @@ import com.gems.auth.application.AuditUseCase;
 import com.gems.auth.application.gateway.AuditGateway;
 import com.gems.auth.domain.entities.AuditEvent;
 import com.gems.shared.security.AuthenticatedUser;
+import com.gems.shared.security.InternalApiKey;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -19,7 +20,7 @@ class AuditControllerTest {
   private final AuditUseCase audit = mock(AuditUseCase.class);
 
   private WebTestClient client(AuthenticatedUser caller) {
-    return WebTestClient.bindToController(new AuditController(audit, "internal-secret"))
+    return WebTestClient.bindToController(new AuditController(audit, new InternalApiKey("internal-secret", "jwt-secret")))
       .webFilter(TestSecurity.authenticatedAs(caller))
       .controllerAdvice(new GlobalExceptionHandler(), new com.gems.shared.security.SecurityExceptionAdvice())
       .build();

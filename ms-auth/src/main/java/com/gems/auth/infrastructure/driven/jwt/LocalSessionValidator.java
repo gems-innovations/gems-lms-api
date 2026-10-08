@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 public class LocalSessionValidator implements SessionValidator {
   private final UserGateway users;
 
-  public LocalSessionValidator(@org.springframework.beans.factory.annotation.Qualifier("userGateway") UserGateway users) {
+  public LocalSessionValidator(UserGateway users) {
     this.users = users;
   }
 

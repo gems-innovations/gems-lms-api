@@ -2,10 +2,9 @@ package com.gems.auth.infrastructure.driving.rest;
 
 import com.gems.auth.application.EmailPreferencesUseCase;
 import com.gems.shared.security.CurrentUser;
-import com.gems.shared.security.ForbiddenException;
+import com.gems.shared.security.InternalApiKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,8 +12,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.List;
 
 /**
@@ -26,11 +23,11 @@ public class InternalNoticeController {
   private static final Logger log = LoggerFactory.getLogger(InternalNoticeController.class);
 
   private final EmailPreferencesUseCase preferences;
-  private final byte[] internalKey;
+  private final InternalApiKey internalKey;
 
-  public InternalNoticeController(EmailPreferencesUseCase preferences, @Value("${jwt.secret}") String internalKey) {
+  public InternalNoticeController(EmailPreferencesUseCase preferences, InternalApiKey internalKey) {
     this.preferences = preferences;
-    this.internalKey = internalKey.getBytes(StandardCharsets.UTF_8);
+    this.internalKey = internalKey;
   }
 
   /** To the given users, or (when {@code staffOfInstitution} is set) to that institution's teachers and admins. */
@@ -48,10 +45,8 @@ public class InternalNoticeController {
 
   /** Answers at once; the e-mails are sent in the background so the caller is never slowed down. */
   @PostMapping("/internal/notifications/email")
-  public Mono<ResponseEntity<Void>> send(@RequestHeader("X-Internal-Key") String key, @RequestBody NoticeRequest request) {
-    if (!MessageDigest.isEqual(internalKey, key.getBytes(StandardCharsets.UTF_8))) {
-      return Mono.error(new ForbiddenException("Invalid internal key"));
-    }
+  public Mono<ResponseEntity<Void>> send(@RequestHeader(InternalApiKey.HEADER) String key, @RequestBody NoticeRequest request) {
+    internalKey.require(key);
     boolean toStaff = request != null && !isBlank(request.staffOfInstitution());
     if (request == null || (!toStaff && (request.userIds() == null || request.userIds().isEmpty()))
         || isBlank(request.subject()) || isBlank(request.message())) {
@@ -75,11 +70,9 @@ public class InternalNoticeController {
    * and this path is never routed by the gateway.
    */
   @PostMapping("/internal/notifications/email-address")
-  public Mono<ResponseEntity<Void>> sendToAddress(@RequestHeader("X-Internal-Key") String key,
+  public Mono<ResponseEntity<Void>> sendToAddress(@RequestHeader(InternalApiKey.HEADER) String key,
                                                   @RequestBody AddressNoticeRequest request) {
-    if (!MessageDigest.isEqual(internalKey, key.getBytes(StandardCharsets.UTF_8))) {
-      return Mono.error(new ForbiddenException("Invalid internal key"));
-    }
+    internalKey.require(key);
     if (request == null || isBlank(request.to()) || isBlank(request.subject()) || isBlank(request.message())) {
       return Mono.just(ResponseEntity.badRequest().build());
     }
@@ -95,10 +88,8 @@ public class InternalNoticeController {
 
   /** Motivation e-mails from ms-education's daily job (no user session): internal key only. */
   @PostMapping("/internal/notifications/tip")
-  public Mono<ResponseEntity<Void>> sendTip(@RequestHeader("X-Internal-Key") String key, @RequestBody TipRequest request) {
-    if (!MessageDigest.isEqual(internalKey, key.getBytes(StandardCharsets.UTF_8))) {
-      return Mono.error(new ForbiddenException("Invalid internal key"));
-    }
+  public Mono<ResponseEntity<Void>> sendTip(@RequestHeader(InternalApiKey.HEADER) String key, @RequestBody TipRequest request) {
+    internalKey.require(key);
     if (request == null || request.userId() == null || isBlank(request.subject()) || isBlank(request.message())) {
       return Mono.just(ResponseEntity.badRequest().build());
     }

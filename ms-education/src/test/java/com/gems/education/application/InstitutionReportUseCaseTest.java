@@ -25,7 +25,7 @@ class InstitutionReportUseCaseTest {
   @Test
   void aggregatesCoursesEnrollmentsProgressAndPendingDeliveries() {
     LocalDateTime now = LocalDateTime.now();
-    when(courses.findByInstitutionId("inst-1")).thenReturn(Flux.just(
+    when(courses.findHeadersByInstitutionId("inst-1")).thenReturn(Flux.just(
       course(1L, "Docker", "", "published", "inst-1", now, now, List.of()),
       course(2L, "Java", "", "draft", "inst-1", now, now, List.of())));
     Enrollment completed = new Enrollment(1L, 10L, 1L, "completed", now, 100, now);

@@ -50,7 +50,7 @@ class PeriodClosingUseCaseTest {
   @Test
   void closingFreezesFinalGradesOfThePeriodCoursesOnly() {
     when(rules.findByInstitution("inst-1")).thenReturn(Flux.just(inPeriod(1L, 9L), inPeriod(2L, 7L)));
-    when(courses.findById(1L)).thenReturn(Mono.empty());
+    when(courses.findHeaderById(1L)).thenReturn(Mono.empty());
     when(enrollments.findByCourseId(1L)).thenReturn(Flux.just(
       new Enrollment(100L, 50L, 1L, "active", LocalDateTime.now(clock), 80, null),
       new Enrollment(101L, 51L, 1L, "active", LocalDateTime.now(clock), 30, null)));

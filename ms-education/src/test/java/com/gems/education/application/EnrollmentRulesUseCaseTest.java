@@ -43,7 +43,7 @@ class EnrollmentRulesUseCaseTest {
 
   @BeforeEach
   void setUp() {
-    when(courses.findById(anyLongOr())).thenAnswer(inv -> {
+    when(courses.findHeaderById(anyLongOr())).thenAnswer(inv -> {
       Long id = inv.getArgument(0);
       String inst = id == 99L ? "inst-2" : "inst-1";
       return Mono.just(TestData.course(id, "Curso " + id, "d", "published", inst, NOW, NOW, List.of()));

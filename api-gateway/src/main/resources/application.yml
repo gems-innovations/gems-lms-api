@@ -14,106 +14,103 @@ spring:
       password: "${REDIS_PASSWORD}"
   cloud:
     gateway:
-      default-filters:
-        # Both this gateway and each downstream microservice apply their own CorsWebFilter
-        # (shared.security.CorsConfig). When the gateway proxies a response that already
-        # carries CORS headers, its own filter adds them again, so the header ends up
-        # duplicated on the way to the browser — which then rejects the response outright.
-        - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Expose-Headers Vary X-Content-Type-Options X-Frame-Options X-XSS-Protection Strict-Transport-Security Content-Security-Policy Referrer-Policy Permissions-Policy X-Permitted-Cross-Domain-Policies, RETAIN_UNIQUE
-      routes:
-        - id: ms-auth-auth
-          uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
-          predicates:
-            - Path=/api/v1/auth/**
+      server:
+        webflux:
+          default-filters:
+            # Both this gateway and each downstream microservice answer CORS and add the security
+            # headers (shared.security.CorsSourceConfig, SecurityHeadersFilter). When the gateway
+            # proxies a response that already carries them, the header would reach the browser
+            # duplicated, and the browser rejects the response outright.
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials Access-Control-Expose-Headers Vary X-Content-Type-Options X-Frame-Options X-XSS-Protection Strict-Transport-Security Content-Security-Policy Referrer-Policy Permissions-Policy X-Permitted-Cross-Domain-Policies, RETAIN_UNIQUE
+          routes:
+            - id: ms-auth-auth
+              uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
+              predicates:
+                - Path=/api/v1/auth/**
 
-        - id: ms-auth-users
-          uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
-          predicates:
-            - Path=/api/v1/users/**
+            - id: ms-auth-users
+              uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
+              predicates:
+                - Path=/api/v1/users/**
 
-        - id: ms-auth-audit
-          uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
-          predicates:
-            - Path=/api/v1/audit/**
+            - id: ms-auth-audit
+              uri: ${AUTH_SERVICE_URL:http://localhost:${AUTH_PORT:8081}}
+              predicates:
+                - Path=/api/v1/audit/**
 
-        - id: ms-admin-institutions
-          uri: ${ADMIN_SERVICE_URL:http://localhost:${ADMIN_PORT:8082}}
-          predicates:
-            - Path=/api/v1/institutions/**
+            - id: ms-admin-institutions
+              uri: ${ADMIN_SERVICE_URL:http://localhost:${ADMIN_PORT:8082}}
+              predicates:
+                - Path=/api/v1/institutions/**
 
-        - id: ms-admin-branding
-          uri: ${ADMIN_SERVICE_URL:http://localhost:${ADMIN_PORT:8082}}
-          predicates:
-            - Path=/api/v1/branding/**
+            - id: ms-admin-branding
+              uri: ${ADMIN_SERVICE_URL:http://localhost:${ADMIN_PORT:8082}}
+              predicates:
+                - Path=/api/v1/branding/**
 
-        - id: ms-education-courses
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/courses/**
+            - id: ms-education-courses
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/courses/**
 
-        - id: ms-education-students
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/students/**
+            - id: ms-education-students
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/students/**
 
-        - id: ms-education-quizzes
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/quizzes/**,/api/v1/question-bank/**,/api/v1/academic-periods/**
+            - id: ms-education-quizzes
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/quizzes/**,/api/v1/question-bank/**,/api/v1/academic-periods/**
 
-        - id: ms-education-learning-paths
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/learning-paths/**
+            - id: ms-education-learning-paths
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/learning-paths/**
 
-        - id: ms-education-activity
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/activity/**,/api/v1/submissions/**
+            - id: ms-education-activity
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/activity/**,/api/v1/submissions/**
 
-        - id: ms-education-notifications
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/notifications/**
+            - id: ms-education-notifications
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/notifications/**
 
-        - id: ms-education-files
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/files/**
+            - id: ms-education-files
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/files/**
 
-        - id: ms-education-groups
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/groups/**
+            - id: ms-education-groups
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/groups/**
 
-        - id: ms-education-enrollments
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/enrollments/**
+            - id: ms-education-enrollments
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/enrollments/**
 
-        - id: ms-education-certificates
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/certificates/**
+            - id: ms-education-certificates
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/certificates/**
 
-        - id: ms-education-reports
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/reports/**
+            - id: ms-education-reports
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/reports/**
 
-        # Catálogo público (cursos gratis) y solicitudes de instituciones, sin sesión.
-        - id: ms-education-public
-          uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
-          predicates:
-            - Path=/api/v1/public/**,/api/v1/institution-requests/**,/api/v1/institution-requests
+            # Catálogo público (cursos gratis) y solicitudes de instituciones, sin sesión.
+            - id: ms-education-public
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/public/**,/api/v1/institution-requests/**,/api/v1/institution-requests
 
 jwt:
   secret: "${JWT_SECRET}"
-  expiration: 86400000
-
-auth:
-  login:
-    path: "/api/v1/auth/login"
 
 rate:
   limit:

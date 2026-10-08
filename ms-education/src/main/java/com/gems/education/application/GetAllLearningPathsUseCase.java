@@ -1,14 +1,10 @@
 package com.gems.education.application;
 
 import com.gems.education.application.gateway.LearningPathGateway;
-import com.gems.education.application.response.CourseResponse;
 import com.gems.education.application.response.LearningPathResponse;
 import com.gems.education.domain.entities.LearningPath;
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class GetAllLearningPathsUseCase {
   private final LearningPathGateway learningPathGateway;

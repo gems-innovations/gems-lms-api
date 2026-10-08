@@ -56,10 +56,6 @@ public class PathEnrollmentUseCase {
           PathEnrollment.ACTIVE, LocalDateTime.now(), null)))));
   }
 
-  public Flux<PathEnrollment> ofStudent(Long studentId) {
-    return gateway.findByStudent(studentId);
-  }
-
   /** The student's path enrollments with progress; newly completed paths are marked completed. */
   public Flux<Progress> progressOf(Long studentId) {
     return Mono.zip(enrollmentGateway.findByStudentId(studentId)

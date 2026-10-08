@@ -1,7 +1,6 @@
 package com.gems.auth.application;
 
 import com.gems.auth.application.gateway.AuditGateway;
-import com.gems.auth.domain.entities.AuditEvent;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;

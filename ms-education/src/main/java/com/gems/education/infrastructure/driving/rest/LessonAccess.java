@@ -17,8 +17,8 @@ public class LessonAccess {
   private final EnrollmentGateway enrollments;
   private final EducationAccess access;
 
-  public LessonAccess(@org.springframework.beans.factory.annotation.Qualifier("courseGateway") CourseGateway courses,
-                     @org.springframework.beans.factory.annotation.Qualifier("enrollmentGateway") EnrollmentGateway enrollments,
+  public LessonAccess(CourseGateway courses,
+                     EnrollmentGateway enrollments,
                      EducationAccess access) {
     this.courses = courses;
     this.enrollments = enrollments;

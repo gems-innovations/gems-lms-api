@@ -50,10 +50,14 @@ public class GuestAccessUseCase {
     if (name.length() > 40) name = name.substring(0, 40);
     // Nobody signs in with this password: the guest keeps the session token until they claim the account.
     String password = "Gg1!" + HexFormat.of().formatHex(bytes(12));
-    User guest = new User(name, "GEMS", "invitado." + id, "invitado-" + id + GUEST_DOMAIN,
-      encoder.encode(new Password(password).getValue()), UserRole.STUDENT, openInstitutionId, null);
-    // Read back so the token carries exactly the session revision stored in the database.
-    return users.save(guest).flatMap(saved -> users.findById(saved.getId())).map(this::session);
+    String guestName = name;
+    String strongPassword = new Password(password).getValue();
+    return Blocking.offload(() -> encoder.encode(strongPassword))
+      .map(encoded -> new User(guestName, "GEMS", "invitado." + id, "invitado-" + id + GUEST_DOMAIN,
+        encoded, UserRole.STUDENT, openInstitutionId, null))
+      // Read back so the token carries exactly the session revision stored in the database.
+      .flatMap(guest -> users.save(guest).flatMap(saved -> users.findById(saved.getId())))
+      .map(this::session);
   }
 
   /** Turns the guest into a regular account with its own email and password; progress stays. */
@@ -70,10 +74,12 @@ public class GuestAccessUseCase {
           if (Boolean.TRUE.equals(taken)) {
             return Mono.<LoginResponse>error(new UserAlreadyExistsException("An account with this email already exists"));
           }
-          User claimed = new User(guest.getId(), new UserName(firstName.trim()), new UserName(lastName.trim()),
-            guest.getUsername(), newEmail, new Password(encoder.encode(newPassword.getValue())), UserRole.STUDENT,
-            guest.getInstitutionId(), guest.getAvatarUrl(), guest.getCreatedAt(), LocalDateTime.now(), guest.isActive());
-          return users.save(claimed).flatMap(saved -> users.findById(saved.getId())).map(this::session);
+          return Blocking.offload(() -> encoder.encode(newPassword.getValue()))
+            .map(encoded -> new User(guest.getId(), new UserName(firstName.trim()), new UserName(lastName.trim()),
+              guest.getUsername(), newEmail, new Password(encoded), UserRole.STUDENT,
+              guest.getInstitutionId(), guest.getAvatarUrl(), guest.getCreatedAt(), LocalDateTime.now(), guest.isActive()))
+            .flatMap(claimed -> users.save(claimed).flatMap(saved -> users.findById(saved.getId())))
+            .map(this::session);
         });
       });
   }
