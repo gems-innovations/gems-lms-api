@@ -2,7 +2,6 @@ package com.gems.shared.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
@@ -12,7 +11,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import javax.crypto.SecretKey;
 import java.util.List;
 import java.util.Objects;
 
@@ -38,7 +36,7 @@ public class JwtReactiveAuthenticationManager implements ReactiveAuthenticationM
 
     try {
       Claims claims = Jwts.parserBuilder()
-        .setSigningKey(signingKey(jwtSecret))
+        .setSigningKey(JwtKeys.signingKey(jwtSecret))
         .build()
         .parseClaimsJws(token)
         .getBody();
@@ -62,15 +60,5 @@ public class JwtReactiveAuthenticationManager implements ReactiveAuthenticationM
     } catch (Exception e) {
       return Mono.error(new BadCredentialsException("Invalid or expired JWT", e));
     }
-  }
-
-  static SecretKey signingKey(String jwtSecret) {
-    byte[] keyBytes = jwtSecret.getBytes();
-    if (keyBytes.length * 8 < 512) {
-      byte[] paddedKey = new byte[64];
-      System.arraycopy(keyBytes, 0, paddedKey, 0, Math.min(keyBytes.length, 64));
-      return Keys.hmacShaKeyFor(paddedKey);
-    }
-    return Keys.hmacShaKeyFor(keyBytes);
   }
 }

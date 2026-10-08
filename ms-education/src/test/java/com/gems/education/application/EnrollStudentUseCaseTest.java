@@ -9,7 +9,6 @@ import com.gems.education.application.response.EnrollmentResponse;
 import com.gems.education.domain.entities.Course;
 import com.gems.education.domain.entities.Enrollment;
 import com.gems.education.domain.entities.Student;
-import com.gems.education.domain.values.StudentId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

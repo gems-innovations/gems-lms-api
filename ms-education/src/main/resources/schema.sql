@@ -11,8 +11,9 @@ CREATE TABLE IF NOT EXISTS students (
     );
 
 -- Create indexes for performance optimization
-CREATE INDEX IF NOT EXISTS idx_students_email ON students(email);
-CREATE INDEX IF NOT EXISTS idx_students_document_number ON students(document_number);
+-- email and document_number are UNIQUE (each has its own index), so duplicates of it are dropped.
+DROP INDEX IF EXISTS idx_students_email;
+DROP INDEX IF EXISTS idx_students_document_number;
 CREATE INDEX IF NOT EXISTS idx_students_country ON students(country);
 CREATE INDEX IF NOT EXISTS idx_students_city ON students(city);
 
@@ -481,3 +482,10 @@ CREATE TABLE IF NOT EXISTS engagement_emails (
     sent_on DATE NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_engagement_emails_student ON engagement_emails(student_id, sent_on);
+
+-- Lookups that had no index: by course on the join table of paths (also hit by ON DELETE CASCADE when a
+-- course is deleted), and by student on reviews and survey responses (profile export and account removal).
+CREATE INDEX IF NOT EXISTS idx_learning_path_courses_course ON learning_path_courses(course_id);
+CREATE INDEX IF NOT EXISTS idx_course_reviews_student ON course_reviews(student_id);
+CREATE INDEX IF NOT EXISTS idx_survey_responses_student ON survey_responses(student_id);
+CREATE INDEX IF NOT EXISTS idx_survey_responses_course ON survey_responses(course_id);

@@ -1,10 +1,10 @@
 package com.gems.auth.infrastructure.driven.jwt;
 
 import com.gems.auth.application.gateway.JwtGateway;
+import com.gems.shared.security.JwtKeys;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -44,15 +44,7 @@ public class JwtAdapter implements JwtGateway {
   }
 
   private SecretKey getSigningKey() {
-    byte[] keyBytes = jwtSecret.getBytes();
-    
-    if (keyBytes.length * 8 < 512) {
-      byte[] paddedKey = new byte[64];
-      System.arraycopy(keyBytes, 0, paddedKey, 0, Math.min(keyBytes.length, 64));
-      return Keys.hmacShaKeyFor(paddedKey);
-    }
-    
-    return Keys.hmacShaKeyFor(keyBytes);
+    return JwtKeys.signingKey(jwtSecret);
   }
 
   @Override

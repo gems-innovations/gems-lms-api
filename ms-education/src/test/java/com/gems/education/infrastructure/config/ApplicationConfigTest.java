@@ -2,7 +2,6 @@ package com.gems.education.infrastructure.config;
 
 import com.gems.education.application.*;
 import com.gems.education.application.gateway.StudentGateway;
-import com.gems.education.infrastructure.driven.postgresql.IStudentRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -11,18 +10,6 @@ import static org.mockito.Mockito.*;
 
 @DisplayName("ApplicationConfig Tests (Education Module)")
 class ApplicationConfigTest {
-
-  @Test
-  @DisplayName("Should create StudentGateway bean")
-  void shouldCreateStudentGatewayBean() {
-    ApplicationConfig config = new ApplicationConfig();
-
-    IStudentRepository studentRepository = mock(IStudentRepository.class);
-
-    StudentGateway gateway = config.studentGateway(studentRepository);
-
-    assertNotNull(gateway);
-  }
 
   @Test
   @DisplayName("Should create RegisterStudentUseCase bean")

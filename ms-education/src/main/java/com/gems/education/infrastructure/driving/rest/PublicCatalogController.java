@@ -7,6 +7,7 @@ import com.gems.education.domain.entities.Module;
 import com.gems.shared.security.AuthenticatedUser;
 import com.gems.shared.security.CurrentUser;
 import com.gems.shared.security.RateLimitFilter;
+import com.gems.shared.web.ClientQuota;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -22,13 +23,11 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * What anyone can see without signing in: the free courses of the open institution and the form
@@ -50,9 +49,9 @@ public class PublicCatalogController {
   private final CourseGateway courses;
   private final DatabaseClient db;
   private final String openInstitutionId;
-  private final Map<String, int[]> requestsByClient = new ConcurrentHashMap<>();
+  private final ClientQuota requestsPerDay = new ClientQuota(MAX_REQUESTS_PER_DAY, 86_400);
 
-  public PublicCatalogController(@org.springframework.beans.factory.annotation.Qualifier("courseGateway") CourseGateway courses, DatabaseClient db,
+  public PublicCatalogController(CourseGateway courses, DatabaseClient db,
                                  @Value("${open.institution.id:gems-abierto}") String openInstitutionId) {
     this.courses = courses;
     this.db = db;
@@ -114,9 +113,7 @@ public class PublicCatalogController {
       return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Institution, contact name and a valid email are required"));
     }
     String client = RateLimitFilter.getClientId(exchange.getRequest());
-    int day = (int) (Instant.now().getEpochSecond() / 86_400);
-    int[] slot = requestsByClient.compute(client, (k, v) -> v == null || v[0] != day ? new int[]{day, 1} : new int[]{day, v[1] + 1});
-    if (slot[1] > MAX_REQUESTS_PER_DAY) {
+    if (!requestsPerDay.tryAcquire(client)) {
       return Mono.error(new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many requests from this network today"));
     }
     DatabaseClient.GenericExecuteSpec spec = db.sql("INSERT INTO institution_requests(institution_name, contact_name, email, phone, role, students, message) "

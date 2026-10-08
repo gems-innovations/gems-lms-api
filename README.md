@@ -16,7 +16,7 @@ El proyecto sigue una **arquitectura de microservicios** basada en **Clean Archi
   - `ms-education` (8083): cursos, rutas, inscripciones, quizzes y entregas calificados en el servidor,
     grupos, encuestas, reseñas, notificaciones, archivos y certificados verificables
 - **Bases de Datos**: una base PostgreSQL independiente por microservicio
-- **Redis**: rate limiting
+- **Redis**: rate limiting, solo en el gateway (los microservicios no lo usan y su salud no depende de él)
 - **Shared Module**: seguridad (JWT, autorización por rol e institución), filtros y utilidades comunes
 
 ### Estructura de Microservicios
@@ -42,9 +42,10 @@ Front → api-gateway (8080) → ms-auth | ms-admin | ms-education
 
 1. **SecurityHeadersFilter**: agrega headers de seguridad HTTP
 2. **RateLimitFilter**: limita las peticiones por cliente usando Redis
-3. **JwtAuthenticationFilter**: valida el token JWT del header `Authorization`
-   - Rutas públicas: login, `forgot-password`, `reset-password`, `/actuator/health`, Swagger y las imágenes
-     públicas (`/api/v1/files/public/**`)
+3. **Cadena de Spring Security** (`shared.security.SecurityChains`, la misma en el gateway y en los tres servicios):
+   CORS, y validación del token JWT del header `Authorization` y de la sesión en ms-auth
+   - Rutas públicas (cada servicio declara las suyas en su `SecurityConfig`): login, `forgot-password`,
+     `reset-password`, `/actuator/health`, Swagger y las imágenes públicas (`/api/v1/files/public/**`)
    - Si el token no es válido, retorna `401 Unauthorized`
 
 ### Procesamiento de la Petición
@@ -89,8 +90,9 @@ EDUCATION_PORT=8083
 # Obligatorio, al menos 64 caracteres aleatorios (HS512). Sin él los servicios no arrancan.
 JWT_SECRET=genera-un-secreto-aleatorio-de-al-menos-64-caracteres-xxxxxxxxxxxxxxxxxxxx
 JWT_EXPIRATION=3600000
-
-AUTH_LOGIN_PATH=/api/v1/auth/login
+# Opcional: clave de las rutas internas entre servicios (/internal/**, nunca expuestas por el gateway).
+# Si no se define se usa JWT_SECRET. En producción conviene una propia (también de 64+ caracteres).
+# INTERNAL_API_KEY=
 
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -224,11 +226,11 @@ en el servidor y nunca lo reemplaza.
 
 ## 📋 Tecnologías Utilizadas
 
-- **Spring Boot 3.4.5**, **Spring WebFlux** y **Spring Cloud Gateway**
+- **Spring Boot 3.5.16**, **Spring WebFlux** y **Spring Cloud Gateway** (Spring Cloud 2025.0.3)
 - **R2DBC** + **PostgreSQL**
 - **Redis**: rate limiting
 - **JWT** (jjwt, HS512): autenticación; el token lleva `role` e `institutionId`
-- **SpringDoc OpenAPI 2.7.0**: Swagger
+- **SpringDoc OpenAPI 2.8.17**: Swagger
 - **Spring Mail**: correos de recuperación de contraseña (opcional)
 - **Gradle** y **Docker Compose**
 
@@ -265,6 +267,16 @@ Para ejecutar solo los tests (más rápido: sin reporte ni verificación de cobe
 `./gradlew build` exige un mínimo de cobertura de líneas (`coverageMinimum` en `gradle.properties`,
 50% por defecto; se puede cambiar con `-PcoverageMinimum=0.7`). Los módulos compilan en paralelo y
 Gradle reutiliza resultados en caché, así que una corrida sin cambios tarda unos segundos.
+
+### Dependencias y seguridad
+
+Las versiones de las librerías compartidas están en `gradle.properties`. Allí también hay «pins» de seguridad
+(Jackson, Netty, commons-lang3, log4j, httpclient5/httpcore5) por encima de lo que gestiona el BOM de Spring Boot;
+se quitan cuando el BOM los alcance. Para revisar vulnerabilidades, lista el classpath de ejecución
+(`./gradlew <modulo>:dependencies --configuration runtimeClasspath`) y consúltalo en https://osv.dev
+(o ejecuta OWASP dependency-check / `osv-scanner`). Último análisis (2026-10): sin avisos abiertos salvo
+`spring-webflux` 6.2.x (GHSA-9qf2-26p9-2q2q y GHSA-j9f9-w8pj-32f8: afectan a endpoints funcionales de WebFlux y a
+SSE con fragmentos, que este proyecto no usa; su corrección solo existe en Spring Framework 7).
 
 ### Paginación
 

@@ -11,11 +11,6 @@ import org.springframework.context.annotation.Configuration;
 public class ApplicationConfig {
 
   @Bean
-  public BrandingGateway brandingGateway(IBrandingRepository brandingRepository) {
-    return new BrandingRepositoryAdapter(brandingRepository);
-  }
-
-  @Bean
   public CreateBrandingUseCase createBrandingUseCase(BrandingGateway brandingGateway) {
     return new CreateBrandingUseCase(brandingGateway);
   }
@@ -33,13 +28,6 @@ public class ApplicationConfig {
   @Bean
   public DeleteBrandingUseCase deleteBrandingUseCase(BrandingGateway brandingGateway) {
     return new DeleteBrandingUseCase(brandingGateway);
-  }
-
-  @Bean
-  public InstitutionGateway institutionGateway(IInstitutionRepository institutionRepository,
-                                                IInstitutionMetadataRepository metadataRepository,
-                                                org.springframework.data.r2dbc.core.R2dbcEntityTemplate template) {
-    return new InstitutionRepositoryAdapter(institutionRepository, metadataRepository, template);
   }
 
   @Bean

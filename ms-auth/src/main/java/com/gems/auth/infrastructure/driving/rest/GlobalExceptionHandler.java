@@ -8,6 +8,8 @@ import com.gems.auth.application.exceptions.UserNotFoundException;
 import com.gems.auth.infrastructure.constants.AuthInfraConstants;
 import com.gems.auth.infrastructure.driving.rest.response.ErrorResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -19,6 +21,7 @@ import reactor.core.publisher.Mono;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+  private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
   @ExceptionHandler(UserAlreadyExistsException.class)
   @ApiResponse(responseCode = "409", description = "User already exists with the provided email")
@@ -137,9 +140,11 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(Exception.class)
   @ApiResponse(responseCode = "500", description = "Internal server error: unexpected error occurred")
   public Mono<ResponseEntity<ErrorResponse>> handleGenericException(Exception ex) {
+    // The cause goes to the log only: exception messages can expose SQL, paths or other internals.
+    LOG.error("Unhandled exception", ex);
     ErrorResponse error = new ErrorResponse(
       AuthInfraConstants.INTERNAL_SERVER_ERROR_CODE,
-      ex.getMessage(),
+      AuthInfraConstants.INTERNAL_SERVER_ERROR_MESSAGE,
       HttpStatus.INTERNAL_SERVER_ERROR.value()
     );
     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error));

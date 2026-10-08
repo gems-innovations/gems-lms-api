@@ -27,7 +27,7 @@ public class InstitutionReportUseCase {
   }
 
   public Mono<InstitutionReport> execute(String institutionId) {
-    return Mono.zip(courses.findByInstitutionId(institutionId).collectList(),
+    return Mono.zip(courses.findHeadersByInstitutionId(institutionId).collectList(),
         enrollments.findByInstitutionId(institutionId).collectList(),
         activity.findSubmissionsByInstitution(institutionId).collectList())
       .map(values -> report(institutionId, values.getT1(), values.getT2(), values.getT3()));

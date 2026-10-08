@@ -67,7 +67,8 @@ public class PasswordRecoveryUseCase {
         .switchIfEmpty(Mono.error(invalidToken()))
         .flatMap(userId -> resetGateway.markUsed(tokenHash, now)
           .flatMap(marked -> Boolean.TRUE.equals(marked)
-            ? userGateway.updatePassword(new UserId(userId), passwordEncoderGateway.encode(validated))
+            ? Blocking.offload(() -> passwordEncoderGateway.encode(validated))
+                .flatMap(encoded -> userGateway.updatePassword(new UserId(userId), encoded))
             : Mono.error(invalidToken())));
     });
   }

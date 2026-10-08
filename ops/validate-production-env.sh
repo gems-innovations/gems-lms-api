@@ -20,6 +20,14 @@ jwt_secret=$(value_of JWT_SECRET)
   echo "JWT_SECRET must contain at least 64 bytes" >&2; exit 1;
 }
 
+internal_key=$(value_of INTERNAL_API_KEY)
+if [ -n "$internal_key" ]; then
+  case "$internal_key" in CHANGE_ME*) echo "INTERNAL_API_KEY still contains CHANGE_ME" >&2; exit 1 ;; esac
+  [ "$(printf %s "$internal_key" | wc -c)" -ge 64 ] || {
+    echo "INTERNAL_API_KEY must contain at least 64 bytes when set" >&2; exit 1;
+  }
+fi
+
 cors_origins=$(value_of CORS_ALLOWED_ORIGINS)
 frontend_url=$(value_of FRONTEND_URL)
 case "$cors_origins" in *http://*) echo "CORS_ALLOWED_ORIGINS must use HTTPS" >&2; exit 1 ;; esac

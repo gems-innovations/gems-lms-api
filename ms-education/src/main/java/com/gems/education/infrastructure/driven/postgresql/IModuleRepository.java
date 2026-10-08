@@ -5,4 +5,6 @@ import reactor.core.publisher.Flux;
 
 public interface IModuleRepository extends ReactiveCrudRepository<ModuleEntity, Long> {
   Flux<ModuleEntity> findByCourseId(Long courseId);
+
+  Flux<ModuleEntity> findByCourseIdIn(java.util.Collection<Long> courseIds);
 }

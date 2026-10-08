@@ -8,8 +8,8 @@
 # Requisitos: Docker, Java 24 (JAVA_HOME) y el archivo .env en esta carpeta.
 #
 # En Git Bash para Windows, MSYS convierte las variables que parecen rutas POSIX
-# (p. ej. AUTH_LOGIN_PATH=/api/v1/auth/login) en rutas de Windows al lanzar java,
-# y el filtro JWT deja de reconocer la ruta de login. Por eso se desactiva aquí.
+# (p. ej. una variable con valor /api/v1/auth/login) en rutas de Windows al lanzar java,
+# y las rutas configuradas dejan de coincidir. Por eso se desactiva aquí.
 export MSYS_NO_PATHCONV=1
 export MSYS2_ENV_CONV_EXCL='*'
 
@@ -64,6 +64,11 @@ start() { # nombre tarea-gradle puerto
   nohup ./gradlew "$2" > "logs/$1.log" 2>&1 &
   echo "   $1 -> logs/$1.log"
 }
+
+# Los cuatro arranques (gradlew bootRun) compilan el módulo :shared a la vez en la misma carpeta de build y se
+# pisan entre sí (la compilación falla al azar y el servicio no arranca). Compilar una vez antes lo evita.
+echo "2b) Compilando (una sola vez)"
+./gradlew classes -q || { echo "Falló la compilación: revisa los errores de arriba."; exit 1; }
 
 echo "3) Microservicios"
 start ms-auth      :ms-auth:bootRun      "${AUTH_PORT:-8081}"

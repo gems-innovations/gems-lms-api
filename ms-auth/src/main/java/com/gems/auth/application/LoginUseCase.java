@@ -9,6 +9,7 @@ import com.gems.auth.application.gateway.JwtGateway;
 import com.gems.auth.application.response.LoginResponse;
 import com.gems.auth.application.exceptions.InvalidCredentialsException;
 import com.gems.auth.application.exceptions.UserNotFoundException;
+import com.gems.auth.domain.entities.User;
 import com.gems.auth.domain.values.Email;
 import com.gems.auth.domain.values.Password;
 import reactor.core.publisher.Mono;
@@ -36,33 +37,32 @@ public class LoginUseCase {
 
         String userPassword = new Password(command.password()).getValue();
 
-        boolean passwordMatches = passwordEncoderGateway.matches(
-          userPassword,
-          user.getPassword().getValue()
-        );
-
-        if (!passwordMatches) {
-          return Mono.error(new InvalidCredentialsException(AuthAppConstants.INVALID_CREDENTIALS_MESSAGE));
-        }
-
-        String token = jwtGateway.generateToken(user.getId().getValue(), user.getRole().name(), user.getInstitutionId(),
-          user.getUpdatedAt().toString());
-
-        return Mono.just(new LoginResponse(
-          user.getId().getValue(),
-          user.getFirstName().getValue(),
-          user.getLastName().getValue(),
-          user.getUsername(),
-          user.getEmail().getValue(),
-          user.getRole().name(),
-          user.getInstitutionId(),
-          user.getAvatarUrl(),
-          user.isActive(),
-          user.getCreatedAt(),
-          user.getUpdatedAt(),
-          token,
-          user.mustChangePassword()
-        ));
+        return Blocking.offload(() -> passwordEncoderGateway.matches(userPassword, user.getPassword().getValue()))
+          .map(Boolean.TRUE::equals)
+          .defaultIfEmpty(false)
+          .flatMap(passwordMatches -> passwordMatches ? Mono.just(session(user))
+            : Mono.<LoginResponse>error(new InvalidCredentialsException(AuthAppConstants.INVALID_CREDENTIALS_MESSAGE)));
       });
+  }
+
+  private LoginResponse session(User user) {
+    String token = jwtGateway.generateToken(user.getId().getValue(), user.getRole().name(), user.getInstitutionId(),
+      user.getUpdatedAt().toString());
+
+    return new LoginResponse(
+      user.getId().getValue(),
+      user.getFirstName().getValue(),
+      user.getLastName().getValue(),
+      user.getUsername(),
+      user.getEmail().getValue(),
+      user.getRole().name(),
+      user.getInstitutionId(),
+      user.getAvatarUrl(),
+      user.isActive(),
+      user.getCreatedAt(),
+      user.getUpdatedAt(),
+      token,
+      user.mustChangePassword()
+    );
   }
 }

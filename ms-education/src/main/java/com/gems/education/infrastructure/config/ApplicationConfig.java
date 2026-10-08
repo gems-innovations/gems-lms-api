@@ -5,16 +5,9 @@ import com.gems.education.application.gateway.*;
 import com.gems.education.infrastructure.driven.postgresql.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.r2dbc.core.DatabaseClient;
-import org.springframework.transaction.reactive.TransactionalOperator;
 
 @Configuration
 public class ApplicationConfig {
-
-  @Bean
-  public StudentGateway studentGateway(IStudentRepository studentRepository) {
-    return new StudentRepositoryAdapter(studentRepository);
-  }
 
   @Bean
   public RegisterStudentUseCase registerStudentUseCase(StudentGateway studentGateway) {
@@ -39,15 +32,6 @@ public class ApplicationConfig {
   @Bean
   public UpdateStudentUseCase updateStudentUseCase(StudentGateway studentGateway) {
     return new UpdateStudentUseCase(studentGateway);
-  }
-
-  @Bean
-  public CourseGateway courseGateway(ICourseRepository courseRepository,
-                                     IModuleRepository moduleRepository,
-                                     ILessonRepository lessonRepository,
-                                     IContentRepository contentRepository,
-                                     org.springframework.data.r2dbc.core.R2dbcEntityTemplate template) {
-    return new CourseRepositoryAdapter(courseRepository, moduleRepository, lessonRepository, contentRepository, template);
   }
 
   @Bean
@@ -81,11 +65,6 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public QuizGateway quizGateway(IQuizRepository quizRepository, IQuestionRepository questionRepository) {
-    return new QuizRepositoryAdapter(quizRepository, questionRepository);
-  }
-
-  @Bean
   public CreateQuizUseCase createQuizUseCase(QuizGateway quizGateway) {
     return new CreateQuizUseCase(quizGateway);
   }
@@ -116,12 +95,6 @@ public class ApplicationConfig {
   }
 
   @Bean
-  public LearningPathGateway learningPathGateway(ILearningPathRepository lpRepo, ILearningPathCourseRepository lpcRepo,
-                                                  CourseGateway courseGateway, IPathEnrollmentRepository enrollmentRepo) {
-    return new LearningPathRepositoryAdapter(lpRepo, lpcRepo, courseGateway, enrollmentRepo);
-  }
-
-  @Bean
   public CreateLearningPathUseCase createLearningPathUseCase(LearningPathGateway learningPathGateway, CourseGateway courseGateway) {
     return new CreateLearningPathUseCase(learningPathGateway, courseGateway);
   }
@@ -149,12 +122,6 @@ public class ApplicationConfig {
   @Bean
   public DeleteLearningPathUseCase deleteLearningPathUseCase(LearningPathGateway learningPathGateway) {
     return new DeleteLearningPathUseCase(learningPathGateway);
-  }
-
-  @Bean
-  public EnrollmentGateway enrollmentGateway(IEnrollmentRepository enrollmentRepository, DatabaseClient db,
-                                               TransactionalOperator tx) {
-    return new EnrollmentRepositoryAdapter(enrollmentRepository, db, tx);
   }
 
   @Bean

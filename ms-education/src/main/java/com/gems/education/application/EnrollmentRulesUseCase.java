@@ -98,7 +98,7 @@ public class EnrollmentRulesUseCase {
       Mono<Void> period = clean.periodId() == null ? Mono.empty()
         : period(clean.periodId(), course.getInstitutionId()).then();
       Mono<Void> sameInstitution = Flux.fromIterable(prereqs)
-        .concatMap(id -> courses.findById(id)
+        .concatMap(id -> courses.findHeaderById(id)
           .filter(c -> Objects.equals(c.getInstitutionId(), course.getInstitutionId()))
           .switchIfEmpty(Mono.error(new IllegalArgumentException("Prerequisite " + id + " is not a course of the institution"))))
         .then();
@@ -144,7 +144,7 @@ public class EnrollmentRulesUseCase {
   }
 
   private Mono<Course> course(Long courseId) {
-    return courses.findById(courseId).switchIfEmpty(Mono.error(new IllegalArgumentException("Course not found")));
+    return courses.findHeaderById(courseId).switchIfEmpty(Mono.error(new IllegalArgumentException("Course not found")));
   }
 
   /** Would courseId → prereqs close a loop through the existing rules? */

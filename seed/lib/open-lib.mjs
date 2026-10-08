@@ -5,12 +5,15 @@
 export const BASE = process.env.BASE || 'http://localhost:8080/api/v1';
 export const OPEN = process.env.OPEN_INSTITUTION_ID || 'gems-abierto';
 
+// En producción: BASE=https://api.auth.gemsinnovations.com/api/v1 SEED_EMAIL=<super admin> DEV_PASSWORD=<su clave>.
+const SEED_EMAIL = process.env.SEED_EMAIL || "super@gems.lms";
+
 export async function login() {
   const password = process.env.DEV_PASSWORD;
   if (!password) { console.error('Define DEV_PASSWORD.'); process.exit(1); }
   const r = await fetch(`${BASE}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email: 'super@gems.lms', password }) });
-  if (!r.ok) { console.error('No se pudo entrar como super@gems.lms', r.status); process.exit(1); }
+    body: JSON.stringify({ email: SEED_EMAIL, password }) });
+  if (!r.ok) { console.error(`No se pudo entrar como ${SEED_EMAIL}`, r.status); process.exit(1); }
   const { token } = await r.json();
   return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
 }
