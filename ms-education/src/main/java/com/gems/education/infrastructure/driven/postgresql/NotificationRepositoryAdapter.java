@@ -27,6 +27,15 @@ public class NotificationRepositoryAdapter implements NotificationGateway {
   }
 
   @Override
+  public Mono<Boolean> existsFor(Long userId, String type, Long courseId) {
+    return db.sql("SELECT EXISTS (SELECT 1 FROM notifications WHERE recipient_user_id = :userId AND type = :type "
+        + "AND course_id = :courseId) AS present")
+      .bind("userId", userId).bind("type", type).bind("courseId", courseId)
+      .map(row -> Boolean.TRUE.equals(row.get("present", Boolean.class)))
+      .one();
+  }
+
+  @Override
   public Mono<Notification> save(Notification n) {
     DatabaseClient.GenericExecuteSpec spec = db.sql("INSERT INTO notifications "
         + "(institution_id, recipient_user_id, type, title, message, course_id, reference_id, created_at) "
