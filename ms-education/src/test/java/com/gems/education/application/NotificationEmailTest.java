@@ -26,6 +26,7 @@ class NotificationEmailTest {
 
   @BeforeEach
   void setUp() {
+    when(gateway.existsFor(any(), anyString(), any())).thenReturn(Mono.just(false));
     when(gateway.save(any())).thenAnswer(inv -> Mono.just((Notification) inv.getArgument(0)));
     when(email.send(any(), anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.empty());
     when(email.sendToStaff(anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(Mono.empty());
@@ -48,6 +49,14 @@ class NotificationEmailTest {
     org.mockito.Mockito.doReturn(Mono.error(new IllegalStateException("db down"))).when(gateway).save(any());
     StepVerifier.create(useCase.enrolled(7L, 9L, "Álgebra", false)).verifyComplete();
     verify(email).send(eq(List.of(7L)), contains("Álgebra"), anyString(), eq("/learn/courses/9"), anyString());
+  }
+
+  @Test
+  void enrollingAgainInTheSameCourseDoesNotRepeatTheWelcome() {
+    when(gateway.existsFor(7L, Notification.ENROLLED, 9L)).thenReturn(Mono.just(true));
+    StepVerifier.create(useCase.enrolled(7L, 9L, "Álgebra", false)).verifyComplete();
+    org.mockito.Mockito.verify(gateway, org.mockito.Mockito.never()).save(any());
+    org.mockito.Mockito.verifyNoInteractions(email);
   }
 
   @Test

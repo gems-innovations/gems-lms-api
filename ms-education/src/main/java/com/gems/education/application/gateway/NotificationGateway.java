@@ -12,6 +12,9 @@ public interface NotificationGateway {
 
   Mono<Notification> findById(Long id);
 
+  /** Whether the user already has a notification of this type for the course. */
+  Mono<Boolean> existsFor(Long userId, String type, Long courseId);
+
   Mono<Void> markRead(Long notificationId, Long userId);
 
   Mono<Void> markAllRead(Long userId, String institutionId, boolean staff);

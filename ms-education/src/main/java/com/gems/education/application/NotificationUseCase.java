@@ -67,8 +67,17 @@ public class NotificationUseCase {
         "/instructor/courses/" + courseId, "Ver la pregunta").thenReturn(saved));
   }
 
-  /** Welcome to a course: whether the student enrolled themselves or the staff enrolled them. */
+  /**
+   * Welcome to a course, once per student and course: enrolling again in a course the student is
+   * already in returns the existing enrolment and must not repeat the notice or the e-mail.
+   */
   public Mono<Void> enrolled(Long studentId, Long courseId, String courseTitle, boolean byStaff) {
+    return gateway.existsFor(studentId, Notification.ENROLLED, courseId)
+      .onErrorReturn(false)
+      .flatMap(alreadyWelcomed -> alreadyWelcomed ? Mono.<Void>empty() : welcome(studentId, courseId, courseTitle, byStaff));
+  }
+
+  private Mono<Void> welcome(Long studentId, Long courseId, String courseTitle, boolean byStaff) {
     String subject = byStaff ? "Te inscribieron en " + courseTitle : "Ya estás en " + courseTitle;
     String message = (byStaff ? "Tu institución te inscribió en «" + courseTitle + "». " : "Te inscribiste en «" + courseTitle + "». ")
       + "Empieza con la primera lección: son cortas y puedes hacerlas a tu ritmo.";
