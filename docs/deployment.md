@@ -84,3 +84,44 @@ Primer despliegue: publica primero el front (la imagen `gems-web` debe existir) 
 El primer super admin se crea solo al arrancar `ms-auth` con `BOOTSTRAP_SUPERADMIN_EMAIL` /
 `BOOTSTRAP_SUPERADMIN_PASSWORD`. Los cursos gratuitos se cargan con los scripts de `seed/` contra la
 URL pública del API.
+
+## Instituciones con su subdominio (`<slug>.gemsinnovations.com`)
+
+`lms.gemsinnovations.com` es la portada de GEMS; cada institución (knowledgecraft, unal, pragma, ...) vive en su propio
+subdominio, con su marca y, si tiene, su landing. Un solo bloque de nginx atiende a todas: agregar una institución nueva
+**no requiere tocar nginx ni certificados**, solo darla de alta.
+
+Una sola vez:
+
+1. **DNS**: registro `*.gemsinnovations.com` (A) hacia la IP de la VM. Los nombres exactos (`lms`, `api.*`) siguen mandando.
+2. **Certificado comodín** (Let's Encrypt solo lo emite por desafío DNS): instala el plugin de certbot de tu proveedor de DNS y corre
+   `WILDCARD_CERTBOT_ARGS="--dns-<proveedor> --dns-<proveedor>-credentials <archivo>" sh ops/setup-vm.sh tu@correo.com`.
+   Emite `wildcard.gemsinnovations.com` y activa `ops/host-nginx/gems-lms-instituciones.conf`; se renueva con `certbot.timer`.
+   Sin la variable, el script omite el comodín y los subdominios quedan inactivos (el resto del sitio no cambia).
+3. **CORS**: en `~/app/.env`, `CORS_ALLOWED_ORIGINS=https://lms.gemsinnovations.com,https://*.gemsinnovations.com`
+   (acepta patrones). Reinicia gateway, ms-auth, ms-admin y ms-education.
+4. Desplegar front y back con los cambios de la home por institución (el esquema se actualiza al arrancar).
+
+Por cada institución nueva:
+
+```
+API=https://api.auth.gemsinnovations.com/api/v1 SUPER_EMAIL=<super admin> \
+  sh ops/new-institution.sh knowledge-craft "Knowledge Craft" knowledgecraft '#3FD0D4' '#5DBB47' oscuro <idCurso>...
+```
+
+Crea la institución con su marca, le asigna el slug y los cursos públicos que mostrará su landing. Después crea su
+administrador desde el panel. El slug solo lo asigna el super admin. Más detalles en `docs/home-personalizada.md`.
+
+### Sin certificado comodín: un certificado por institución
+
+Mientras no haya comodín (p. ej. el DNS está en GoDaddy), cada institución puede tener su propio certificado por validación
+HTTP: solo necesita su registro A hacia la VM (o el comodín `*` A del DNS) y se renueva sola con `certbot.timer`.
+
+```
+INSTITUTION_DOMAINS="knowledgecraft.gemsinnovations.com" sh ops/setup-vm.sh tu@correo.com
+```
+
+Emite el certificado de ese nombre e instala su bloque de nginx (`ops/host-nginx/institucion.conf.template`). Se puede
+repetir con más dominios (separados por espacio). Si después se pasa al certificado comodín, los bloques por nombre siguen
+sirviendo: nginx da prioridad al nombre exacto. Esto no reemplaza el alta de la institución (`ops/new-institution.sh`) ni
+el CORS.

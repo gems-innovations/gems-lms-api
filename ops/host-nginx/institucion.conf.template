@@ -1,0 +1,42 @@
+# Una institución con su propio certificado (validación HTTP; no requiere el DNS comodín).
+# setup-vm.sh reemplaza __DOMAIN__ (p. ej. knowledgecraft.gemsinnovations.com) y lo instala como
+# /etc/nginx/sites-available/gems-lms-inst-__DOMAIN__. Un nombre exacto tiene prioridad sobre el bloque
+# de expresión regular de gems-lms-instituciones.conf, así que luego se puede pasar al comodín sin cambios.
+#
+# Los upstreams gems_lms_web y gems_lms_gateway los define gems-lms.conf.
+
+server {
+    listen 80;
+    server_name __DOMAIN__;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name __DOMAIN__;
+    server_tokens off;
+
+    ssl_certificate     /etc/letsencrypt/live/__DOMAIN__/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/__DOMAIN__/privkey.pem;
+    include             /etc/letsencrypt/options-ssl-nginx.conf;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # Mismo front estático de lms: sus encabezados de seguridad (CSP, etc.) los pone el nginx de la imagen.
+    location / {
+        proxy_pass http://gems_lms_web;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
