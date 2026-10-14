@@ -16,7 +16,7 @@ public class SecurityConfig {
 
   private static final String[] PUBLIC_PATHS = {
     "/actuator/health/**", "/actuator/prometheus",
-    "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html"
+    "/api/v1/public/home/**", "/swagger-ui/**", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html"
   };
 
   @Bean
