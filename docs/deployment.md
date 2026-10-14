@@ -125,3 +125,20 @@ Emite el certificado de ese nombre e instala su bloque de nginx (`ops/host-nginx
 repetir con más dominios (separados por espacio). Si después se pasa al certificado comodín, los bloques por nombre siguen
 sirviendo: nginx da prioridad al nombre exacto. Esto no reemplaza el alta de la institución (`ops/new-institution.sh`) ni
 el CORS.
+
+### Automático en cada despliegue (`ops/institutions.txt`)
+
+Para no entrar a la VM por cada institución, el despliegue a `main` ejecuta `ops/sync-institutions.sh` al final: por cada
+slug de `ops/institutions.txt` emite el certificado (si falta) e instala su bloque de nginx. Para sumar una institución:
+
+1. `sh ops/new-institution.sh ...` (alta en el API; se corre desde cualquier computador).
+2. Agrega su slug a `ops/institutions.txt` y haz push a `main`.
+
+Garantías para el resto de sitios de la VM (es compartida): es idempotente (si nada cambió no emite, no escribe ni recarga),
+solo toca `gems-lms-inst-<slug>` y `gems-lms-instituciones`, valida con `nginx -t` antes de recargar y **deshace sus cambios si
+falla**, y nunca hace fallar el despliegue: ante cualquier problema avisa en el log del job. Solo actúa en `pdn`.
+
+Requisitos: el usuario de despliegue con `sudo` sin contraseña (`sudo -n true`; si no lo tiene, el script avisa y se omite);
+el DNS de la institución apuntando a la VM y el puerto 80 abierto; opcionalmente la variable de GitHub `CERTBOT_EMAIL` en el
+Environment `pdn` (si falta, certbot reutiliza la cuenta ya registrada en la VM). Con certificado comodín, el mismo script instala
+el bloque comodín y deja de emitir certificados por institución.

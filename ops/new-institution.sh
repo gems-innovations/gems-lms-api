@@ -79,4 +79,4 @@ for course in "$@"; do
     echo "No se pudo asignar el curso $course (HTTP $code): debe existir y ser del catálogo abierto." >&2
 done
 
-echo "Listo. Falta, si no lo has hecho, el DNS y el certificado comodín (docs/deployment.md)."
+echo "Listo. Falta: agregar '$slug' a ops/institutions.txt y hacer push a main (el despliegue deja listo el certificado y nginx); su DNS debe apuntar a la VM."

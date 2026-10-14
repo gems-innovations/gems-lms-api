@@ -96,13 +96,13 @@ jobs:
     steps:
     - uses: actions/checkout@v7
 
-    - name: Copy docker-compose.yml to server
+    - name: Copy docker-compose.yml and ops scripts to server
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.VM_HOST }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
-        source: "docker-compose.yml,ops/validate-production-env.sh"
+        source: "docker-compose.yml,ops/validate-production-env.sh,ops/sync-institutions.sh,ops/institutions.txt,ops/new-institution.sh,ops/setup-vm.sh,ops/host-nginx/institucion.conf.template,ops/host-nginx/gems-lms-instituciones.conf"
         target: "/home/${{ secrets.VM_USER }}/app"
 
     - name: Deploy to ${{ env.DEPLOY_ENV }}
@@ -110,11 +110,13 @@ jobs:
       env:
         GHCR_USER: ${{ github.actor }}
         GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Opcional: correo para la cuenta de Let's Encrypt (si falta se reutiliza la ya registrada en la VM).
+        CERTBOT_EMAIL: ${{ vars.CERTBOT_EMAIL }}
       with:
         host: ${{ secrets.VM_HOST }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
-        envs: GHCR_USER,GHCR_TOKEN
+        envs: GHCR_USER,GHCR_TOKEN,CERTBOT_EMAIL,DEPLOY_ENV
         script: |
           set -eu
           cd /home/${{ secrets.VM_USER }}/app
@@ -129,3 +131,6 @@ jobs:
           docker compose --env-file .env up -d --remove-orphans
           docker logout ghcr.io
           docker image prune -f
+          # Subdominios de instituciones (ops/institutions.txt): certificado y bloque de nginx. Va al final y nunca
+          # hace fallar el despliegue; si algo no se puede aplicar, avisa en este log.
+          sh ops/sync-institutions.sh || echo "AVISO: sync-institutions.sh terminó con error; el despliegue continúa."
