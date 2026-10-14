@@ -1,0 +1,9 @@
+# Instituciones con subdominio propio: un slug por línea (<slug>.gemsinnovations.com).
+# En cada despliegue a main, ops/sync-institutions.sh deja listo en la VM su certificado y su bloque de nginx.
+#
+# Para sumar una institución:
+#   1. Dala de alta en el API:  sh ops/new-institution.sh <id> "<Nombre>" <slug> <#primario> <#secundario> <oscuro|claro> [cursos...]
+#   2. Agrega su slug aquí y haz push a main.
+#
+# Requisito: su registro DNS (A, o el comodín *) apunta a la IP de la VM. Si falta, el despliegue sigue y avisa.
+knowledgecraft
