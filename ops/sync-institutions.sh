@@ -36,8 +36,10 @@ for cmd in certbot nginx; do
 done
 # shellcheck disable=SC2086
 $SUDO true 2>/dev/null || { warn "el usuario no tiene sudo sin contraseña; se omite (ver docs/deployment.md)."; exit 0; }
-grep -rqs "upstream gems_lms_web" "$nginx_dir/sites-enabled" "$nginx_dir/conf.d" 2>/dev/null ||
-  { warn "no encuentro el upstream gems_lms_web (¿está instalado el sitio del LMS?); se omite."; exit 0; }
+# La configuración efectiva (nginx -T sigue los enlaces de sites-enabled y los include) debe definir el upstream del front.
+# shellcheck disable=SC2086
+$SUDO nginx -T 2>/dev/null | grep -q "upstream gems_lms_web" ||
+  { warn "no encuentro el upstream gems_lms_web en la configuración de nginx (¿está instalado el sitio del LMS?); se omite."; exit 0; }
 [ -f "$list" ] || { warn "no existe $list; se omite."; exit 0; }
 
 work=$(mktemp -d) || exit 0
