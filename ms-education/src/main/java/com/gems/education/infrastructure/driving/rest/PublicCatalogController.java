@@ -16,6 +16,7 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -68,7 +69,47 @@ public class PublicCatalogController {
 
   @GetMapping("/api/v1/public/courses")
   public Mono<ResponseEntity<List<PublicCourse>>> catalog() {
-    return courses.findByInstitutionId(openInstitutionId)
+    return catalogOf(openInstitutionId);
+  }
+
+  /**
+   * The public courses an institution shows on its own landing (its subdomain): free courses of the open catalog
+   * that the super admin assigned to it. Nothing else of the institution is listed, and its private courses never are.
+   */
+  @GetMapping("/api/v1/public/institutions/{institutionId}/courses")
+  public Mono<ResponseEntity<List<PublicCourse>>> institutionCatalog(@PathVariable String institutionId) {
+    return db.sql("SELECT id FROM courses WHERE institution_id = :open AND showcase_institution_id = :inst")
+      .bind("open", openInstitutionId).bind("inst", institutionId)
+      .map((row, meta) -> row.get("id", Long.class)).all()
+      .concatMap(courses::findById)
+      .filter(c -> "published".equalsIgnoreCase(c.getStatus()))
+      .map(c -> summary(c, false))
+      .collectSortedList(Comparator.comparing(PublicCourse::publishedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+      .map(list -> ResponseEntity.ok().cacheControl(CacheControl.maxAge(Duration.ofMinutes(5)).cachePublic()).body(list));
+  }
+
+  public record ShowcaseRequest(String institutionId) {}
+
+  /** The super admin assigns an open course to the institution that shows it on its landing (null removes it). */
+  @PutMapping("/api/v1/courses/{courseId}/showcase")
+  public Mono<ResponseEntity<Void>> assignShowcase(@PathVariable Long courseId, @RequestBody ShowcaseRequest body) {
+    return CurrentUser.require(AuthenticatedUser::isSuperAdmin, "Only the super admin assigns a course to an institution landing")
+      .then(courses.findById(courseId))
+      .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND, "Course not found")))
+      .flatMap(course -> {
+        if (!openInstitutionId.equals(course.getInstitutionId())) {
+          return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only open (free) courses can be shown on a landing"));
+        }
+        String target = body == null || blank(body.institutionId()) ? null : body.institutionId().trim();
+        DatabaseClient.GenericExecuteSpec spec = db.sql("UPDATE courses SET showcase_institution_id = :inst WHERE id = :id").bind("id", courseId);
+        spec = target == null ? spec.bindNull("inst", String.class) : spec.bind("inst", target);
+        return spec.fetch().rowsUpdated();
+      })
+      .thenReturn(ResponseEntity.noContent().<Void>build());
+  }
+
+  private Mono<ResponseEntity<List<PublicCourse>>> catalogOf(String institutionId) {
+    return courses.findByInstitutionId(institutionId)
       .filter(c -> "published".equalsIgnoreCase(c.getStatus()))
       .map(c -> summary(c, false))
       .collectSortedList(Comparator.comparing(PublicCourse::publishedAt, Comparator.nullsLast(Comparator.reverseOrder())))
