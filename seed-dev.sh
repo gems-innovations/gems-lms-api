@@ -52,20 +52,31 @@ register Carlos  Ramírez carlos.ramirez admin@unal.edu.co       ADMIN       ins
 register Lucía   Gómez   lucia.gomez    admin@pragma.co         ADMIN       inst-2
 register Andrés  Torres  andres.torres  instructor@unal.edu.co  INSTRUCTOR  inst-1
 register María   López   maria.lopez    estudiante@unal.edu.co  STUDENT     inst-1
+register Creador Craft   knowledgecraft admin@knowledgecraft.com ADMIN       inst-3
 
 echo "2) Instituciones"
 echo "  inst-1 -> $(post institutions "$TOKEN" <<'JSON'
 {"id":"inst-1","name":"Universidad Nacional de Colombia","type":"university","status":"active",
  "metadata":{"description":"Principal universidad pública de Colombia, referente en investigación y educación superior.","website":"https://unal.edu.co","contactEmail":"info@unal.edu.co","phoneNumber":"+57 1 316 5000","address":"Carrera 45 #26-85, Bogotá, Colombia","maxUsers":50000,"subscriptionType":"enterprise"},
- "branding":{"type":"color-badge","colorPrimary":"#6C63FF","colorSecondary":"#1E1B4B","darkMode":true}}
+ "branding":{"type":"color-badge","colorPrimary":"#15803D","colorSecondary":"#1E1B4B","darkMode":false}}
 JSON
 )"
 echo "  inst-2 -> $(post institutions "$TOKEN" <<'JSON'
 {"id":"inst-2","name":"Pragma","type":"academy","status":"active",
  "metadata":{"description":"Empresa de tecnología e innovación digital con foco en formación técnica especializada.","website":"https://pragma.com.co","contactEmail":"academy@pragma.com.co","phoneNumber":"+57 4 6049090","address":"Medellín, Colombia","maxUsers":2000,"subscriptionType":"premium"},
- "branding":{"type":"logo-text","colorPrimary":"#FF6B35","colorSecondary":"#1a1a2e","darkMode":false}}
+ "branding":{"type":"logo-text","colorPrimary":"#7C3AED","colorSecondary":"#1a1a2e","darkMode":false}}
 JSON
 )"
+echo "  inst-3 -> $(post institutions "$TOKEN" <<'JSON'
+{"id":"inst-3","name":"Knowledge Craft","type":"academy","status":"active",
+ "metadata":{"description":"Canal de Minecraft: juega, aprende y craftea con gameplays, trivias y videos educativos.","maxUsers":5000,"subscriptionType":"premium"},
+ "branding":{"type":"logo-text","colorPrimary":"#3FD0D4","colorSecondary":"#5DBB47","darkMode":true}}
+JSON
+)"
+
+echo "  subdominios (home personalizada) -> $(for pair in inst-1:unal inst-2:pragma inst-3:knowledgecraft; do
+  curl -s -o /dev/null -w '%{http_code} ' -X PUT "$BASE/home/${pair%%:*}/slug" -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d "{\"slug\":\"${pair##*:}\"}"
+done)"
 
 echo "3) Perfil de estudiante en ms-education (las inscripciones usan este id)"
 echo "  estudiante@unal.edu.co -> $(post students/register "$TOKEN" <<'JSON'

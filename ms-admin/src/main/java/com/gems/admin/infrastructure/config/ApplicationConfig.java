@@ -31,6 +31,13 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public com.gems.admin.application.home.HomeService homeService(
+      com.gems.admin.application.gateway.HomeGateway homeGateway, InstitutionGateway institutionGateway,
+      BrandingGateway brandingGateway) {
+    return new com.gems.admin.application.home.HomeService(homeGateway, institutionGateway, brandingGateway);
+  }
+
+  @Bean
   public CreateInstitutionUseCase createInstitutionUseCase(InstitutionGateway institutionGateway,
                                                              BrandingGateway brandingGateway) {
     return new CreateInstitutionUseCase(institutionGateway, brandingGateway);

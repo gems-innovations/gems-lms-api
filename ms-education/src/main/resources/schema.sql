@@ -489,3 +489,7 @@ CREATE INDEX IF NOT EXISTS idx_learning_path_courses_course ON learning_path_cou
 CREATE INDEX IF NOT EXISTS idx_course_reviews_student ON course_reviews(student_id);
 CREATE INDEX IF NOT EXISTS idx_survey_responses_student ON survey_responses(student_id);
 CREATE INDEX IF NOT EXISTS idx_survey_responses_course ON survey_responses(course_id);
+
+-- Curso abierto (gratis, sin registro) que una institución muestra en su landing pública.
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS showcase_institution_id VARCHAR(100);
+CREATE INDEX IF NOT EXISTS idx_courses_showcase ON courses(showcase_institution_id);
