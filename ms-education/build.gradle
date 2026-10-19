@@ -9,4 +9,7 @@ dependencies {
   implementation platform("software.amazon.awssdk:bom:${awsSdkVersion}")
   implementation 'software.amazon.awssdk:s3'
   implementation 'software.amazon.awssdk:netty-nio-client'
+  // Prueba del adaptador SQL de Taps contra un Postgres real (se omite sola si no hay Docker).
+  testImplementation 'org.testcontainers:testcontainers'
+  testImplementation 'org.testcontainers:junit-jupiter'
 }

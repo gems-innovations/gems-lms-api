@@ -284,4 +284,10 @@ public class ApplicationConfig {
       courseGateway, learningPathGateway, userDirectory).withNotifications(notificationUseCase)
       .withoutCertificatesFor(openInstitutionId);
   }
+
+  /** Rankings de Taps (partidas y clasificación semanal y del día). */
+  @Bean
+  public TapsRankingUseCase tapsRankingUseCase(TapsGateway tapsGateway) {
+    return new TapsRankingUseCase(tapsGateway, TapsBanco.delClasspath());
+  }
 }
