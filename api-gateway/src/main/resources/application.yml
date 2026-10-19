@@ -114,7 +114,7 @@ spring:
               predicates:
                 - Path=/api/v1/reports/**
 
-            # Catálogo público (cursos gratis) y solicitudes de instituciones, sin sesión.
+            # Catálogo público (cursos gratis), solicitudes de instituciones y rankings de Taps (/public/taps/**), sin sesión.
             - id: ms-education-public
               uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
               predicates:

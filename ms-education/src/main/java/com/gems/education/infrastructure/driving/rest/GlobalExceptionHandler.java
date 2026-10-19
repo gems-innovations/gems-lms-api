@@ -179,6 +179,12 @@ public class GlobalExceptionHandler {
       .body(new ErrorResponse(GroupNotFoundException.CODE, ex.getMessage(), HttpStatus.NOT_FOUND.value())));
   }
 
+  @ExceptionHandler(com.gems.education.application.exceptions.TapsLimiteException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleTapsLimite(com.gems.education.application.exceptions.TapsLimiteException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(new ErrorResponse(
+      com.gems.education.application.exceptions.TapsLimiteException.CODE, ex.getMessage(), HttpStatus.TOO_MANY_REQUESTS.value())));
+  }
+
   // Framework errors (unknown route, wrong method, malformed body...) keep their own status
   // instead of being reported as a 500.
   @ExceptionHandler(ResponseStatusException.class)

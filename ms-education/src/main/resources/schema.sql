@@ -493,3 +493,43 @@ CREATE INDEX IF NOT EXISTS idx_survey_responses_course ON survey_responses(cours
 -- Curso abierto (gratis, sin registro) que una institución muestra en su landing pública.
 ALTER TABLE courses ADD COLUMN IF NOT EXISTS showcase_institution_id VARCHAR(100);
 CREATE INDEX IF NOT EXISTS idx_courses_showcase ON courses(showcase_institution_id);
+
+-- Taps (mini-quizzes públicos): rankings de la semana y del día. No se guarda la IP.
+-- Dispositivo (UUID generado en la web): alias de sus partidas anónimas, su primer usuario y el control de
+-- frecuencia (última partida y ventana de una hora), que se actualiza con un UPDATE condicional atómico.
+CREATE TABLE IF NOT EXISTS taps_jugador (
+    jugador_id UUID PRIMARY KEY,
+    usuario_id BIGINT,
+    alias VARCHAR(60) NOT NULL,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ultima_partida TIMESTAMPTZ,
+    ventana_inicio TIMESTAMPTZ,
+    ventana_partidas INT NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_taps_jugador_usuario ON taps_jugador(usuario_id);
+
+-- Usuario con sesión que juega Taps: su alias (el servidor lo asigna la primera vez).
+CREATE TABLE IF NOT EXISTS taps_usuario (
+    usuario_id BIGINT PRIMARY KEY,
+    alias VARCHAR(60) NOT NULL,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- usuario_id: con quién compite la partida (null = anónima, suma al dispositivo).
+CREATE TABLE IF NOT EXISTS taps_partida (
+    id BIGSERIAL PRIMARY KEY,
+    jugador_id UUID NOT NULL REFERENCES taps_jugador(jugador_id) ON DELETE CASCADE,
+    usuario_id BIGINT,
+    tap_id VARCHAR(60) NOT NULL,
+    tema VARCHAR(20) NOT NULL,
+    aciertos INT NOT NULL,
+    total INT NOT NULL,
+    xp INT NOT NULL,
+    duracion_ms BIGINT NOT NULL,
+    creada TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- Rankings por rango de fechas (todos los temas o uno) y regla de repetición por dispositivo o usuario.
+CREATE INDEX IF NOT EXISTS idx_taps_partida_creada ON taps_partida(creada);
+CREATE INDEX IF NOT EXISTS idx_taps_partida_tema_creada ON taps_partida(tema, creada);
+CREATE INDEX IF NOT EXISTS idx_taps_partida_jugador_creada ON taps_partida(jugador_id, creada);
+CREATE INDEX IF NOT EXISTS idx_taps_partida_usuario_creada ON taps_partida(usuario_id, creada) WHERE usuario_id IS NOT NULL;
