@@ -28,7 +28,8 @@ if (inicio < 0 || fin < inicio) {
 // El arreglo es JSON salvo por la coma final de cada elemento.
 const banco = JSON.parse(texto.slice(inicio, fin + 1).replace(/,\s*\]$/, ']'));
 
-const temas = new Set(['minecraft', 'logica', 'cultura']);
+// Los mismos que TapsRankingUseCase.TEMAS (y que TAP_TOPICS en la web).
+const temas = new Set(['minecraft', 'logica', 'cultura', 'tecnologia']);
 const vistos = new Set();
 const lineas = banco.map((tap) => {
   const id = tap.id;
