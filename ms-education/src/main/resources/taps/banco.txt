@@ -41,6 +41,7 @@ mc-estructuras minecraft 5
 mc-oceanos minecraft 5
 mc-aldea-1 minecraft 5
 mc-saqueadores minecraft 5
+mc-duelo-1 minecraft 5
 lg-gancho logica 5
 lg-adivinanzas-1 logica 5
 lg-zorgs logica 5
@@ -69,6 +70,7 @@ lg-azar-2 logica 5
 lg-numeros logica 5
 lg-codigo-1 logica 5
 lg-codigo-2 logica 5
+lg-duelo-1 logica 5
 cu-gancho cultura 5
 cu-cuerpo-1 cultura 5
 cu-espacio-1 cultura 5
@@ -98,3 +100,5 @@ cu-dinosaurios-1 cultura 5
 cu-dinosaurios-2 cultura 5
 cu-plantas-1 cultura 5
 cu-plantas-2 cultura 5
+cu-duelo-1 cultura 5
+cu-duelo-2 cultura 5
