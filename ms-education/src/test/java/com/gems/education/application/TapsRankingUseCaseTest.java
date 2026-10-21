@@ -268,8 +268,9 @@ class TapsRankingUseCaseTest {
   @Test
   void elBancoRealTieneLosTapsDeLaWeb() {
     TapsBanco real = TapsBanco.delClasspath();
-    assertEquals(98, real.cantidad());
+    assertEquals(102, real.cantidad());
     assertEquals(new TapsBanco.Tap("cu-plantas-2", "cultura", 5), real.buscar("cu-plantas-2").orElseThrow());
+    assertEquals(new TapsBanco.Tap("cu-duelo-2", "cultura", 5), real.buscar("cu-duelo-2").orElseThrow());
     assertEquals(new TapsBanco.Tap("mc-gancho", "minecraft", 5), real.buscar("mc-gancho").orElseThrow());
     assertTrue(real.buscar("no-existe").isEmpty());
   }
