@@ -29,12 +29,13 @@ if (inicio < 0 || fin < inicio) {
 const banco = JSON.parse(texto.slice(inicio, fin + 1).replace(/,\s*\]$/, ']'));
 
 // Los mismos que TapsRankingUseCase.TEMAS (y que TAP_TOPICS en la web).
-const temas = new Set(['minecraft', 'logica', 'cultura', 'tecnologia']);
+const temas = new Set(['minecraft', 'logica', 'cultura', 'tecnologia', 'historias']);
 const vistos = new Set();
 const lineas = banco.map((tap) => {
   const id = tap.id;
   const tema = tap.topic;
-  const total = tap.questions?.length ?? 0;
+  // Los pasos de una historia no puntúan: el total es el de las preguntas que sí (la web envía `puntuables`).
+  const total = (tap.questions ?? []).filter((q) => q.tipo !== 'paso').length;
   if (!/^[a-z0-9-]{1,60}$/.test(id)) throw new Error(`tapId no válido: ${id}`);
   if (!temas.has(tema)) throw new Error(`tema no válido en ${id}: ${tema}`);
   if (total < 1 || total > 10) throw new Error(`total no válido en ${id}: ${total}`);

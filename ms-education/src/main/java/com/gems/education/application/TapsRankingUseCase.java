@@ -44,7 +44,7 @@ import java.util.regex.Pattern;
 public class TapsRankingUseCase {
   public static final ZoneId ZONA = ZoneId.of("America/Bogota");
   /** Categorías de la web (TAP_TOPICS). El API se despliega antes que la web cuando entra una nueva. */
-  public static final Set<String> TEMAS = Set.of("minecraft", "logica", "cultura", "tecnologia");
+  public static final Set<String> TEMAS = Set.of("minecraft", "logica", "cultura", "tecnologia", "historias");
   public static final String SEMANA = "semana";
   public static final String HOY = "hoy";
 
