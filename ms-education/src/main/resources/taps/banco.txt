@@ -124,3 +124,6 @@ tc-hw-3 tecnologia 5
 tc-mezcla tecnologia 5
 napoleon historias 1
 cleopatra historias 5
+roma-mitos historias 5
+medieval-mitos historias 5
+fleming historias 1
