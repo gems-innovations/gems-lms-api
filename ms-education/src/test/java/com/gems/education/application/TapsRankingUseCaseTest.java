@@ -268,7 +268,7 @@ class TapsRankingUseCaseTest {
   @Test
   void elBancoRealTieneLosTapsDeLaWeb() {
     TapsBanco real = TapsBanco.delClasspath();
-    assertEquals(127, real.cantidad());
+    assertEquals(133, real.cantidad());
     assertEquals(new TapsBanco.Tap("cu-plantas-2", "cultura", 5), real.buscar("cu-plantas-2").orElseThrow());
     assertEquals(new TapsBanco.Tap("cu-duelo-2", "cultura", 5), real.buscar("cu-duelo-2").orElseThrow());
     assertEquals(new TapsBanco.Tap("tc-gancho", "tecnologia", 5), real.buscar("tc-gancho").orElseThrow());
@@ -279,6 +279,8 @@ class TapsRankingUseCaseTest {
     assertEquals(new TapsBanco.Tap("roma-mitos", "historias", 5), real.buscar("roma-mitos").orElseThrow());
     assertEquals(new TapsBanco.Tap("medieval-mitos", "historias", 5), real.buscar("medieval-mitos").orElseThrow());
     assertEquals(new TapsBanco.Tap("fleming", "historias", 1), real.buscar("fleming").orElseThrow());
+    assertEquals(new TapsBanco.Tap("egipto-mitos", "historias", 5), real.buscar("egipto-mitos").orElseThrow());
+    assertEquals(new TapsBanco.Tap("gran-incendio", "historias", 1), real.buscar("gran-incendio").orElseThrow());
     assertEquals(new TapsBanco.Tap("mc-gancho", "minecraft", 5), real.buscar("mc-gancho").orElseThrow());
     assertTrue(real.buscar("no-existe").isEmpty());
   }
