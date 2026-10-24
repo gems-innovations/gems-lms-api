@@ -127,3 +127,9 @@ cleopatra historias 5
 roma-mitos historias 5
 medieval-mitos historias 5
 fleming historias 1
+egipto-mitos historias 5
+roma-orden historias 5
+ciencia-mitos historias 5
+inventos-orden historias 5
+gran-incendio historias 1
+vikingos-mitos historias 5
