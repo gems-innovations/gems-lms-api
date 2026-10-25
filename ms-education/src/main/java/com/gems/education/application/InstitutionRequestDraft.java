@@ -60,9 +60,21 @@ public final class InstitutionRequestDraft {
    * The draft to store: the dedicated {@code draft} field when it is valid, otherwise the marked block inside
    * {@code message} (current clients), otherwise nothing. The message itself is never changed.
    */
-  public static Optional<String> resolve(String draft, String message) {
-    Optional<String> own = normalize(draft);
+  public static Optional<String> resolve(JsonNode draft, String message) {
+    Optional<String> own = normalize(asText(draft));
     return own.isPresent() ? own : normalize(extractBlock(message));
+  }
+
+  /** The draft field as JSON text: a string is taken as is, an object is serialized, anything else is nothing. */
+  static String asText(JsonNode draft) {
+    if (draft == null || draft.isNull()) return null;
+    if (draft.isTextual()) return draft.textValue();
+    if (!draft.isObject()) return null;
+    try {
+      return MAPPER.writeValueAsString(draft);
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   /** The JSON between the markers of {@code message}, or null when there is no complete block. */
@@ -91,8 +103,9 @@ public final class InstitutionRequestDraft {
     if (v == null || !v.isInt() || v.intValue() != 1) return Optional.empty();
     String id = text(root.get("borradorId"));
     if (id == null || !DRAFT_ID.matcher(id).matches()) return Optional.empty();
+    // Like compartir.js normalizarLook: an unknown starting point is just «sorpresa» (the look carries everything).
     String base = text(root.get("b"));
-    if (base == null || !PRESETS.contains(base)) return Optional.empty();
+    if (base == null || !PRESETS.contains(base)) base = "sorpresa";
     String world = text(root.get("w"));
     if (world == null || !WORLDS.contains(world)) return Optional.empty();
     JsonNode itemNode = root.get("i");
@@ -102,10 +115,12 @@ public final class InstitutionRequestDraft {
       if (item == null || !ITEMS.contains(item)) return Optional.empty();
     }
     JsonNode look = root.get("l");
-    if (look == null || !look.isObject() || !validLook(look)) return Optional.empty();
+    if (look == null || !look.isObject()) return Optional.empty();
+    ObjectNode cleanLook = cleanLook(look);
+    if (cleanLook == null) return Optional.empty();
 
     ObjectNode out = MAPPER.createObjectNode();
-    out.put("v", 1).put("borradorId", id).put("b", base).set("l", look.deepCopy());
+    out.put("v", 1).put("borradorId", id).put("b", base).set("l", cleanLook);
     if (item == null) out.putNull("i"); else out.put("i", item);
     out.put("w", world);
     try {
@@ -116,24 +131,32 @@ public final class InstitutionRequestDraft {
     }
   }
 
-  /** Every key is a known piece, colour or «glasses»; pieces are in their list, colours are #rrggbb, no nulls. */
-  private static boolean validLook(JsonNode look) {
+  /**
+   * The look with only known keys: pieces in their list, colours #rrggbb (a {@code null} colour means "absent", as
+   * in rig.js validarLook, and is left out), «glasses» boolean. Null when anything else shows up.
+   */
+  private static ObjectNode cleanLook(JsonNode look) {
+    ObjectNode out = MAPPER.createObjectNode();
     for (Map.Entry<String, JsonNode> e : look.properties()) {
       String k = e.getKey();
       JsonNode val = e.getValue();
       if (PIECES.containsKey(k)) {
         String s = text(val);
-        if (s == null || !PIECES.get(k).contains(s)) return false;
+        if (s == null || !PIECES.get(k).contains(s)) return null;
+        out.put(k, s);
       } else if (COLORS.contains(k)) {
+        if (val.isNull()) continue;
         String s = text(val);
-        if (s == null || !HEX_COLOR.matcher(s).matches()) return false;
+        if (s == null || !HEX_COLOR.matcher(s).matches()) return null;
+        out.put(k, s);
       } else if ("glasses".equals(k)) {
-        if (!val.isBoolean()) return false;
+        if (!val.isBoolean()) return null;
+        out.put(k, val.booleanValue());
       } else {
-        return false;
+        return null;
       }
     }
-    return true;
+    return out;
   }
 
   private static boolean onlyKeys(JsonNode node, Set<String> allowed) {

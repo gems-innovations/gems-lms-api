@@ -1,5 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.gems.education.application.InstitutionRequestDraft;
 import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.domain.entities.Course;
@@ -142,9 +143,12 @@ public class PublicCatalogController {
 
   // ── Institutions that want their own space ─────────────────────────────────
 
-  /** {@code draft}: optional JSON of the character made in /crear (see {@link InstitutionRequestDraft}). */
+  /**
+   * {@code draft}: optional character made in /crear (see {@link InstitutionRequestDraft}), as JSON text or as an
+   * object. Typed as a tree so that whatever a client sends there never makes the request fail.
+   */
   public record InstitutionRequest(String institutionName, String contactName, String email, String phone,
-                                   String role, Integer students, String message, String draft) {}
+                                   String role, Integer students, String message, JsonNode draft) {}
 
   /** Only the super admin sees these; {@code draft} is the validated JSON text (data, never markup) or null. */
   public record StoredRequest(Long id, String institutionName, String contactName, String email, String phone,

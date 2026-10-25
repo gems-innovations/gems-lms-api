@@ -34,6 +34,12 @@ class PublicCatalogControllerRequestsTest {
   @BeforeEach
   @SuppressWarnings("unchecked")
   void setUp() {
+    stubRows();
+    controller = new PublicCatalogController(mock(CourseGateway.class), db, "gems-abierto");
+  }
+
+  @SuppressWarnings("unchecked")
+  private void stubRows() {
     when(db.sql(anyString())).thenReturn(spec);
     when(row.get("id", Long.class)).thenReturn(7L);
     when(spec.map(any(BiFunction.class))).thenAnswer(inv -> {
@@ -43,7 +49,6 @@ class PublicCatalogControllerRequestsTest {
       when(rows.all()).thenAnswer(i -> Flux.just(f.apply(row, null)));
       return rows;
     });
-    controller = new PublicCatalogController(mock(CourseGateway.class), db, "gems-abierto");
   }
 
   private WebTestClient anonymous() {
@@ -94,10 +99,34 @@ class PublicCatalogControllerRequestsTest {
   }
 
   @Test
-  void unBorradorEnormeSeDescarta() {
-    String huge = "\"" + "x".repeat(5000) + "\"";
-    post(body(null, huge)).expectStatus().isCreated();
+  void unBorradorEnormeSeDescartaYElMensajeQuedaIntacto() {
+    // Well-formed and valid, but padded past 2048 bytes: rejected by size alone.
+    String huge = DRAFT.replace("\"v\":1,", "\"v\":1," + " ".repeat(2048));
+    post(body("\"Hola\"", "\"" + huge.replace("\"", "\\\"") + "\"")).expectStatus().isCreated();
     assertNull(boundDraft());
+    verify(spec).bind("message", "Hola");
+  }
+
+  @Test
+  void elBorradorPuedeLlegarComoObjetoYSeGuardaCanonico() {
+    String unordered = "{\"w\":\"taller-londres\",\"i\":\"pluma\",\"l\":{\"skin\":\"#c99a76\",\"hairStyle\":\"corto\"},"
+      + "\"b\":\"grabador\",\"borradorId\":\"mh3k2a9f-0abc123\",\"v\":1}";
+    post(body("\"Hola\"", unordered)).expectStatus().isCreated();
+    assertEquals(DRAFT, boundDraft());
+    verify(spec).bind("message", "Hola");
+  }
+
+  @Test
+  void otrosTiposEnDraftNuncaFallanLaSolicitud() {
+    for (String raw : new String[] {"{}", "[1]", "123", "null", "true", "{\"v\":1,\"x\":[[[]]]}"}) {
+      reset(spec);
+      stubRows();
+      // A fresh controller per value: the public endpoint allows 5 requests a day per client.
+      controller = new PublicCatalogController(mock(CourseGateway.class), db, "gems-abierto");
+      post(body("\"Hola\"", raw)).expectStatus().isCreated().expectBody().jsonPath("$.id").isEqualTo(7);
+      assertNull(boundDraft(), raw);
+      verify(spec).bind("message", "Hola");
+    }
   }
 
   @Test
