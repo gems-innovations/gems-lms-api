@@ -55,11 +55,9 @@ class TapsEstadisticasUseCaseTest {
   void rechazaTapsEventosYPreguntasInvalidos() {
     assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("no-existe", "vista", null, null)));
     assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("mc-gancho", "hackeo", null, null)));
-    assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("mc-gancho", "respuesta", 5, true)));
+    assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("mc-gancho", "respuesta", 10, true)));
     assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("mc-gancho", "respuesta", null, true)));
-    assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("fleming", "respuesta", 1, true)));
     assertThrows(IllegalArgumentException.class, () -> caso.registrar(null));
-    verifyNoInteractions(gateway.getClass().cast(gateway));
   }
 
   @Test
@@ -93,6 +91,20 @@ class TapsEstadisticasUseCaseTest {
       assertEquals(5, p.get(2).abandonos());
       assertEquals(5, p.get(3).abandonos());
       assertEquals(2, p.get(4).abandonos(), "tras la última: respondieron 40 y completaron 38");
+    }).verifyComplete();
+  }
+
+  @Test
+  void unaHistoriaCuentaSusPasosAunqueElBancoLaMideEn1() {
+    when(gateway.leer(any(), any())).thenReturn(Flux.just(
+      new TapsEstadisticasGateway.Fila("fleming", "respuesta", 0, 10), new TapsEstadisticasGateway.Fila("fleming", "respuesta", 1, 8),
+      new TapsEstadisticasGateway.Fila("fleming", "respuesta", 2, 6), new TapsEstadisticasGateway.Fila("fleming", "respuesta", 3, 5),
+      new TapsEstadisticasGateway.Fila("fleming", "respuesta", 4, 4), new TapsEstadisticasGateway.Fila("fleming", "completado", 0, 4)));
+    StepVerifier.create(caso.leer(7)).assertNext(r -> {
+      var p = r.taps().get(0).preguntas();
+      assertEquals(5, p.size());
+      assertEquals(2, p.get(0).abandonos());
+      assertEquals(0, p.get(4).abandonos());
     }).verifyComplete();
   }
 

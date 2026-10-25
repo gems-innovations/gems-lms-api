@@ -28,6 +28,8 @@ import java.util.Set;
 public class TapsEstadisticasUseCase {
   public static final int DIAS_POR_DEFECTO = 30;
   public static final int DIAS_MAXIMOS = 90;
+  /** Preguntas máximas de un Tap (una historia cuenta sus pasos además de la pregunta final; en el banco figura con 1). */
+  static final int MAX_PREGUNTAS = 10;
   static final Set<String> EVENTOS = Set.of("vista", "respuesta", "completado", "compartido");
   /** Evento interno: se suma junto a {@code respuesta} cuando la respuesta fue correcta. */
   static final String ACIERTO = "acierto";
@@ -63,7 +65,7 @@ public class TapsEstadisticasUseCase {
     LocalDate dia = LocalDate.now(clock);
     if (!"respuesta".equals(e.evento())) return gateway.sumar(tap.id(), dia, e.evento(), 0);
     int n = e.pregunta() == null ? -1 : e.pregunta();
-    if (n < 0 || n >= tap.total()) throw new IllegalArgumentException("pregunta fuera del Tap");
+    if (n < 0 || n >= MAX_PREGUNTAS) throw new IllegalArgumentException("pregunta fuera del Tap");
     Mono<Void> respuesta = gateway.sumar(tap.id(), dia, "respuesta", n);
     return Boolean.TRUE.equals(e.acierto()) ? respuesta.then(gateway.sumar(tap.id(), dia, ACIERTO, n)) : respuesta;
   }
@@ -93,9 +95,10 @@ public class TapsEstadisticasUseCase {
       Map<Integer, long[]> pp = porPregunta.getOrDefault(id, Map.of());
       long completados = s.getOrDefault("completado", 0L), respuestas = 0, aciertos = 0;
       List<Pregunta> preguntas = new ArrayList<>();
-      for (int n = 0; n < tap.total(); n++) {
+      int largo = Math.max(tap.total(), pp.keySet().stream().mapToInt(Integer::intValue).max().orElse(-1) + 1);   // una historia: pasos + final
+      for (int n = 0; n < largo; n++) {
         long[] a = pp.getOrDefault(n, new long[2]);
-        long siguientes = n + 1 < tap.total() ? pp.getOrDefault(n + 1, new long[2])[0] : completados;
+        long siguientes = n + 1 < largo ? pp.getOrDefault(n + 1, new long[2])[0] : completados;
         preguntas.add(new Pregunta(n, a[0], a[1], Math.max(0, a[0] - siguientes)));
         respuestas += a[0];
         aciertos += a[1];
