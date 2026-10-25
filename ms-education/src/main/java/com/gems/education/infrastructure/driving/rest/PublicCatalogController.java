@@ -1,5 +1,6 @@
 package com.gems.education.infrastructure.driving.rest;
 
+import com.gems.education.application.InstitutionRequestDraft;
 import com.gems.education.application.gateway.CourseGateway;
 import com.gems.education.domain.entities.Course;
 import com.gems.education.domain.entities.Lesson;
@@ -141,11 +142,14 @@ public class PublicCatalogController {
 
   // ── Institutions that want their own space ─────────────────────────────────
 
+  /** {@code draft}: optional JSON of the character made in /crear (see {@link InstitutionRequestDraft}). */
   public record InstitutionRequest(String institutionName, String contactName, String email, String phone,
-                                   String role, Integer students, String message) {}
+                                   String role, Integer students, String message, String draft) {}
 
+  /** Only the super admin sees these; {@code draft} is the validated JSON text (data, never markup) or null. */
   public record StoredRequest(Long id, String institutionName, String contactName, String email, String phone,
-                              String role, Integer students, String message, String status, LocalDateTime createdAt) {}
+                              String role, Integer students, String message, String draft, String status,
+                              LocalDateTime createdAt) {}
 
   @PostMapping("/api/v1/public/institution-requests")
   public Mono<ResponseEntity<Map<String, Object>>> requestInstitution(@RequestBody InstitutionRequest body, ServerWebExchange exchange) {
@@ -157,14 +161,17 @@ public class PublicCatalogController {
     if (!requestsPerDay.tryAcquire(client)) {
       return Mono.error(new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many requests from this network today"));
     }
-    DatabaseClient.GenericExecuteSpec spec = db.sql("INSERT INTO institution_requests(institution_name, contact_name, email, phone, role, students, message) "
-        + "VALUES (:name, :contact, :email, :phone, :role, :students, :message) RETURNING id")
+    // The draft is untrusted (public endpoint): invalid or forged ones are dropped, the request itself is kept.
+    String draft = InstitutionRequestDraft.resolve(body.draft(), body.message()).orElse(null);
+    DatabaseClient.GenericExecuteSpec spec = db.sql("INSERT INTO institution_requests(institution_name, contact_name, email, phone, role, students, message, draft) "
+        + "VALUES (:name, :contact, :email, :phone, :role, :students, :message, :draft) RETURNING id")
       .bind("name", cut(body.institutionName(), 160)).bind("contact", cut(body.contactName(), 120))
       .bind("email", cut(body.email().trim().toLowerCase(), 160));
     spec = blank(body.phone()) ? spec.bindNull("phone", String.class) : spec.bind("phone", cut(body.phone(), 40));
     spec = blank(body.role()) ? spec.bindNull("role", String.class) : spec.bind("role", cut(body.role(), 60));
     spec = body.students() == null ? spec.bindNull("students", Integer.class) : spec.bind("students", Math.max(0, body.students()));
     spec = blank(body.message()) ? spec.bindNull("message", String.class) : spec.bind("message", cut(body.message(), 2000));
+    spec = draft == null ? spec.bindNull("draft", String.class) : spec.bind("draft", draft);
     return spec.map((row, meta) -> row.get("id", Long.class)).one()
       .flatMap(id -> notifyRequest(body).thenReturn(id))
       .map(id -> ResponseEntity.status(HttpStatus.CREATED).body(Map.<String, Object>of("id", id, "status", "received")));
@@ -188,12 +195,12 @@ public class PublicCatalogController {
   @GetMapping("/api/v1/institution-requests")
   public Mono<ResponseEntity<List<StoredRequest>>> requests() {
     return CurrentUser.require(AuthenticatedUser::isSuperAdmin, "Only the super admin sees institution requests")
-      .flatMap(caller -> db.sql("SELECT id, institution_name, contact_name, email, phone, role, students, message, status, created_at "
+      .flatMap(caller -> db.sql("SELECT id, institution_name, contact_name, email, phone, role, students, message, draft, status, created_at "
           + "FROM institution_requests ORDER BY created_at DESC LIMIT 500")
         .map((r, meta) -> new StoredRequest(r.get("id", Long.class), r.get("institution_name", String.class),
           r.get("contact_name", String.class), r.get("email", String.class), r.get("phone", String.class),
           r.get("role", String.class), r.get("students", Integer.class), r.get("message", String.class),
-          r.get("status", String.class), r.get("created_at", LocalDateTime.class)))
+          r.get("draft", String.class), r.get("status", String.class), r.get("created_at", LocalDateTime.class)))
         .all().collectList())
       .map(ResponseEntity::ok);
   }

@@ -473,6 +473,8 @@ CREATE TABLE IF NOT EXISTS institution_requests (
     status VARCHAR(20) NOT NULL DEFAULT 'new',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+-- Borrador del personaje hecho en /crear (JSON validado en el servidor, ≤ 2048 bytes); solo lo ve el superadmin.
+ALTER TABLE institution_requests ADD COLUMN IF NOT EXISTS draft VARCHAR(2048);
 
 -- Correos de motivación enviados (racha, te extrañamos, top): evita repetirlos.
 CREATE TABLE IF NOT EXISTS engagement_emails (
