@@ -533,3 +533,15 @@ CREATE INDEX IF NOT EXISTS idx_taps_partida_creada ON taps_partida(creada);
 CREATE INDEX IF NOT EXISTS idx_taps_partida_tema_creada ON taps_partida(tema, creada);
 CREATE INDEX IF NOT EXISTS idx_taps_partida_jugador_creada ON taps_partida(jugador_id, creada);
 CREATE INDEX IF NOT EXISTS idx_taps_partida_usuario_creada ON taps_partida(usuario_id, creada) WHERE usuario_id IS NOT NULL;
+
+-- Estadísticas anónimas por Tap: contadores por día, evento (vista, respuesta, acierto, completado, compartido) y pregunta.
+-- No guarda IP ni identidad: solo cuántas veces ocurrió cada cosa.
+CREATE TABLE IF NOT EXISTS taps_estadistica (
+    tap_id VARCHAR(60) NOT NULL,
+    dia DATE NOT NULL,
+    evento VARCHAR(12) NOT NULL,
+    pregunta SMALLINT NOT NULL DEFAULT 0,
+    cantidad BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (tap_id, dia, evento, pregunta)
+);
+CREATE INDEX IF NOT EXISTS idx_taps_estadistica_dia ON taps_estadistica(dia);

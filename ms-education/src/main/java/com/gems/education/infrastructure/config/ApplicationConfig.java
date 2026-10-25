@@ -285,6 +285,12 @@ public class ApplicationConfig {
       .withoutCertificatesFor(openInstitutionId);
   }
 
+  /** Estadísticas anónimas por Tap (vistas, primera respuesta, completados, abandono por pregunta, aciertos, compartidos). */
+  @Bean
+  public TapsEstadisticasUseCase tapsEstadisticasUseCase(TapsEstadisticasGateway tapsEstadisticasGateway) {
+    return new TapsEstadisticasUseCase(tapsEstadisticasGateway, TapsBanco.delClasspath());
+  }
+
   /** Rankings de Taps (partidas y clasificación semanal y del día). */
   @Bean
   public TapsRankingUseCase tapsRankingUseCase(TapsGateway tapsGateway) {
