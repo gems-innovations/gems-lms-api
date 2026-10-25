@@ -100,6 +100,7 @@ services:
       - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS:-*}
       - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS:-true}
       - CORS_MAX_AGE=${CORS_MAX_AGE:-3600}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
     networks:
       - gems-network
     depends_on:

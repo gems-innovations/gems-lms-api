@@ -12,6 +12,9 @@ public interface EmailVerificationGateway {
   /** Marks the e-mail verified and emits the user; empty if the token is unknown, used or expired. */
   Mono<Long> confirm(String tokenHash, LocalDateTime now);
 
+  /** Marks the address verified without a link (a trusted provider such as Google vouched for it). */
+  Mono<Void> markVerified(Long userId, LocalDateTime now);
+
   Mono<Boolean> isVerified(Long userId);
 
   /** When the last link was sent; empty if none was. */
