@@ -57,6 +57,17 @@ public class ApplicationConfig {
   }
 
   @Bean
+  public com.gems.auth.application.GoogleSignInUseCase googleSignInUseCase(
+      com.gems.auth.application.gateway.GoogleTokenVerifier verifier, UserGateway userGateway,
+      PasswordEncoderGateway passwordEncoderGateway, JwtGateway jwtGateway,
+      EmailVerificationGateway verificationGateway, ConsentGateway consents, EmailPreferencesUseCase preferences,
+      @Value("${open.institution.id:gems-abierto}") String openInstitutionId,
+      @Value("${app.legal.policy-version:2026-10}") String policyVersion) {
+    return new com.gems.auth.application.GoogleSignInUseCase(verifier, userGateway, passwordEncoderGateway, jwtGateway,
+      verificationGateway, consents, preferences, openInstitutionId, policyVersion);
+  }
+
+  @Bean
   public LoginUseCase loginUseCase(UserGateway userGateway,
                                    PasswordEncoderGateway passwordEncoderGateway,
                                    JwtGateway jwtGateway) {

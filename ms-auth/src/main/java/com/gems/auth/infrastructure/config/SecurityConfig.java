@@ -15,7 +15,7 @@ import org.springframework.web.cors.reactive.CorsConfigurationSource;
 public class SecurityConfig {
 
   private static final String[] PUBLIC_PATHS = {
-    "/api/v1/auth/login",
+    "/api/v1/auth/login", "/api/v1/auth/google",
     "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password", "/api/v1/auth/verify-email", "/api/v1/auth/email-preferences/by-link",
     "/api/v1/auth/guest",
     // Service-to-service, protected by the internal key (never routed by the gateway).

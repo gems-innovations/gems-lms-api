@@ -45,6 +45,14 @@ public class GlobalExceptionHandler {
     return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
   }
 
+  @ExceptionHandler(com.gems.auth.application.exceptions.GoogleSignInDisabledException.class)
+  @ApiResponse(responseCode = "404", description = "Google sign-in is not enabled")
+  public Mono<ResponseEntity<ErrorResponse>> handleGoogleSignInDisabled(
+      com.gems.auth.application.exceptions.GoogleSignInDisabledException ex) {
+    ErrorResponse error = new ErrorResponse("NOT_FOUND", ex.getMessage(), HttpStatus.NOT_FOUND.value());
+    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
+  }
+
   @ExceptionHandler(InvalidCredentialsException.class)
   @ApiResponse(responseCode = "401", description = "Invalid credentials or user account is deactivated")
   public Mono<ResponseEntity<ErrorResponse>> handleInvalidCredentialsException(InvalidCredentialsException ex) {

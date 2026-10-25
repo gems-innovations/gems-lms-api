@@ -166,6 +166,7 @@ services:
       - MAIL_PASSWORD=${MAIL_PASSWORD:-}
       - MAIL_STARTTLS=${MAIL_STARTTLS:-true}
       - MAIL_FROM=${MAIL_FROM:-no-reply@gems.lms}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - AUTH_PORT=${AUTH_PORT:-8081}
       - AUTH_R2DBC_URL=r2dbc:postgresql://postgres-auth:5432/${AUTH_DB_NAME:-auth_db}
       - AUTH_R2DBC_USERNAME=${AUTH_DB_USER:-auth_user}

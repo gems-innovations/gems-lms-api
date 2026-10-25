@@ -35,6 +35,19 @@ public class EmailVerificationRepositoryAdapter implements EmailVerificationGate
   }
 
   @Override
+  public Mono<Void> markVerified(Long userId, LocalDateTime now) {
+    // The placeholder hash is random and its token was never sent, so no link can ever match it.
+    byte[] random = new byte[32];
+    new java.security.SecureRandom().nextBytes(random);
+    String placeholder = java.util.HexFormat.of().formatHex(random);
+    return db.sql("INSERT INTO email_verifications (user_id, token_hash, expires_at, sent_at, verified_at) "
+        + "VALUES (:userId, :hash, :now, :now, :now) "
+        + "ON CONFLICT (user_id) DO UPDATE SET verified_at = COALESCE(email_verifications.verified_at, EXCLUDED.verified_at)")
+      .bind("userId", userId).bind("hash", placeholder).bind("now", now)
+      .then();
+  }
+
+  @Override
   public Mono<Boolean> isVerified(Long userId) {
     return db.sql("SELECT 1 AS ok FROM email_verifications WHERE user_id = :userId AND verified_at IS NOT NULL")
       .bind("userId", userId).map(row -> true).one().defaultIfEmpty(false);
