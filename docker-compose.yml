@@ -105,6 +105,8 @@ services:
       - "127.0.0.1:${WEB_HOST_PORT:-18081}:80"
     environment:
       - API_BASE_URL=${API_BASE_URL:?Define API_BASE_URL}
+      # ID de cliente de Google (publico); sin valor no aparece el boton "Continuar con Google".
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
     networks:
       - gems-network
     restart: unless-stopped
