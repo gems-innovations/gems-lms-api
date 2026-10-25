@@ -18,6 +18,7 @@ public class SecurityConfig {
     "/api/v1/auth/login",
     "/api/v1/auth/forgot-password", "/api/v1/auth/reset-password", "/api/v1/auth/verify-email", "/api/v1/auth/email-preferences/by-link",
     "/api/v1/auth/guest",
+    "/api/v1/auth/google",
     "/actuator/health/**", "/actuator/prometheus",
     "/api/v1/files/public/**", "/api/v1/certificates/verify/**",
     "/api/v1/public/**",
