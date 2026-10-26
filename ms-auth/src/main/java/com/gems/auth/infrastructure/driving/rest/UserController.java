@@ -177,12 +177,19 @@ public class UserController {
     if (!adminOfTarget) throw new ForbiddenException("You cannot manage this user");
   }
 
-  /** Admins can only give non-super-admin roles inside their own institution. */
+  /**
+   * Admins can only give non-super-admin roles inside their own institution. CREATOR (independent
+   * Taps creator, usually without institution) is granted by the super admin alone, so that an
+   * institution cannot mint creators on its own.
+   */
   static void ensureCanAssign(AuthenticatedUser caller, String role, String institutionId) {
     if (caller.isSuperAdmin()) return;
     if (!caller.isAdmin()) throw new ForbiddenException("Only administrators can manage users");
     if (AuthenticatedUser.SUPER_ADMIN.equalsIgnoreCase(role)) {
       throw new ForbiddenException("Only the super admin can grant the SUPER_ADMIN role");
+    }
+    if (AuthenticatedUser.CREATOR.equalsIgnoreCase(role)) {
+      throw new ForbiddenException("Only the super admin can grant the CREATOR role");
     }
     if (!caller.belongsTo(institutionId)) {
       throw new ForbiddenException("You can only manage users of your institution");

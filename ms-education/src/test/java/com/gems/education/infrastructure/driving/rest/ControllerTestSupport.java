@@ -29,6 +29,8 @@ abstract class ControllerTestSupport {
   static final AuthenticatedUser INSTRUCTOR = new AuthenticatedUser(3L, "INSTRUCTOR", "inst-1");
   static final AuthenticatedUser STUDENT = new AuthenticatedUser(5L, "STUDENT", "inst-1");
   static final AuthenticatedUser OTHER_ADMIN = new AuthenticatedUser(7L, "ADMIN", "inst-2");
+  /** Independent Taps creator: not staff, no institution. */
+  static final AuthenticatedUser CREATOR = new AuthenticatedUser(8L, "CREATOR", null);
 
   /** A quiz block whose JSON carries the answer keys students must never receive. */
   static final String QUIZ_VALUE = "{\"title\":\"Quiz\",\"questions\":[{\"id\":\"q1\",\"type\":\"true-false\","

@@ -6,7 +6,9 @@ public enum UserRole {
   STUDENT,
   INSTRUCTOR,
   ADMIN,
-  SUPER_ADMIN;
+  SUPER_ADMIN,
+  /** Independent Taps creator: no institution, no access to courses or administration. */
+  CREATOR;
 
   public static UserRole fromString(String value) {
     for (UserRole role : UserRole.values()) {
