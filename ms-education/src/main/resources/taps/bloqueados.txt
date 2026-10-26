@@ -1,0 +1,32 @@
+# Palabras que no se admiten en los textos de un Tap de creador (título, preguntas, opciones, explicaciones,
+# resultados). Una por línea, en minúsculas y sin tildes; se comparan por palabra completa (TapsPayloadValidador).
+# Las líneas que empiezan por # son comentarios.
+puta
+puto
+mierda
+pendejo
+pendeja
+marica
+maricon
+gonorrea
+hijueputa
+malparido
+malparida
+cabron
+cabrona
+verga
+culo
+polla
+coño
+chingar
+pinche
+joder
+carajo
+idiota
+imbecil
+estupido
+estupida
+retrasado
+retrasada
+nazi
+porno

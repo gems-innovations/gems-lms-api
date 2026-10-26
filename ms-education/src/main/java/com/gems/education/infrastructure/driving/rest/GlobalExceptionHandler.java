@@ -185,6 +185,19 @@ public class GlobalExceptionHandler {
       com.gems.education.application.exceptions.TapsLimiteException.CODE, ex.getMessage(), HttpStatus.TOO_MANY_REQUESTS.value())));
   }
 
+  /** Un Tap de creador que no existe o es de otra persona: siempre 404 (no se revela que existe). */
+  @ExceptionHandler(com.gems.education.application.exceptions.TapsCreadorNotFoundException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleTapsCreadorNotFound(com.gems.education.application.exceptions.TapsCreadorNotFoundException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(
+      com.gems.education.application.exceptions.TapsCreadorNotFoundException.CODE, ex.getMessage(), HttpStatus.NOT_FOUND.value())));
+  }
+
+  @ExceptionHandler(com.gems.education.application.exceptions.TapsCreadorConflictoException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleTapsCreadorConflicto(com.gems.education.application.exceptions.TapsCreadorConflictoException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(
+      com.gems.education.application.exceptions.TapsCreadorConflictoException.CODE, ex.getMessage(), HttpStatus.CONFLICT.value())));
+  }
+
   // Framework errors (unknown route, wrong method, malformed body...) keep their own status
   // instead of being reported as a 500.
   @ExceptionHandler(ResponseStatusException.class)

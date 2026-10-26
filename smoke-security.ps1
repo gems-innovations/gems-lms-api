@@ -17,6 +17,7 @@ function Expect($reply, [int]$expected, [string]$label) {
   if ($reply.Status -ne $expected) { throw "$label : esperado $expected, recibido $($reply.Status)" }
   Write-Output "$label : OK ($expected)"
 }
+Expect (Request GET '/taps') 401 'Taps de creador exigen sesión'
 $admin = Request POST '/auth/login' @{email='admin@unal.edu.co';password=$password}
 Expect $admin 200 'Login administrador'
 $adminToken = $admin.Body.token

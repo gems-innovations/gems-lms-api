@@ -114,6 +114,12 @@ spring:
               predicates:
                 - Path=/api/v1/reports/**
 
+            # Taps de creador (borradores del Estudio): exige token, como toda ruta fuera de /public/**.
+            - id: ms-education-taps
+              uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}
+              predicates:
+                - Path=/api/v1/taps/**,/api/v1/taps
+
             # Catálogo público (cursos gratis), solicitudes de instituciones y rankings de Taps (/public/taps/**), sin sesión.
             - id: ms-education-public
               uri: ${EDUCATION_SERVICE_URL:http://localhost:${EDUCATION_PORT:8083}}

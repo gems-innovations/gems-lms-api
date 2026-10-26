@@ -291,6 +291,14 @@ public class ApplicationConfig {
     return new TapsEstadisticasUseCase(tapsEstadisticasGateway, TapsBanco.delClasspath());
   }
 
+  /** Borradores de Taps del creador autenticado (PR-10 A2): propiedad estricta, cuotas y validación del contenido. */
+  @Bean
+  public com.gems.education.application.TapsCreadorUseCase tapsCreadorUseCase(
+      com.gems.education.application.gateway.TapsCreadorGateway tapsCreadorGateway) {
+    return new com.gems.education.application.TapsCreadorUseCase(tapsCreadorGateway,
+      com.gems.education.application.TapsPayloadValidador.delClasspath());
+  }
+
   /** Rankings de Taps (partidas y clasificación semanal y del día). */
   @Bean
   public TapsRankingUseCase tapsRankingUseCase(TapsGateway tapsGateway) {
