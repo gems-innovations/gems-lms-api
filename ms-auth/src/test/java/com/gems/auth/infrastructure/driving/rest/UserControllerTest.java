@@ -332,5 +332,67 @@ class UserControllerTest {
             as(new AuthenticatedUser(2L, "ADMIN", "inst-123")).delete().uri("/api/v1/users/1")
                 .exchange().expectStatus().isNoContent();
         }
+
+        @Test
+        @DisplayName("A CREATOR is not staff: cannot list, count or manage users")
+        void creatorCannotReachStaffEndpoints() {
+            AuthenticatedUser creator = new AuthenticatedUser(8L, "CREATOR", null);
+            as(creator).get().uri("/api/v1/users").exchange().expectStatus().isForbidden();
+            as(creator).get().uri("/api/v1/users/counts").exchange().expectStatus().isForbidden();
+            as(creator).get().uri("/api/v1/users/institution/inst-123").exchange().expectStatus().isForbidden();
+            as(creator).delete().uri("/api/v1/users/1").exchange().expectStatus().isForbidden();
+            verifyNoInteractions(getAllUsersUseCase, getUsersByInstitutionUseCase, deleteUserUseCase);
+        }
+    }
+
+    @Nested
+    @DisplayName("ensureCanAssign")
+    class EnsureCanAssignTests {
+        private final AuthenticatedUser superAdmin = new AuthenticatedUser(1L, "SUPER_ADMIN", null);
+        private final AuthenticatedUser admin = new AuthenticatedUser(2L, "ADMIN", "inst-123");
+
+        @Test
+        @DisplayName("Only the super admin grants CREATOR; an admin cannot, even inside their institution")
+        void onlySuperAdminGrantsCreator() {
+            UserController.ensureCanAssign(superAdmin, "CREATOR", null);
+            UserController.ensureCanAssign(superAdmin, "creator", "inst-123");
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> UserController.ensureCanAssign(admin, "CREATOR", "inst-123"))
+                .isInstanceOf(com.gems.shared.security.ForbiddenException.class);
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> UserController.ensureCanAssign(admin, "CREATOR", null))
+                .isInstanceOf(com.gems.shared.security.ForbiddenException.class);
+        }
+
+        @Test
+        @DisplayName("An independent CREATOR has no institution: the super admin assigns it with a null institution")
+        void superAdminAssignsCreatorWithoutInstitution() {
+            UserController.ensureCanAssign(superAdmin, "CREATOR", null);
+            UserController.ensureCanAssign(superAdmin, "CREATOR", "");
+            // Admins never assign without an institution (they only reach their own one), CREATOR or not.
+            for (String role : new String[] {"CREATOR", "STUDENT", "INSTRUCTOR", "ADMIN"}) {
+                org.assertj.core.api.Assertions.assertThatThrownBy(
+                    () -> UserController.ensureCanAssign(admin, role, null))
+                    .isInstanceOf(com.gems.shared.security.ForbiddenException.class);
+            }
+        }
+
+        @Test
+        @DisplayName("Admins keep their scope: their institution, never SUPER_ADMIN; creators and students assign nothing")
+        void adminScopeIsUnchanged() {
+            UserController.ensureCanAssign(admin, "INSTRUCTOR", "inst-123");
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> UserController.ensureCanAssign(admin, "STUDENT", "inst-999"))
+                .isInstanceOf(com.gems.shared.security.ForbiddenException.class);
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> UserController.ensureCanAssign(admin, "SUPER_ADMIN", "inst-123"))
+                .isInstanceOf(com.gems.shared.security.ForbiddenException.class);
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> UserController.ensureCanAssign(new AuthenticatedUser(8L, "CREATOR", null), "STUDENT", "inst-123"))
+                .isInstanceOf(com.gems.shared.security.ForbiddenException.class);
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> UserController.ensureCanAssign(new AuthenticatedUser(3L, "STUDENT", "inst-123"), "STUDENT", "inst-123"))
+                .isInstanceOf(com.gems.shared.security.ForbiddenException.class);
+        }
     }
 }

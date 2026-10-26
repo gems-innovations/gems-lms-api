@@ -58,7 +58,7 @@ public class CourseController {
       if (scope == null && !caller.isSuperAdmin()) {
         return Mono.error(new ForbiddenException("Your account has no institution"));
       }
-      String visibleStatus = caller.isStudent() ? "published" : status;
+      String visibleStatus = caller.isStaff() ? status : "published";
       return getAllCoursesUseCase.execute(search, visibleStatus, difficulty, scope, page, limit)
         .map(list -> studentView.courses(caller, list));
     }).map(ResponseEntity::ok);
@@ -107,7 +107,7 @@ public class CourseController {
     return CurrentUser.require(caller -> caller.belongsTo(institutionId), "You can only list your institution's courses")
       .map(caller -> {
         Flux<CourseResponse> courses = getCoursesByInstitutionUseCase.execute(institutionId);
-        return ResponseEntity.ok(caller.isStudent()
+        return ResponseEntity.ok(!caller.isStaff()
           ? courses.filter(c -> "published".equals(c.getStatus())).map(c -> studentView.course(caller, c))
           : courses);
       });

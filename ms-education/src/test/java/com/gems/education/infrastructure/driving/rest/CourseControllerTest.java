@@ -86,6 +86,39 @@ class CourseControllerTest extends ControllerTestSupport {
   }
 
   @Test
+  void creatorIsNotStaffOfAnyInstitution() {
+    // A CREATOR (independent Taps author) has no institution and is not staff: no course list,
+    // no course detail, no creation. Deny by default, as for any role that is not staff.
+    when(getCourseByIdUseCase.execute(2L)).thenReturn(Mono.just(course(2L, "draft", "inst-1")));
+    CourseRequest request = new CourseRequest("Nuevo", "Desc", "draft", "beginner", List.of(), null, null, "inst-1", List.of());
+
+    as(CREATOR).get().uri("/api/v1/courses").exchange().expectStatus().isForbidden();
+    as(CREATOR).get().uri("/api/v1/courses/1").exchange().expectStatus().isForbidden();
+    as(CREATOR).get().uri("/api/v1/courses/2").exchange().expectStatus().isForbidden();
+    as(CREATOR).get().uri("/api/v1/courses/institution/inst-1").exchange().expectStatus().isForbidden();
+    as(CREATOR).post().uri("/api/v1/courses").contentType(MediaType.APPLICATION_JSON).bodyValue(request)
+      .exchange().expectStatus().isForbidden();
+    verifyNoInteractions(createCourseUseCase, getAllCoursesUseCase, getCoursesByInstitutionUseCase);
+  }
+
+  @Test
+  void onlyStaffSeeDraftsAndAnswerKeys() {
+    // Even if a non-staff role belonged to the institution, it would be treated like a student:
+    // published courses only and quizzes without answer keys.
+    AuthenticatedUser creatorOfInst1 = new AuthenticatedUser(8L, "CREATOR", "inst-1");
+    when(getCourseByIdUseCase.execute(2L)).thenReturn(Mono.just(course(2L, "draft", "inst-1")));
+
+    as(creatorOfInst1).get().uri("/api/v1/courses/2").exchange().expectStatus().isForbidden();
+    String body = as(creatorOfInst1).get().uri("/api/v1/courses/1").exchange()
+      .expectStatus().isOk().expectBody(String.class).returnResult().getResponseBody();
+    assertEquals(false, body.contains("correctAnswer"));
+
+    when(getAllCoursesUseCase.execute(any(), any(), any(), any(), anyInt(), anyInt())).thenReturn(Mono.just(page()));
+    as(creatorOfInst1).get().uri("/api/v1/courses?status=draft").exchange().expectStatus().isOk();
+    verify(getAllCoursesUseCase).execute(null, "published", null, "inst-1", 1, 10);
+  }
+
+  @Test
   void otherInstitutionsCannotSeeTheCourse() {
     as(OTHER_ADMIN).get().uri("/api/v1/courses/1").exchange().expectStatus().isForbidden();
   }

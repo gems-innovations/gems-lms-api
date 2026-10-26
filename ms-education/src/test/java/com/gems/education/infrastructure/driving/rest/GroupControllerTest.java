@@ -63,6 +63,14 @@ class GroupControllerTest extends ControllerTestSupport {
   }
 
   @Test
+  void creatorsCannotSeeGroups() {
+    as(CREATOR).get().uri("/api/v1/groups").exchange().expectStatus().isForbidden();
+    as(CREATOR).get().uri("/api/v1/groups/1").exchange().expectStatus().isForbidden();
+    as(CREATOR).delete().uri("/api/v1/groups/1").exchange().expectStatus().isForbidden();
+    verify(groupUseCase, never()).delete(any());
+  }
+
+  @Test
   void otherInstitutionsCannotReadOrTouchTheGroup() {
     as(OTHER_ADMIN).get().uri("/api/v1/groups/1").exchange().expectStatus().isForbidden();
     as(OTHER_ADMIN).delete().uri("/api/v1/groups/1").exchange().expectStatus().isForbidden();

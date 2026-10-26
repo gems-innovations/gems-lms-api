@@ -27,7 +27,7 @@ public class StudentView {
   }
 
   public CourseResponse course(AuthenticatedUser caller, CourseResponse c) {
-    if (!caller.isStudent() || c.getModules() == null) return c;
+    if (caller.isStaff() || c.getModules() == null) return c;
     return new CourseResponse(c.getId(), c.getTitle(), c.getDescription(), c.getStatus(), c.getDifficulty(),
       c.getTags(), c.getThumbnailUrl(), c.getInstructorName(), c.getInstitutionId(), c.getTotalDuration(),
       c.getTotalLessons(), c.getEnrolledCount(), c.getCompletionRate(), c.getAverageRating(), c.getRatingCount(),
@@ -35,18 +35,18 @@ public class StudentView {
   }
 
   public CourseListResponse courses(AuthenticatedUser caller, CourseListResponse list) {
-    if (!caller.isStudent()) return list;
+    if (caller.isStaff()) return list;
     return new CourseListResponse(list.courses().stream().map(c -> course(caller, c)).toList(), list.total(),
       list.page(), list.limit(), list.totalPages(), list.hasNext(), list.hasPrevious());
   }
 
   public LearningPathResponse path(AuthenticatedUser caller, LearningPathResponse p) {
-    if (!caller.isStudent() || p.getCourses() == null) return p;
+    if (caller.isStaff() || p.getCourses() == null) return p;
     return p.withCourses(p.getCourses().stream().map(c -> course(caller, c)).toList());
   }
 
   public QuizResponse quiz(AuthenticatedUser caller, QuizResponse q) {
-    if (!caller.isStudent() || q.getQuestions() == null) return q;
+    if (caller.isStaff() || q.getQuestions() == null) return q;
     List<QuestionResponse> questions = q.getQuestions().stream()
       .map(x -> new QuestionResponse(x.getId(), x.getQuizId(), x.getText(), x.getOptions(), null))
       .toList();

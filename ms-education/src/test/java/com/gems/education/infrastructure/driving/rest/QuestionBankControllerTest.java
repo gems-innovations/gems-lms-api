@@ -49,6 +49,13 @@ class QuestionBankControllerTest extends ControllerTestSupport {
   }
 
   @Test
+  void creatorsCannotUseTheBank() {
+    client(controller, CREATOR).get().uri("/api/v1/question-bank").exchange().expectStatus().isForbidden();
+    client(controller, CREATOR).post().uri("/api/v1/question-bank").bodyValue(TF).exchange().expectStatus().isForbidden();
+    verify(gateway, never()).save(any());
+  }
+
+  @Test
   void theSuperAdminMustNameTheInstitution() {
     client(controller, SUPER_ADMIN).get().uri("/api/v1/question-bank").exchange().expectStatus().isBadRequest();
     client(controller, SUPER_ADMIN).get().uri("/api/v1/question-bank?institutionId=inst-2").exchange()

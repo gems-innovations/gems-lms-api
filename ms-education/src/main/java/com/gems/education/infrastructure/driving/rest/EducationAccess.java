@@ -50,7 +50,7 @@ public class EducationAccess {
   public Mono<CourseResponse> readableCourse(Long courseId) {
     return CurrentUser.get().flatMap(caller -> getCourseByIdUseCase.execute(courseId).flatMap(course -> {
       boolean allowed = caller.belongsTo(course.getInstitutionId())
-        && (!caller.isStudent() || PUBLISHED.equals(course.getStatus()));
+        && (caller.isStaff() || PUBLISHED.equals(course.getStatus()));
       return allowed ? Mono.just(course) : Mono.error(new ForbiddenException("You cannot see this course"));
     }));
   }
@@ -80,7 +80,7 @@ public class EducationAccess {
   /** The path, if the caller may read it (students: only published paths). */
   public Mono<LearningPathResponse> readablePath(Long pathId) {
     return CurrentUser.get().flatMap(caller -> getLearningPathByIdUseCase.execute(pathId).flatMap(path ->
-      caller.belongsTo(path.getInstitutionId()) && (!caller.isStudent() || PUBLISHED.equals(path.getStatus()))
+      caller.belongsTo(path.getInstitutionId()) && (caller.isStaff() || PUBLISHED.equals(path.getStatus()))
         ? Mono.just(path)
         : Mono.error(new ForbiddenException("You cannot see this learning path"))));
   }

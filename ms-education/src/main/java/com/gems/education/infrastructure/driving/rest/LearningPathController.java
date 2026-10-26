@@ -54,7 +54,7 @@ public class LearningPathController {
     return CurrentUser.get().flatMap(caller -> Paging.of((caller.isSuperAdmin()
       ? getAllLearningPathsUseCase.execute()
       : getLearningPathsByInstitutionUseCase.execute(caller.institutionId()))
-      .filter(path -> !caller.isStudent() || PUBLISHED.equals(path.getStatus()))
+      .filter(path -> caller.isStaff() || PUBLISHED.equals(path.getStatus()))
       .map(path -> studentView.path(caller, path)), page, limit));
   }
 
@@ -78,7 +78,7 @@ public class LearningPathController {
       @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer limit) {
     return CurrentUser.require(caller -> caller.belongsTo(institutionId), "You can only list your institution's learning paths")
       .flatMap(caller -> Paging.of(getLearningPathsByInstitutionUseCase.execute(institutionId)
-        .filter(path -> !caller.isStudent() || PUBLISHED.equals(path.getStatus()))
+        .filter(path -> caller.isStaff() || PUBLISHED.equals(path.getStatus()))
         .map(path -> studentView.path(caller, path)), page, limit));
   }
 
