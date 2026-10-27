@@ -17,6 +17,7 @@ import reactor.test.StepVerifier;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -184,6 +185,24 @@ class TapsCreadorPublicarUseCaseTest {
       .assertNext(t -> assertEquals("rechazado", t.estado())).verifyComplete();
     verify(gateway).rechazar(ID, 7, "La pregunta 3 tiene dos respuestas", 1L, AHORA);
     StepVerifier.create(caso.decidir(SUPER, ID, "borrar", "x", null)).expectError(IllegalArgumentException.class).verify();
+  }
+
+  @Test
+  void enUnaReRevisionCambiosORechazarNoTumbanLaCopiaAprobada() {
+    // El caso de uso no decide la visibilidad: la pasa tal cual la deja la base (copia aprobada con enlace, sigue pública).
+    Tap conCopia = new Tap(ID, 8L, null, "Roma antigua", "enlace", "en_revision", 1, 7, json, "{\"v\":2}", null, AHORA, AHORA, AHORA);
+    when(gateway.buscarEnRevision(ID)).thenReturn(Mono.just(conCopia));
+    when(gateway.rechazar(eq(ID), eq(7), anyString(), anyLong(), any())).thenReturn(Mono.just(
+      new Tap(ID, 8L, null, "Roma antigua", "enlace", "rechazado", 1, 8, json, "{\"v\":2}", "Dos respuestas", AHORA, AHORA, AHORA)));
+    for (String decision : List.of("cambios", "rechazar")) {
+      StepVerifier.create(caso.decidir(SUPER, ID, decision, "Dos respuestas", 7)).assertNext(t -> {
+        assertEquals("rechazado", t.estado());
+        assertEquals("enlace", t.visibilidad(), "la copia aprobada sigue publicada");
+        assertEquals("{\"v\":2}", t.publicado());
+        assertEquals("Dos respuestas", t.motivo());
+      }).verifyComplete();
+    }
+    verify(gateway, times(2)).rechazar(ID, 7, "Dos respuestas", 1L, AHORA);
   }
 
   @Test

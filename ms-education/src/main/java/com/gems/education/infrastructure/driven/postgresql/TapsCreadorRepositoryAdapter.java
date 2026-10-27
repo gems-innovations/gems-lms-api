@@ -21,8 +21,11 @@ public class TapsCreadorRepositoryAdapter implements TapsCreadorGateway {
   private static final String COLUMNAS = "id, owner_id, institution_id, titulo, visibilidad, estado, version, revision, "
     + "borrador, publicado, motivo, creado, actualizado, publicado_en";
   private static final String VIVO = " AND borrado_en IS NULL";
-  /** Lo que se puede jugar sin cuenta: con copia publicada, con enlace, y no retirado ni rechazado. */
-  private static final String PUBLICO = " AND publicado IS NOT NULL AND visibilidad = 'enlace' AND estado IN ('publicado', 'en_revision')";
+  /**
+   * Lo que se puede jugar sin cuenta: con copia publicada, con enlace, y no retirado. Un {@code rechazado} entra solo si
+   * conserva una copia aprobada con enlace (re-revisión que pidió cambios): la primera revisión rechazada queda en privado.
+   */
+  private static final String PUBLICO = " AND publicado IS NOT NULL AND visibilidad = 'enlace' AND estado IN ('publicado', 'en_revision', 'rechazado')";
 
   private final DatabaseClient db;
 
@@ -148,7 +151,10 @@ public class TapsCreadorRepositoryAdapter implements TapsCreadorGateway {
 
   @Override
   public Mono<Tap> rechazar(String id, int revisionEsperada, String motivo, Long revisorId, Instant ahora) {
-    return db.sql("UPDATE taps_creador SET estado = 'rechazado', visibilidad = 'private', motivo = :motivo, "
+    // Decisión del dueño (27-oct): si ya había una copia aprobada en el aire (re-revisión), sigue publicada hasta nueva
+    // decisión; solo la primera revisión (sin copia) pasa a privado. En en_revision la copia solo sobrevive con enlace.
+    return db.sql("UPDATE taps_creador SET estado = 'rechazado', "
+        + "visibilidad = CASE WHEN publicado IS NOT NULL THEN visibilidad ELSE 'private' END, motivo = :motivo, "
         + "revision = revision + 1, actualizado = :ahora, revisado_por = :revisor, revisado_en = :ahora "
         + "WHERE id = :id AND estado = 'en_revision' AND revision = :rev" + VIVO + " RETURNING " + COLUMNAS)
       .bind("motivo", motivo).bind("ahora", ahora).bind("revisor", revisorId).bind("id", id).bind("rev", revisionEsperada)

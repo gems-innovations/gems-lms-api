@@ -169,22 +169,42 @@ class TapsCreadorRepositoryAdapterTest {
     Long revisor = db.sql("SELECT revisado_por FROM taps_creador WHERE id = 'u-bcdfghjkmn'").map(r -> r.get("revisado_por", Long.class)).one().block();
     assertEquals(1L, revisor);
 
-    // Segunda versión a revisión: la aprobada sigue en el aire; el rechazo la retira y guarda el motivo.
+    // Segunda versión a revisión (re-revisión): la aprobada sigue en el aire; pedir cambios/rechazar guarda el motivo
+    // pero NO la tumba (decisión del dueño, 27-oct): sigue publicada hasta nueva decisión.
     adapter.enviarRevision("u-bcdfghjkmn", 8L, null, T0.plusSeconds(6)).block();
     assertEquals("{\"v\":2}", adapter.buscarPublicado("u-bcdfghjkmn").block().publicado(), "la versión aprobada sigue mientras se revisa la nueva");
     Tap enCola = adapter.buscarEnRevision("u-bcdfghjkmn").block();
     Tap r = adapter.rechazar("u-bcdfghjkmn", enCola.revision(), "Dos respuestas correctas", 1L, T0.plusSeconds(7)).block();
     assertEquals("rechazado", r.estado());
-    assertEquals("private", r.visibilidad());
+    assertEquals("enlace", r.visibilidad(), "con copia aprobada previa no pasa a privado");
     assertEquals("Dos respuestas correctas", r.motivo());
-    assertNull(adapter.buscarPublicado("u-bcdfghjkmn").block(), "rechazado: deja de ser público de inmediato");
+    assertEquals("{\"v\":2}", r.publicado());
+    var sigue = adapter.buscarPublicado("u-bcdfghjkmn").block();
+    assertNotNull(sigue, "re-revisión rechazada: la copia aprobada sigue publicada");
+    assertEquals("{\"v\":2}", sigue.publicado());
+    assertEquals(1, sigue.version());
     assertEquals(0, adapter.listarEnRevision().count().block());
-    // Desde rechazado se puede volver a enviar y el motivo se limpia; la copia vieja (ya privada) no vuelve al aire.
+    // Desde rechazado se puede volver a enviar y el motivo se limpia; la copia aprobada (con enlace) sigue en el aire.
     Tap otraVez = adapter.enviarRevision("u-bcdfghjkmn", 8L, null, T0.plusSeconds(8)).block();
     assertEquals("en_revision", otraVez.estado());
     assertNull(otraVez.motivo());
-    assertNull(otraVez.publicado());
-    assertNull(adapter.buscarPublicado("u-bcdfghjkmn").block());
+    assertEquals("{\"v\":2}", otraVez.publicado());
+    assertEquals("{\"v\":2}", adapter.buscarPublicado("u-bcdfghjkmn").block().publicado());
+    // Despublicar explícito del dueño sí la retira aunque esté en revisión.
+    Tap retirado = adapter.despublicar("u-bcdfghjkmn", 8L, T0.plusSeconds(9)).block();
+    assertEquals("private", retirado.visibilidad());
+    assertNull(adapter.buscarPublicado("u-bcdfghjkmn").block(), "despublicar: deja de ser público de inmediato");
+
+    // Primera revisión rechazada (sin copia previa): pasa a privado y no hay nada público.
+    adapter.crear(nuevo("u-3456789bcd", 8L, null, T0)).block();
+    Tap primera = adapter.enviarRevision("u-3456789bcd", 8L, null, T0.plusSeconds(10)).block();
+    Tap r1 = adapter.rechazar("u-3456789bcd", primera.revision(), "Falta la explicación", 1L, T0.plusSeconds(11)).block();
+    assertEquals("rechazado", r1.estado());
+    assertEquals("private", r1.visibilidad());
+    assertNull(r1.publicado());
+    assertNull(adapter.buscarPublicado("u-3456789bcd").block(), "primera revisión rechazada: nada público");
+    assertNull(adapter.enviarRevision("u-3456789bcd", 8L, null, T0.plusSeconds(12)).block().publicado(), "sin copia no aparece ninguna");
+    assertNull(adapter.buscarPublicado("u-3456789bcd").block());
 
     // Una copia publicada en privado (sin revisar) no se vuelve pública por pedir el enlace.
     adapter.publicar("u-pqrstvwxz2", 9L, null, "private", "{\"v\":9}", T0.plusSeconds(9)).block();

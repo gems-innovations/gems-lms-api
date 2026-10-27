@@ -78,7 +78,10 @@ public interface TapsCreadorGateway {
    */
   Mono<Tap> aprobar(String id, int revisionEsperada, String publicado, Long revisorId, Instant ahora);
 
-  /** Rechaza o pide cambios: {@code estado='rechazado'} con motivo, visibilidad privada. Solo si sigue en revisión. */
+  /**
+   * Rechaza o pide cambios: {@code estado='rechazado'} con motivo. Sin copia aprobada previa pasa a privado; con ella
+   * (re-revisión) la copia sigue publicada hasta nueva decisión. Solo si sigue en revisión.
+   */
   Mono<Tap> rechazar(String id, int revisionEsperada, String motivo, Long revisorId, Instant ahora);
 
   /**
