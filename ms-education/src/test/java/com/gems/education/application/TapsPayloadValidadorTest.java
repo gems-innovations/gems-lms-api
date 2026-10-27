@@ -301,7 +301,9 @@ public class TapsPayloadValidadorTest {
 
   @Test
   void elCatalogoEsElDelTemaEpoca() {
-    assertEquals(5, TapsCatalogoEpoca.MUNDOS.size());
+    assertEquals(8, TapsCatalogoEpoca.MUNDOS.size());
+    // Los 3 escenarios nuevos del creador web (scenery.js WORLDS) están en el catálogo.
+    assertTrue(TapsCatalogoEpoca.MUNDOS.containsAll(java.util.Set.of("biblioteca", "observatorio", "aula")));
     assertEquals(7, TapsCatalogoEpoca.ANFITRIONES.size());
     assertEquals(8, TapsCatalogoEpoca.OBJETOS.size());
     assertEquals(6, TapsCatalogoEpoca.ENCUADRES.size());

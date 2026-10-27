@@ -12,7 +12,7 @@ public final class TapsCatalogoEpoca {
 
   /** scenery.js WORLDS. */
   public static final Set<String> MUNDOS = Set.of("taller-londres", "excavacion-egipto", "foro-roma", "sala-medieval",
-    "laboratorio-moderno");
+    "laboratorio-moderno", "biblioteca", "observatorio", "aula");
   /** theme.json characters (los 7 puntos de partida). */
   public static final Set<String> ANFITRIONES = Set.of("grabador", "arqueologa", "senador", "escriba", "artesano",
     "investigadora", "periodista");

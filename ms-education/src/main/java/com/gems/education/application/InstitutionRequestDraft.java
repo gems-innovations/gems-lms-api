@@ -38,7 +38,8 @@ public final class InstitutionRequestDraft {
   /** rig.js ITEMS. */
   private static final Set<String> ITEMS = Set.of("pluma", "cepillo", "pergamino", "libro", "lupa", "matraz", "antorcha", "mapa");
   /** scenery.js WORLDS. */
-  private static final Set<String> WORLDS = Set.of("taller-londres", "excavacion-egipto", "foro-roma", "sala-medieval", "laboratorio-moderno");
+  private static final Set<String> WORLDS = Set.of("taller-londres", "excavacion-egipto", "foro-roma", "sala-medieval", "laboratorio-moderno",
+    "biblioteca", "observatorio", "aula");
   /** rig.js CATALOGO. */
   private static final Map<String, List<String>> PIECES = Map.of(
     "hairStyle", List.of("corto", "recogido", "ondas", "largo", "bob", "rizos", "calvo"),

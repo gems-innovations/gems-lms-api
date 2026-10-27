@@ -138,6 +138,19 @@ class PublicCatalogControllerRequestsTest {
   }
 
   @Test
+  void unMundoNuevoDelCreadorSeGuardaYUnoDesconocidoQuedaNulo() {
+    String aula = DRAFT.replace("taller-londres", "aula");
+    post(body("\"Hola\"", aula)).expectStatus().isCreated();
+    assertEquals(aula, boundDraft());
+    reset(spec);
+    stubRows();
+    controller = new PublicCatalogController(mock(CourseGateway.class), db, "gems-abierto");
+    post(body("\"Hola\"", DRAFT.replace("taller-londres", "planetario"))).expectStatus().isCreated();
+    assertNull(boundDraft());
+    verify(spec).bind("message", "Hola");
+  }
+
+  @Test
   void sinBorradorSeGuardaNulo() {
     post(body("\"Solo mensaje\"", null)).expectStatus().isCreated();
     assertNull(boundDraft());
