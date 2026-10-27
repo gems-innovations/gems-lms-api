@@ -285,10 +285,17 @@ public class ApplicationConfig {
       .withoutCertificatesFor(openInstitutionId);
   }
 
+  /** Taps que cuentan para las estadísticas: el banco más los de creador publicados con enlace (caché 60 s). */
+  @Bean
+  public TapsRegistrados tapsRegistrados(TapsCreadorGateway tapsCreadorGateway) {
+    return TapsRegistrados.conPublicados(TapsBanco.delClasspath(), tapsCreadorGateway);
+  }
+
   /** Estadísticas anónimas por Tap (vistas, primera respuesta, completados, abandono por pregunta, aciertos, compartidos). */
   @Bean
-  public TapsEstadisticasUseCase tapsEstadisticasUseCase(TapsEstadisticasGateway tapsEstadisticasGateway) {
-    return new TapsEstadisticasUseCase(tapsEstadisticasGateway, TapsBanco.delClasspath());
+  public TapsEstadisticasUseCase tapsEstadisticasUseCase(TapsEstadisticasGateway tapsEstadisticasGateway,
+                                                         TapsRegistrados tapsRegistrados) {
+    return new TapsEstadisticasUseCase(tapsEstadisticasGateway, tapsRegistrados, java.time.Clock.system(TapsRankingUseCase.ZONA));
   }
 
   /** Borradores de Taps del creador autenticado (PR-10 A2): propiedad estricta, cuotas y validación del contenido. */

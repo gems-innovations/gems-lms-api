@@ -53,7 +53,11 @@ class TapsEstadisticasUseCaseTest {
 
   @Test
   void rechazaTapsEventosYPreguntasInvalidos() {
-    assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("no-existe", "vista", null, null)));
+    StepVerifier.create(caso.registrar(new TapsEstadisticasUseCase.Evento("no-existe", "vista", null, null)))
+      .expectError(IllegalArgumentException.class).verify();
+    StepVerifier.create(caso.registrar(new TapsEstadisticasUseCase.Evento("u-bcdfghjkmn", "vista", null, null)))
+      .expectError(IllegalArgumentException.class).verify();
+    verify(gateway, never()).sumar(any(), any(), any(), anyInt());
     assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("mc-gancho", "hackeo", null, null)));
     assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("mc-gancho", "respuesta", 10, true)));
     assertThrows(IllegalArgumentException.class, () -> caso.registrar(new TapsEstadisticasUseCase.Evento("mc-gancho", "respuesta", null, true)));

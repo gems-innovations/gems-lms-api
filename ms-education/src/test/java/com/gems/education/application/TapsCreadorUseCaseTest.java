@@ -35,7 +35,7 @@ class TapsCreadorUseCaseTest {
 
   private static Tap fila(Long owner, int revision) {
     String json = TapsPayloadValidador.delClasspath().validar(TapsPayloadValidadorTest.tapValido()).json();
-    return new Tap(ID, owner, null, "Roma antigua", "private", "borrador", 0, revision, json, null, AHORA, AHORA, null);
+    return new Tap(ID, owner, null, "Roma antigua", "private", "borrador", 0, revision, json, null, null, AHORA, AHORA, null);
   }
 
   @BeforeEach

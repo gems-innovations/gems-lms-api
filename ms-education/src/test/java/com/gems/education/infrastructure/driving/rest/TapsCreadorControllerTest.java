@@ -38,7 +38,7 @@ class TapsCreadorControllerTest extends ControllerTestSupport {
 
   private Tap fila(Long owner, int revision) {
     return new Tap(ID, owner, null, "Roma antigua", "private", "borrador", 0, revision,
-      validador.validar(TapsPayloadValidadorTest.tapValido()).json(), null, AHORA, AHORA, null);
+      validador.validar(TapsPayloadValidadorTest.tapValido()).json(), null, null, AHORA, AHORA, null);
   }
 
   @BeforeEach
@@ -51,6 +51,7 @@ class TapsCreadorControllerTest extends ControllerTestSupport {
     // Solo la creadora (8) tiene el Tap; para cualquier otro dueño la base no devuelve nada.
     lenient().when(gateway.buscar(anyString(), anyLong())).thenReturn(Mono.empty());
     lenient().when(gateway.buscar(ID, 8L)).thenReturn(Mono.just(fila(8L, 2)));
+    lenient().when(gateway.buscarEnRevision(anyString())).thenReturn(Mono.empty());
     lenient().when(gateway.listar(anyLong(), any())).thenReturn(Flux.empty());
     lenient().when(gateway.listar(8L, null)).thenReturn(Flux.just(fila(8L, 2)));
     lenient().when(gateway.actualizar(anyString(), anyLong(), any(), anyString(), anyString(), any())).thenReturn(Mono.empty());
@@ -190,6 +191,94 @@ class TapsCreadorControllerTest extends ControllerTestSupport {
     como(SUPER_ADMIN).delete().uri("/api/v1/taps/" + ID).exchange().expectStatus().isNotFound();
     verify(gateway).borrar(ID, 8L, AHORA);
     verify(gateway).borrar(ID, 1L, AHORA);
+  }
+
+  // ── A3: publicar, despublicar, cola y decisión ───────────────────────────
+
+  private Tap fila(Long owner, String estado, String visibilidad, int revision, String publicado) {
+    return new Tap(ID, owner, null, "Roma antigua", visibilidad, estado, 1, revision,
+      validador.validar(TapsPayloadValidadorTest.tapValido()).json(), publicado, null, AHORA, AHORA, AHORA);
+  }
+
+  @Test
+  void publicarEsDirectoParaDocentesYARevisionParaCreadores() {
+    String json = validador.validar(TapsPayloadValidadorTest.tapValido()).json();
+    when(gateway.buscar(ID, 3L)).thenReturn(Mono.just(fila(3L, 2)));
+    when(gateway.publicar(eq(ID), eq(3L), eq(2), eq("enlace"), eq(json), any()))
+      .thenReturn(Mono.just(fila(3L, "publicado", "enlace", 3, json)));
+    como(INSTRUCTOR).post().uri("/api/v1/taps/" + ID + "/publicar").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"visibilidad\":\"enlace\"}").exchange().expectStatus().isOk()
+      .expectHeader().valueEquals(HttpHeaders.ETAG, "\"3\"")
+      .expectBody().jsonPath("$.estado").isEqualTo("publicado").jsonPath("$.visibilidad").isEqualTo("enlace")
+      .jsonPath("$.publicado.title").isEqualTo("Roma antigua").jsonPath("$.ownerId").doesNotExist();
+
+    when(gateway.enviarRevision(eq(ID), eq(8L), eq(2), any())).thenReturn(Mono.just(fila(8L, "en_revision", "enlace", 3, null)));
+    como(CREATOR).post().uri("/api/v1/taps/" + ID + "/publicar").exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$.estado").isEqualTo("en_revision").jsonPath("$.publicado").doesNotExist();
+    verify(gateway, never()).publicar(eq(ID), eq(8L), any(), anyString(), anyString(), any());
+
+    // Ajeno: 404; estudiante: 403; visibilidad desconocida: 400; If-Match viejo: 409.
+    como(ADMIN).post().uri("/api/v1/taps/" + ID + "/publicar").exchange().expectStatus().isNotFound();
+    como(STUDENT).post().uri("/api/v1/taps/" + ID + "/publicar").exchange().expectStatus().isForbidden();
+    como(INSTRUCTOR).post().uri("/api/v1/taps/" + ID + "/publicar").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"visibilidad\":\"institucion\"}").exchange().expectStatus().isBadRequest();
+    como(INSTRUCTOR).post().uri("/api/v1/taps/" + ID + "/publicar").header(HttpHeaders.IF_MATCH, "\"1\"").exchange()
+      .expectStatus().isEqualTo(409).expectBody().jsonPath("$.code").isEqualTo("TAP_REVISION_CONFLICT");
+    verify(gateway, times(1)).publicar(anyString(), anyLong(), any(), anyString(), anyString(), any());
+  }
+
+  @Test
+  void publicarUnoEnRevisionEs409YDespublicarLoRetira() {
+    when(gateway.buscar(ID, 8L)).thenReturn(Mono.just(fila(8L, "en_revision", "enlace", 3, null)));
+    como(CREATOR).post().uri("/api/v1/taps/" + ID + "/publicar").exchange().expectStatus().isEqualTo(409)
+      .expectBody().jsonPath("$.code").isEqualTo("TAP_ESTADO_INVALIDO");
+    when(gateway.despublicar(eq(ID), eq(8L), any())).thenReturn(Mono.just(fila(8L, "borrador", "private", 4, null)));
+    como(CREATOR).post().uri("/api/v1/taps/" + ID + "/despublicar").exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$.estado").isEqualTo("borrador");
+    when(gateway.buscar(ID, 8L)).thenReturn(Mono.just(fila(8L, 4)));
+    como(CREATOR).post().uri("/api/v1/taps/" + ID + "/despublicar").exchange().expectStatus().isEqualTo(409);
+    como(SUPER_ADMIN).post().uri("/api/v1/taps/" + ID + "/despublicar").exchange().expectStatus().isNotFound();
+    verify(gateway, times(1)).despublicar(anyString(), anyLong(), any());
+  }
+
+  @Test
+  void laColaYLaDecisionSonSoloDelSuperadmin() {
+    when(gateway.listarEnRevision()).thenReturn(Flux.just(fila(8L, "en_revision", "enlace", 3, null)));
+    when(gateway.buscarEnRevision(ID)).thenReturn(Mono.just(fila(8L, "en_revision", "enlace", 3, null)));
+    como(SUPER_ADMIN).get().uri("/api/v1/taps?revision=1").exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$[0].id").isEqualTo(ID).jsonPath("$[0].ownerId").isEqualTo(8).jsonPath("$[0].estado").isEqualTo("en_revision");
+    como(SUPER_ADMIN).get().uri("/api/v1/taps/" + ID).exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$.ownerId").isEqualTo(8).jsonPath("$.borrador.title").isEqualTo("Roma antigua");
+    for (AuthenticatedUser otro : new AuthenticatedUser[] {ADMIN, INSTRUCTOR, CREATOR, STUDENT}) {
+      como(otro).get().uri("/api/v1/taps?revision=1").exchange().expectStatus().isForbidden();
+      como(otro).post().uri("/api/v1/taps/" + ID + "/revision").contentType(MediaType.APPLICATION_JSON)
+        .bodyValue("{\"decision\":\"aprobar\"}").exchange().expectStatus().isForbidden();
+    }
+    // ADMIN e INSTRUCTOR siguen sin ver el Tap de la cola: no es suyo.
+    como(ADMIN).get().uri("/api/v1/taps/" + ID).exchange().expectStatus().isNotFound();
+    verify(gateway, times(1)).listarEnRevision();
+    verify(gateway, never()).aprobar(anyString(), anyInt(), anyString(), anyLong(), any());
+
+    String json = validador.validar(TapsPayloadValidadorTest.tapValido()).json();
+    when(gateway.aprobar(eq(ID), eq(3), eq(json), eq(1L), any())).thenReturn(Mono.just(fila(8L, "publicado", "enlace", 4, json)));
+    como(SUPER_ADMIN).post().uri("/api/v1/taps/" + ID + "/revision").header(HttpHeaders.IF_MATCH, "\"3\"")
+      .contentType(MediaType.APPLICATION_JSON).bodyValue("{\"decision\":\"aprobar\"}").exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$.estado").isEqualTo("publicado").jsonPath("$.version").isEqualTo(1);
+    como(SUPER_ADMIN).post().uri("/api/v1/taps/" + ID + "/revision").header(HttpHeaders.IF_MATCH, "\"2\"")
+      .contentType(MediaType.APPLICATION_JSON).bodyValue("{\"decision\":\"aprobar\"}").exchange().expectStatus().isEqualTo(409);
+    como(SUPER_ADMIN).post().uri("/api/v1/taps/" + ID + "/revision").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"decision\":\"rechazar\"}").exchange().expectStatus().isBadRequest();
+    como(SUPER_ADMIN).post().uri("/api/v1/taps/" + ID + "/revision").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"decision\":\"publicar\",\"motivo\":\"x\"}").exchange().expectStatus().isBadRequest();
+    when(gateway.rechazar(eq(ID), eq(3), eq("Falta una explicación"), eq(1L), any()))
+      .thenReturn(Mono.just(fila(8L, "rechazado", "private", 4, null)));
+    como(SUPER_ADMIN).post().uri("/api/v1/taps/" + ID + "/revision").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"decision\":\"cambios\",\"motivo\":\"Falta una explicación\"}").exchange().expectStatus().isOk()
+      .expectBody().jsonPath("$.estado").isEqualTo("rechazado");
+    // Lo que no está en la cola (aunque exista como borrador de alguien): 404.
+    when(gateway.buscarEnRevision(ID)).thenReturn(Mono.empty());
+    como(SUPER_ADMIN).post().uri("/api/v1/taps/" + ID + "/revision").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"decision\":\"aprobar\"}").exchange().expectStatus().isNotFound();
   }
 
   @Test

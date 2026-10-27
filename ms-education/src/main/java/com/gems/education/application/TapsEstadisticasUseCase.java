@@ -1,6 +1,7 @@
 package com.gems.education.application;
 
 import com.gems.education.application.gateway.TapsEstadisticasGateway;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Clock;
@@ -17,7 +18,8 @@ import java.util.Set;
  * se respondieron, cuántas bien y cuántas personas se fueron después de ella (abandono).
  *
  * <ul>
- *   <li>Solo cuentan los Taps del banco ({@link TapsBanco}); un evento de un Tap desconocido responde 400.</li>
+ *   <li>Solo cuentan los Taps registrados ({@link TapsRegistrados}: el banco y los de creador publicados con enlace); un
+ *       evento de un Tap desconocido responde 400. Al leer, un Tap de creador que ya no está publicado no aparece.</li>
  *   <li>Eventos: {@code vista}, {@code respuesta} (con su número de pregunta, desde 0, y si fue acierto),
  *       {@code completado} y {@code compartido}.</li>
  *   <li>No se guarda la IP ni ninguna identidad: solo contadores por día (hora de Bogotá).</li>
@@ -45,42 +47,57 @@ public class TapsEstadisticasUseCase {
   public record Resumen(String desde, String hasta, int dias, String masVisto, List<TapEstadistica> taps) {}
 
   private final TapsEstadisticasGateway gateway;
-  private final TapsBanco banco;
+  private final TapsRegistrados registrados;
   private final Clock clock;
 
   public TapsEstadisticasUseCase(TapsEstadisticasGateway gateway, TapsBanco banco) {
-    this(gateway, banco, Clock.system(TapsRankingUseCase.ZONA));
+    this(gateway, TapsRegistrados.deBanco(banco), Clock.system(TapsRankingUseCase.ZONA));
   }
 
   public TapsEstadisticasUseCase(TapsEstadisticasGateway gateway, TapsBanco banco, Clock clock) {
+    this(gateway, TapsRegistrados.deBanco(banco), clock);
+  }
+
+  public TapsEstadisticasUseCase(TapsEstadisticasGateway gateway, TapsRegistrados registrados, Clock clock) {
     this.gateway = gateway;
-    this.banco = banco;
+    this.registrados = registrados;
     this.clock = clock;
   }
 
+  /** Suma el evento. Lanza {@link IllegalArgumentException} si la forma es mala; falla igual si el Tap no está registrado. */
   public Mono<Void> registrar(Evento e) {
     if (e == null || e.tapId() == null || e.evento() == null) throw new IllegalArgumentException("falta tapId o evento");
-    TapsBanco.Tap tap = banco.buscar(e.tapId()).orElseThrow(() -> new IllegalArgumentException("Tap desconocido"));
     if (!EVENTOS.contains(e.evento())) throw new IllegalArgumentException("evento no válido");
-    LocalDate dia = LocalDate.now(clock);
-    if (!"respuesta".equals(e.evento())) return gateway.sumar(tap.id(), dia, e.evento(), 0);
     int n = e.pregunta() == null ? -1 : e.pregunta();
-    if (n < 0 || n >= MAX_PREGUNTAS) throw new IllegalArgumentException("pregunta fuera del Tap");
-    Mono<Void> respuesta = gateway.sumar(tap.id(), dia, "respuesta", n);
-    return Boolean.TRUE.equals(e.acierto()) ? respuesta.then(gateway.sumar(tap.id(), dia, ACIERTO, n)) : respuesta;
+    if ("respuesta".equals(e.evento()) && (n < 0 || n >= MAX_PREGUNTAS)) throw new IllegalArgumentException("pregunta fuera del Tap");
+    return registrados.buscar(e.tapId())
+      .switchIfEmpty(Mono.error(new IllegalArgumentException("Tap desconocido")))
+      .flatMap(tap -> {
+        LocalDate dia = LocalDate.now(clock);
+        if (!"respuesta".equals(e.evento())) return gateway.sumar(tap.id(), dia, e.evento(), 0);
+        Mono<Void> respuesta = gateway.sumar(tap.id(), dia, "respuesta", n);
+        return Boolean.TRUE.equals(e.acierto()) ? respuesta.then(gateway.sumar(tap.id(), dia, ACIERTO, n)) : respuesta;
+      });
   }
 
   public Mono<Resumen> leer(Integer dias) {
     int d = dias == null ? DIAS_POR_DEFECTO : Math.max(1, Math.min(DIAS_MAXIMOS, dias));
     LocalDate hasta = LocalDate.now(clock), desde = hasta.minusDays(d - 1L);
-    return gateway.leer(desde, hasta).collectList().map(filas -> resumir(filas, desde, hasta, d));
+    return gateway.leer(desde, hasta).collectList().flatMap(filas -> {
+      Set<String> ids = new java.util.TreeSet<>();
+      for (TapsEstadisticasGateway.Fila f : filas) ids.add(f.tapId());
+      return Flux.fromIterable(ids).flatMap(registrados::buscar)
+        .collectMap(TapsBanco.Tap::id)
+        .map(conocidos -> resumir(filas, conocidos, desde, hasta, d));
+    });
   }
 
-  private Resumen resumir(List<TapsEstadisticasGateway.Fila> filas, LocalDate desde, LocalDate hasta, int dias) {
+  private Resumen resumir(List<TapsEstadisticasGateway.Fila> filas, Map<String, TapsBanco.Tap> conocidos,
+                          LocalDate desde, LocalDate hasta, int dias) {
     Map<String, Map<String, Long>> sueltos = new HashMap<>();   // tapId -> evento -> cantidad (pregunta 0 para los no-respuesta)
     Map<String, Map<Integer, long[]>> porPregunta = new HashMap<>();   // tapId -> n -> [respuestas, aciertos]
     for (TapsEstadisticasGateway.Fila f : filas) {
-      if (banco.buscar(f.tapId()).isEmpty()) continue;
+      if (!conocidos.containsKey(f.tapId())) continue;
       if ("respuesta".equals(f.evento()) || ACIERTO.equals(f.evento())) {
         long[] par = porPregunta.computeIfAbsent(f.tapId(), k -> new HashMap<>()).computeIfAbsent(f.pregunta(), k -> new long[2]);
         par["respuesta".equals(f.evento()) ? 0 : 1] += f.cantidad();
@@ -90,7 +107,7 @@ public class TapsEstadisticasUseCase {
     }
     List<TapEstadistica> taps = new ArrayList<>();
     for (String id : unir(sueltos.keySet(), porPregunta.keySet())) {
-      TapsBanco.Tap tap = banco.buscar(id).orElseThrow();
+      TapsBanco.Tap tap = conocidos.get(id);
       Map<String, Long> s = sueltos.getOrDefault(id, Map.of());
       Map<Integer, long[]> pp = porPregunta.getOrDefault(id, Map.of());
       long completados = s.getOrDefault("completado", 0L), respuestas = 0, aciertos = 0;

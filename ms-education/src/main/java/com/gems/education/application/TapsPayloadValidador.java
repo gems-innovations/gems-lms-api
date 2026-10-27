@@ -49,7 +49,8 @@ public final class TapsPayloadValidador {
 
   private static final Set<String> CLAVES = Set.of("v", "theme", "title", "kicker", "scene", "questions", "results", "topic");
   private static final Set<String> CLAVES_ESCENA = Set.of("world", "host", "item", "shot");
-  private static final Set<String> CLAVES_PREGUNTA = Set.of("q", "options", "answer", "why", "tipo");
+  /** {@code id} se admite (y se ignora) para que el JSON canónico guardado pase otra vez por el validador al publicar. */
+  private static final Set<String> CLAVES_PREGUNTA = Set.of("id", "q", "options", "answer", "why", "tipo");
   private static final Set<String> CLAVES_RESULTADO = Set.of("min", "title", "line");
   private static final Set<String> TIPOS = Set.of("clasica", "duo", "vf");
   private static final List<String> VF = List.of("Verdadero", "Falso");
