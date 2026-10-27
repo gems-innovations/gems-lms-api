@@ -547,3 +547,29 @@ CREATE TABLE IF NOT EXISTS taps_estadistica (
     PRIMARY KEY (tap_id, dia, evento, pregunta)
 );
 CREATE INDEX IF NOT EXISTS idx_taps_estadistica_dia ON taps_estadistica(dia);
+
+-- Taps creados por personas desde el Estudio (ids u-, generados por el servidor; PR-10 A2). El contenido es el
+-- payload validado (TapsPayloadValidador) como JSON en TEXT, igual que contents.value. Solo lo ve su dueño.
+-- revision: sube en cada guardado del borrador (ETag / If-Match del autoguardado). version: sube en cada publicación (A3).
+CREATE TABLE IF NOT EXISTS taps_creador (
+    id VARCHAR(12) PRIMARY KEY,
+    owner_id BIGINT NOT NULL,
+    institution_id VARCHAR(100),
+    titulo VARCHAR(60) NOT NULL,
+    visibilidad VARCHAR(12) NOT NULL DEFAULT 'private',
+    estado VARCHAR(12) NOT NULL DEFAULT 'borrador',
+    version INT NOT NULL DEFAULT 0,
+    revision INT NOT NULL DEFAULT 0,
+    borrador TEXT NOT NULL,
+    publicado TEXT,
+    motivo VARCHAR(300),
+    revisado_por BIGINT,
+    revisado_en TIMESTAMPTZ,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    actualizado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    publicado_en TIMESTAMPTZ,
+    borrado_en TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_taps_creador_owner ON taps_creador(owner_id) WHERE borrado_en IS NULL;
+CREATE INDEX IF NOT EXISTS idx_taps_creador_owner_creado ON taps_creador(owner_id, creado);
+CREATE INDEX IF NOT EXISTS idx_taps_creador_revision ON taps_creador(estado) WHERE estado = 'en_revision';
