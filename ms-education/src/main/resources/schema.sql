@@ -573,3 +573,8 @@ CREATE TABLE IF NOT EXISTS taps_creador (
 CREATE INDEX IF NOT EXISTS idx_taps_creador_owner ON taps_creador(owner_id) WHERE borrado_en IS NULL;
 CREATE INDEX IF NOT EXISTS idx_taps_creador_owner_creado ON taps_creador(owner_id, creado);
 CREATE INDEX IF NOT EXISTS idx_taps_creador_revision ON taps_creador(estado) WHERE estado = 'en_revision';
+-- A4: Tap creado al importar el borrador del personaje de /crear; (dueño, borradorId) es único entre los vivos,
+-- así importar dos veces no duplica (la base lo garantiza, no solo el caso de uso).
+ALTER TABLE taps_creador ADD COLUMN IF NOT EXISTS origen_borrador VARCHAR(30);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_taps_creador_origen ON taps_creador(owner_id, origen_borrador)
+    WHERE origen_borrador IS NOT NULL AND borrado_en IS NULL;
