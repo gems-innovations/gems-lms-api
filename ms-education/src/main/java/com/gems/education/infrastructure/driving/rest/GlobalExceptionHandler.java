@@ -198,6 +198,13 @@ public class GlobalExceptionHandler {
       com.gems.education.application.exceptions.TapsCreadorConflictoException.CODE, ex.getMessage(), HttpStatus.CONFLICT.value())));
   }
 
+  /** El estado del Tap no admite la acción (publicar uno en revisión, despublicar un borrador): 409. */
+  @ExceptionHandler(com.gems.education.application.exceptions.TapsEstadoException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleTapsEstado(com.gems.education.application.exceptions.TapsEstadoException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(
+      com.gems.education.application.exceptions.TapsEstadoException.CODE, ex.getMessage(), HttpStatus.CONFLICT.value())));
+  }
+
   // Framework errors (unknown route, wrong method, malformed body...) keep their own status
   // instead of being reported as a 500.
   @ExceptionHandler(ResponseStatusException.class)

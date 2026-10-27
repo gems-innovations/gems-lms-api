@@ -56,6 +56,8 @@ public class TapsPayloadValidadorTest {
     assertEquals("epoca", n.get("theme").asText());
     assertEquals("p1", n.get("questions").get(0).get("id").asText());
     assertEquals("p5", n.get("questions").get(4).get("id").asText());
+    // El canónico guardado vuelve a pasar por el validador al publicar y sale idéntico (el id se ignora y se regenera).
+    assertEquals(out.json(), validador.validar(out.json()).json());
     assertFalse(n.get("questions").get(0).has("tipo"), "clásica no lleva tipo");
     assertEquals("izquierda", n.get("scene").get("shot").asText());
     // Misma salida desde texto.

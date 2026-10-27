@@ -26,10 +26,14 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Borradores de Taps del creador autenticado (PR-10 A2). Solo quien crea Taps (CREATOR, INSTRUCTOR, ADMIN, SUPER_ADMIN;
- * un STUDENT recibe 403). Cada Tap lo ve y lo edita únicamente su dueño: uno ajeno responde 404, nunca 403. El contenido
- * entra como JSON crudo y lo canoniza TapsPayloadValidador; nunca se devuelve como HTML. Las respuestas llevan
- * {@code ETag: "<revision>"} y PUT admite {@code If-Match} para el autoguardado (409 si cambió).
+ * Taps del creador autenticado (PR-10 A2 y A3). Solo quien crea Taps (CREATOR, INSTRUCTOR, ADMIN, SUPER_ADMIN; un STUDENT
+ * recibe 403). Cada Tap lo ve y lo edita únicamente su dueño: uno ajeno responde 404, nunca 403. El contenido entra como
+ * JSON crudo y lo canoniza TapsPayloadValidador; nunca se devuelve como HTML. Las respuestas llevan
+ * {@code ETag: "<revision>"}; PUT, publicar y la decisión admiten {@code If-Match} (409 si cambió).
+ *
+ * <p>Revisión: el SUPER_ADMIN lista la cola con {@code GET /api/v1/taps?revision=1}, ve cada Tap en cola con
+ * {@code GET /api/v1/taps/{id}} y decide con {@code POST /api/v1/taps/{id}/revision}. Nada más sale de la propiedad
+ * estricta.
  */
 @RestController
 @RequestMapping("/api/v1/taps")
@@ -42,15 +46,32 @@ public class TapsCreadorController {
     this.mapper = mapper;
   }
 
-  /** Lo que ve el creador de su Tap. {@code borrador} es el contenido canónico como objeto. */
+  /**
+   * Lo que ve el creador de su Tap. {@code borrador} es el contenido canónico que edita; {@code publicado} la copia en el
+   * aire (null si nunca se publicó). En la cola de revisión del superadmin se añade el dueño ({@code ownerId},
+   * {@code institutionId}); para el dueño van en null.
+   */
   public record TapResponse(String id, String titulo, String visibilidad, String estado, int version, int revision,
-                            JsonNode borrador, String motivo, Instant creado, Instant actualizado, Instant publicadoEn) {}
+                            JsonNode borrador, JsonNode publicado, String motivo, Instant creado, Instant actualizado,
+                            Instant publicadoEn, Long ownerId, String institutionId) {}
+
+  public record PublicarRequest(String visibilidad) {}
+
+  public record RevisionRequest(String decision, String motivo) {}
 
   @GetMapping
-  public Mono<ResponseEntity<List<TapResponse>>> mios(@RequestParam(required = false) String estado) {
+  public Mono<ResponseEntity<List<TapResponse>>> mios(@RequestParam(required = false) String estado,
+                                                     @RequestParam(required = false) String revision) {
+    if (revision != null) {
+      return superadmin()
+        .flatMapMany(taps::colaRevision)
+        .map(t -> toResponse(t, true))
+        .collectList()
+        .map(lista -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(lista));
+    }
     return creador()
       .flatMapMany(u -> taps.listar(u, estado))
-      .map(this::toResponse)
+      .map(t -> toResponse(t, false))
       .collectList()
       .map(lista -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(lista));
   }
@@ -59,14 +80,13 @@ public class TapsCreadorController {
   public Mono<ResponseEntity<TapResponse>> crear(@RequestBody JsonNode contenido) {
     return creador()
       .flatMap(u -> taps.crear(u, contenido))
-      .map(t -> conEtag(ResponseEntity.status(HttpStatus.CREATED), t));
+      .map(t -> conEtag(ResponseEntity.status(HttpStatus.CREATED), t, false));
   }
 
   @GetMapping("/{id}")
   public Mono<ResponseEntity<TapResponse>> uno(@PathVariable String id) {
     return creador()
-      .flatMap(u -> taps.buscar(u, id))
-      .map(t -> conEtag(ResponseEntity.ok(), t));
+      .flatMap(u -> taps.buscar(u, id).map(t -> conEtag(ResponseEntity.ok(), t, u.isSuperAdmin() && !u.isUser(t.ownerId()))));
   }
 
   @PutMapping("/{id}")
@@ -81,7 +101,7 @@ public class TapsCreadorController {
     }
     return creador()
       .flatMap(u -> taps.actualizar(u, id, revision, contenido))
-      .map(t -> conEtag(ResponseEntity.ok(), t));
+      .map(t -> conEtag(ResponseEntity.ok(), t, false));
   }
 
   @DeleteMapping("/{id}")
@@ -91,8 +111,52 @@ public class TapsCreadorController {
       .thenReturn(ResponseEntity.noContent().<Void>build());
   }
 
+  /** {@code {visibilidad:'enlace'|'private'}} (enlace por defecto). Docentes: publicado directo; CREATOR con enlace: a revisión. */
+  @PostMapping("/{id}/publicar")
+  public Mono<ResponseEntity<TapResponse>> publicar(@PathVariable String id,
+                                                    @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+                                                    @RequestBody(required = false) PublicarRequest cuerpo) {
+    Integer revision;
+    try {
+      revision = revisionDe(ifMatch);
+    } catch (IllegalArgumentException e) {
+      return Mono.error(e);
+    }
+    String visibilidad = cuerpo == null ? null : cuerpo.visibilidad();
+    return creador()
+      .flatMap(u -> taps.publicar(u, id, visibilidad, revision))
+      .map(t -> conEtag(ResponseEntity.ok(), t, false));
+  }
+
+  @PostMapping("/{id}/despublicar")
+  public Mono<ResponseEntity<TapResponse>> despublicar(@PathVariable String id) {
+    return creador()
+      .flatMap(u -> taps.despublicar(u, id))
+      .map(t -> conEtag(ResponseEntity.ok(), t, false));
+  }
+
+  /** Solo SUPER_ADMIN: {@code {decision:'aprobar'|'cambios'|'rechazar', motivo}}; If-Match con la revisión que revisó. */
+  @PostMapping("/{id}/revision")
+  public Mono<ResponseEntity<TapResponse>> revision(@PathVariable String id,
+                                                    @RequestHeader(value = HttpHeaders.IF_MATCH, required = false) String ifMatch,
+                                                    @RequestBody RevisionRequest cuerpo) {
+    Integer revision;
+    try {
+      revision = revisionDe(ifMatch);
+    } catch (IllegalArgumentException e) {
+      return Mono.error(e);
+    }
+    return superadmin()
+      .flatMap(u -> taps.decidir(u, id, cuerpo.decision(), cuerpo.motivo(), revision))
+      .map(t -> conEtag(ResponseEntity.ok(), t, true));
+  }
+
   private static Mono<AuthenticatedUser> creador() {
     return CurrentUser.require(AuthenticatedUser::createsTaps, "Only Taps creators and institution staff can do this");
+  }
+
+  private static Mono<AuthenticatedUser> superadmin() {
+    return CurrentUser.require(AuthenticatedUser::isSuperAdmin, "Only the super admin reviews Taps");
   }
 
   /** La revisión de un If-Match {@code "N"} (comillas opcionales); null si no viene; 400 si no es un número. */
@@ -105,18 +169,21 @@ public class TapsCreadorController {
     return Integer.valueOf(s);
   }
 
-  private ResponseEntity<TapResponse> conEtag(ResponseEntity.BodyBuilder builder, Tap t) {
-    return builder.eTag("\"" + t.revision() + "\"").cacheControl(CacheControl.noStore()).body(toResponse(t));
+  private ResponseEntity<TapResponse> conEtag(ResponseEntity.BodyBuilder builder, Tap t, boolean conDueno) {
+    return builder.eTag("\"" + t.revision() + "\"").cacheControl(CacheControl.noStore()).body(toResponse(t, conDueno));
   }
 
-  private TapResponse toResponse(Tap t) {
-    JsonNode borrador;
+  private TapResponse toResponse(Tap t, boolean conDueno) {
+    return new TapResponse(t.id(), t.titulo(), t.visibilidad(), t.estado(), t.version(), t.revision(),
+      arbol(t.borrador(), t.id()), t.publicado() == null ? null : arbol(t.publicado(), t.id()), t.motivo(), t.creado(),
+      t.actualizado(), t.publicadoEn(), conDueno ? t.ownerId() : null, conDueno ? t.institutionId() : null);
+  }
+
+  private JsonNode arbol(String json, String id) {
     try {
-      borrador = mapper.readTree(t.borrador());
+      return mapper.readTree(json);
     } catch (Exception e) {
-      throw new IllegalStateException("Borrador ilegible del Tap " + t.id());
+      throw new IllegalStateException("Contenido ilegible del Tap " + id);
     }
-    return new TapResponse(t.id(), t.titulo(), t.visibilidad(), t.estado(), t.version(), t.revision(), borrador,
-      t.motivo(), t.creado(), t.actualizado(), t.publicadoEn());
   }
 }
