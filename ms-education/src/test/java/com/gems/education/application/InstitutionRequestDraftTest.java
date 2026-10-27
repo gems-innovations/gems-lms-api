@@ -35,6 +35,16 @@ class InstitutionRequestDraftTest {
   }
 
   @Test
+  void aceptaLosMundosNuevosDelCreador() {
+    // scenery.js WORLDS: biblioteca, observatorio y aula se aceptan tal cual; uno desconocido sigue sin draft.
+    for (String w : new String[] {"biblioteca", "observatorio", "aula"}) {
+      String s = VALID.replace("taller-londres", w);
+      assertEquals(s, InstitutionRequestDraft.normalize(s).orElseThrow(), w);
+    }
+    assertTrue(InstitutionRequestDraft.normalize(VALID.replace("taller-londres", "planetario")).isEmpty());
+  }
+
+  @Test
   void rechazaLoMalFormadoOVacio() {
     assertTrue(InstitutionRequestDraft.normalize(null).isEmpty());
     assertTrue(InstitutionRequestDraft.normalize("  ").isEmpty());
