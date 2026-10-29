@@ -58,7 +58,7 @@ public class TapsRankingUseCase {
   static final int LIMITE_MAXIMO = 50;
 
   static final Pattern TAP_ID = Pattern.compile("^[a-z0-9-]{1,60}$");
-  static final Pattern UUID_TEXTO =
+  private static final Pattern UUID_TEXTO =
     Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
   /** Listas fijas para los alias (sustantivos masculinos para que concuerden con cualquier adjetivo). */

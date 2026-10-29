@@ -298,7 +298,16 @@ public class ApplicationConfig {
     return new TapsEstadisticasUseCase(tapsEstadisticasGateway, tapsRegistrados, java.time.Clock.system(TapsRankingUseCase.ZONA));
   }
 
-  /** «Me gusta» anónimos y vistas para las tarjetas de Taps (misma lista blanca que las estadísticas). */
+  /** Comentarios de Taps (solo con sesión), con el filtro de texto de los Taps de creador. */
+  @Bean
+  public com.gems.education.application.TapsComentariosUseCase tapsComentariosUseCase(
+      com.gems.education.application.gateway.TapsSocialesGateway tapsSocialesGateway, TapsRegistrados tapsRegistrados,
+      com.gems.education.application.gateway.UserDirectory userDirectory) {
+    return new com.gems.education.application.TapsComentariosUseCase(tapsSocialesGateway, tapsRegistrados,
+      com.gems.education.application.TapsPayloadValidador.delClasspath(), userDirectory, java.time.Clock.systemUTC());
+  }
+
+  /** Cifras sociales y «me gusta» (con sesión) de las tarjetas de Taps (misma lista blanca que las estadísticas). */
   @Bean
   public com.gems.education.application.TapsSocialesUseCase tapsSocialesUseCase(
       com.gems.education.application.gateway.TapsSocialesGateway tapsSocialesGateway, TapsRegistrados tapsRegistrados) {

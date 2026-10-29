@@ -574,11 +574,35 @@ CREATE INDEX IF NOT EXISTS idx_taps_creador_owner ON taps_creador(owner_id) WHER
 CREATE INDEX IF NOT EXISTS idx_taps_creador_owner_creado ON taps_creador(owner_id, creado);
 CREATE INDEX IF NOT EXISTS idx_taps_creador_revision ON taps_creador(estado) WHERE estado = 'en_revision';
 
--- «Me gusta» anónimos por Tap: uno por dispositivo (el jugador_id del ranking) y Tap. No guarda IP ni usuario.
--- El total se cuenta por consulta (la PK empieza por tap_id).
+-- Cifras sociales de Taps, solo de usuarios con sesión (decisión del 29-oct). No guarda IP.
+-- «Me gusta»: uno por usuario y Tap; el total se cuenta por consulta (la PK empieza por tap_id).
 CREATE TABLE IF NOT EXISTS taps_me_gusta (
     tap_id VARCHAR(60) NOT NULL,
-    jugador_id UUID NOT NULL,
+    user_id BIGINT NOT NULL,
     creado TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (tap_id, jugador_id)
+    PRIMARY KEY (tap_id, user_id)
+);
+
+-- Comentarios: autor es el nombre corto («Ana R.») tomado al escribir, para no consultar ms-auth al leer.
+-- oculto: por 3 reportes o por el superadmin. revisado: el superadmin ya decidió (los reportes no lo vuelven a ocultar).
+-- borrado_en: borrado lógico (autor o superadmin).
+CREATE TABLE IF NOT EXISTS taps_comentario (
+    id BIGSERIAL PRIMARY KEY,
+    tap_id VARCHAR(60) NOT NULL,
+    user_id BIGINT NOT NULL,
+    autor VARCHAR(60) NOT NULL,
+    texto VARCHAR(200) NOT NULL,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    borrado_en TIMESTAMPTZ,
+    oculto BOOLEAN NOT NULL DEFAULT false,
+    revisado BOOLEAN NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS idx_taps_comentario_tap_visibles ON taps_comentario(tap_id, id) WHERE borrado_en IS NULL AND NOT oculto;
+CREATE INDEX IF NOT EXISTS idx_taps_comentario_user_creado ON taps_comentario(user_id, creado);
+
+CREATE TABLE IF NOT EXISTS taps_comentario_reporte (
+    comentario_id BIGINT NOT NULL REFERENCES taps_comentario(id) ON DELETE CASCADE,
+    user_id BIGINT NOT NULL,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (comentario_id, user_id)
 );

@@ -62,8 +62,10 @@ public class AuditTrailFilter implements GlobalFilter, Ordered {
     return MUTATIONS.contains(method)
       && exchange.getRequest().getHeaders().containsKey(HttpHeaders.AUTHORIZATION)
       && !path.startsWith("/api/v1/audit/")
-      // Taps públicos (partidas, eventos, me gusta) prometen no guardar IP: no se auditan aunque llegue un Bearer.
+      // Taps públicos (partidas, eventos) prometen no guardar IP: no se auditan aunque llegue un Bearer. Tampoco cada
+      // me gusta (hasta 60/min por usuario); comentar, borrar y moderar sí se auditan.
       && !path.startsWith("/api/v1/public/taps/")
+      && !(path.startsWith("/api/v1/taps/") && path.endsWith("/me-gusta"))
       && !path.equals("/api/v1/auth/login")
       && !path.equals("/api/v1/auth/change-password");
   }
