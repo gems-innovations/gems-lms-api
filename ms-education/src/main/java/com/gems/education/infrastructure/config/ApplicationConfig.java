@@ -311,4 +311,13 @@ public class ApplicationConfig {
   public TapsRankingUseCase tapsRankingUseCase(TapsGateway tapsGateway) {
     return new TapsRankingUseCase(tapsGateway, TapsBanco.delClasspath());
   }
+
+  /** Likes y comentarios de Taps (comentar exige sesión; moderación por reportes). */
+  @Bean
+  public com.gems.education.application.TapsSocialUseCase tapsSocialUseCase(
+      com.gems.education.application.gateway.TapsSocialGateway tapsSocialGateway, TapsRegistrados tapsRegistrados,
+      TapsRankingUseCase tapsRankingUseCase) {
+    return new com.gems.education.application.TapsSocialUseCase(tapsSocialGateway, tapsRegistrados, tapsRankingUseCase,
+      java.time.Clock.systemUTC());
+  }
 }

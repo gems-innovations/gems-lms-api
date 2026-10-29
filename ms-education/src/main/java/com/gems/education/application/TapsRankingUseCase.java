@@ -186,9 +186,14 @@ public class TapsRankingUseCase {
   private Mono<Identidad> identidad(Jugador d, Long usuarioId, Instant ahora) {
     if (usuarioId == null) return Mono.just(new Identidad(d.jugadorId(), null, d.alias()));
     Mono<Void> vincular = d.usuarioId() == null ? gateway.vincularDispositivo(d.jugadorId(), usuarioId) : Mono.empty();
-    return gateway.aliasDeUsuario(usuarioId)
-      .switchIfEmpty(Mono.defer(() -> gateway.crearUsuario(usuarioId, nuevoAlias(), ahora)))
+    return aliasDe(usuarioId, ahora)
       .flatMap(alias -> vincular.thenReturn(new Identidad(d.jugadorId(), usuarioId, alias)));
+  }
+
+  /** Alias de Taps del usuario (el del ranking y los comentarios); se le asigna uno la primera vez. */
+  public Mono<String> aliasDe(Long usuarioId, Instant ahora) {
+    return gateway.aliasDeUsuario(usuarioId)
+      .switchIfEmpty(Mono.defer(() -> gateway.crearUsuario(usuarioId, nuevoAlias(), ahora)));
   }
 
   // ── Consultar el ranking ───────────────────────────────────────────────────
