@@ -185,6 +185,13 @@ public class GlobalExceptionHandler {
       com.gems.education.application.exceptions.TapsLimiteException.CODE, ex.getMessage(), HttpStatus.TOO_MANY_REQUESTS.value())));
   }
 
+  /** Una cuenta de invitado en me gusta o comentarios de Taps: 403 con código propio para que la web ofrezca crear cuenta. */
+  @ExceptionHandler(com.gems.education.application.exceptions.TapsCuentaRequeridaException.class)
+  public Mono<ResponseEntity<ErrorResponse>> handleTapsCuentaRequerida(com.gems.education.application.exceptions.TapsCuentaRequeridaException ex) {
+    return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(
+      com.gems.education.application.exceptions.TapsCuentaRequeridaException.CODE, ex.getMessage(), HttpStatus.FORBIDDEN.value())));
+  }
+
   /** Comentario de Tap: 404 si no existe (o está borrado); 422 si el texto no pasa el filtro. */
   @ExceptionHandler(com.gems.education.application.exceptions.TapsComentarioException.class)
   public Mono<ResponseEntity<ErrorResponse>> handleTapsComentario(com.gems.education.application.exceptions.TapsComentarioException ex) {

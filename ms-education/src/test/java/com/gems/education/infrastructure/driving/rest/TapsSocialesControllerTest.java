@@ -1,6 +1,8 @@
 package com.gems.education.infrastructure.driving.rest;
 
 import com.gems.education.application.TapsComentariosUseCase;
+import com.gems.education.application.TapsCuentas;
+import com.gems.education.application.gateway.UserDirectory;
 import com.gems.education.application.TapsSocialesUseCase;
 import com.gems.education.application.exceptions.TapsComentarioException;
 import com.gems.education.application.exceptions.TapsLimiteException;
@@ -24,7 +26,61 @@ class TapsSocialesControllerTest {
   private static final AuthenticatedUser ANA = new AuthenticatedUser(5L, "STUDENT", "inst-1");
   private final TapsSocialesUseCase sociales = mock(TapsSocialesUseCase.class);
   private final TapsComentariosUseCase comentarios = mock(TapsComentariosUseCase.class);
-  private final TapsSocialesController controller = new TapsSocialesController(sociales, comentarios);
+  private static final AuthenticatedUser INVITADO = new AuthenticatedUser(9L, "STUDENT", "gems-abierto");
+  private final UserDirectory users = mock(UserDirectory.class);
+  private final TapsSocialesController controller =
+    new TapsSocialesController(sociales, comentarios, new TapsCuentas(users, java.time.Clock.systemUTC()));
+
+  {
+    when(users.find(5L)).thenReturn(Mono.just(new UserDirectory.UserProfile(5L, "Ana Ruiz", "inst-1", "Ana", "Ruiz", "ana@correo.com")));
+    when(users.find(9L)).thenReturn(Mono.just(new UserDirectory.UserProfile(9L, "Pepe GEMS", "gems-abierto", "Pepe", "GEMS",
+      "invitado-a1b2c3d4e5f6@Invitado.Gems.Lat")));
+  }
+
+  @Test
+  void unInvitadoRecibe403ConCodigoEnCadaRutaConSesion() {
+    WebTestClient c = como(INVITADO);
+    List<WebTestClient.RequestHeadersSpec<?>> rutas = List.of(
+      c.get().uri("/api/v1/taps/sociales/yo?ids=mc-gancho"),
+      c.put().uri("/api/v1/taps/mc-gancho/me-gusta").contentType(MediaType.APPLICATION_JSON).bodyValue("{\"meGusta\":true}"),
+      c.get().uri("/api/v1/taps/mc-gancho/comentarios"),
+      c.post().uri("/api/v1/taps/mc-gancho/comentarios").contentType(MediaType.APPLICATION_JSON).bodyValue("{\"texto\":\"Hola\"}"),
+      c.delete().uri("/api/v1/taps/comentarios/7"),
+      c.post().uri("/api/v1/taps/comentarios/7/reportar"),
+      c.put().uri("/api/v1/taps/comentarios/7/estado").contentType(MediaType.APPLICATION_JSON).bodyValue("{\"oculto\":true}"));
+    for (var ruta : rutas) {
+      ruta.exchange().expectStatus().isForbidden().expectBody().jsonPath("$.code").isEqualTo("TAPS_SOCIAL_REQUIERE_CUENTA");
+    }
+    verifyNoInteractions(sociales, comentarios);
+    verify(users, times(1)).find(9L);   // la respuesta de ms-auth se reutiliza
+  }
+
+  @Test
+  void unRegistradoPasaEnCadaRutaConSesion() {
+    when(sociales.mios(any(), any())).thenReturn(Mono.just(new TapsSocialesUseCase.Mios(List.of())));
+    when(sociales.cambiar(any(), any(), any())).thenReturn(Mono.just(new TapsSocialesUseCase.Estado("mc-gancho", true, 1)));
+    when(comentarios.leer(any(), any(), any())).thenReturn(Mono.just(new TapsComentariosUseCase.Pagina(List.of(), null)));
+    when(comentarios.comentar(any(), any(), any()))
+      .thenReturn(Mono.just(new TapsComentariosUseCase.Vista(7, "Ana R.", "Hola", Instant.parse("2026-10-29T15:00:00Z"), true)));
+    when(comentarios.borrar(any(), anyLong())).thenReturn(Mono.empty());
+    when(comentarios.reportar(any(), anyLong())).thenReturn(Mono.empty());
+    WebTestClient c = como(ANA);
+    c.get().uri("/api/v1/taps/sociales/yo?ids=mc-gancho").exchange().expectStatus().isOk();
+    c.put().uri("/api/v1/taps/mc-gancho/me-gusta").contentType(MediaType.APPLICATION_JSON).bodyValue("{\"meGusta\":true}").exchange().expectStatus().isOk();
+    c.get().uri("/api/v1/taps/mc-gancho/comentarios").exchange().expectStatus().isOk();
+    c.post().uri("/api/v1/taps/mc-gancho/comentarios").contentType(MediaType.APPLICATION_JSON).bodyValue("{\"texto\":\"Hola\"}").exchange().expectStatus().isCreated();
+    c.delete().uri("/api/v1/taps/comentarios/7").exchange().expectStatus().isNoContent();
+    c.post().uri("/api/v1/taps/comentarios/7/reportar").exchange().expectStatus().isNoContent();
+  }
+
+  @Test
+  void elSuperadminNoSeConsultaEnMsAuth() {
+    AuthenticatedUser admin = new AuthenticatedUser(1L, "SUPER_ADMIN", null);
+    when(comentarios.cambiarEstado(admin, 7, true)).thenReturn(Mono.empty());
+    como(admin).put().uri("/api/v1/taps/comentarios/7/estado").contentType(MediaType.APPLICATION_JSON)
+      .bodyValue("{\"oculto\":true}").exchange().expectStatus().isNoContent();
+    verify(users, never()).find(1L);
+  }
 
   private WebTestClient anonimo() {
     return WebTestClient.bindToController(controller)

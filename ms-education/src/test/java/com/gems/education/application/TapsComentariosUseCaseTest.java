@@ -40,7 +40,7 @@ class TapsComentariosUseCaseTest {
   void setUp() {
     caso = new TapsComentariosUseCase(gateway, registrados, new TapsPayloadValidador(Set.of("tonto")), users,
       Clock.fixed(AHORA, ZoneOffset.UTC));
-    when(users.find(5L)).thenReturn(Mono.just(new UserDirectory.UserProfile(5L, "Ana Ruiz", "inst-1", "Ana", "Ruiz")));
+    when(users.find(5L)).thenReturn(Mono.just(new UserDirectory.UserProfile(5L, "Ana Ruiz", "inst-1", "Ana", "Ruiz", "ana@correo.com")));
     when(gateway.comentariosDesde(any(), any())).thenReturn(Mono.just(0L));
     when(gateway.comentar(any(), any(), any(), any()))
       .thenAnswer(i -> Mono.just(new Comentario(7, i.getArgument(0), i.getArgument(1), i.getArgument(2), i.getArgument(3), AHORA, false)));

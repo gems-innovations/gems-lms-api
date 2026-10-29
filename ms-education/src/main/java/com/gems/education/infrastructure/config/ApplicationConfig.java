@@ -298,6 +298,12 @@ public class ApplicationConfig {
     return new TapsEstadisticasUseCase(tapsEstadisticasGateway, tapsRegistrados, java.time.Clock.system(TapsRankingUseCase.ZONA));
   }
 
+  /** Distingue cuentas registradas de invitados (por el correo en ms-auth) para me gusta y comentarios de Taps. */
+  @Bean
+  public com.gems.education.application.TapsCuentas tapsCuentas(com.gems.education.application.gateway.UserDirectory userDirectory) {
+    return new com.gems.education.application.TapsCuentas(userDirectory, java.time.Clock.systemUTC());
+  }
+
   /** Comentarios de Taps (solo con sesión), con el filtro de texto de los Taps de creador. */
   @Bean
   public com.gems.education.application.TapsComentariosUseCase tapsComentariosUseCase(
