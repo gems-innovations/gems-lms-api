@@ -28,7 +28,8 @@ import java.util.regex.Pattern;
  * <p>Estados: {@code borrador → publicado} directo para docentes (INSTRUCTOR, ADMIN, SUPER_ADMIN) y para cualquier
  * publicación {@code private}; un CREATOR que pide {@code enlace} pasa a {@code en_revision} y el superadmin decide:
  * aprobar → {@code publicado}; cambios o rechazar → {@code rechazado} con motivo. Editar no saca del aire la copia
- * publicada; despublicar y rechazar sí, de inmediato. Al publicar o aprobar el borrador se valida otra vez.
+ * publicada; despublicar sí, de inmediato. Rechazar la tumba solo si no había copia aprobada previa: en una re-revisión
+ * la copia aprobada sigue en el aire hasta nueva decisión. Al publicar o aprobar el borrador se valida otra vez.
  */
 public class TapsCreadorUseCase {
   public static final int MAX_VIVOS = 30;
