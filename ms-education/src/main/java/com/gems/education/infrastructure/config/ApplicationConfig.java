@@ -298,6 +298,14 @@ public class ApplicationConfig {
     return new TapsEstadisticasUseCase(tapsEstadisticasGateway, tapsRegistrados, java.time.Clock.system(TapsRankingUseCase.ZONA));
   }
 
+  /** «Me gusta» anónimos y vistas para las tarjetas de Taps (misma lista blanca que las estadísticas). */
+  @Bean
+  public com.gems.education.application.TapsSocialesUseCase tapsSocialesUseCase(
+      com.gems.education.application.gateway.TapsSocialesGateway tapsSocialesGateway, TapsRegistrados tapsRegistrados) {
+    return new com.gems.education.application.TapsSocialesUseCase(tapsSocialesGateway, tapsRegistrados,
+      java.time.Clock.system(TapsRankingUseCase.ZONA));
+  }
+
   /** Borradores de Taps del creador autenticado (PR-10 A2): propiedad estricta, cuotas y validación del contenido. */
   @Bean
   public com.gems.education.application.TapsCreadorUseCase tapsCreadorUseCase(

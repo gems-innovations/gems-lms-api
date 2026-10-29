@@ -573,3 +573,12 @@ CREATE TABLE IF NOT EXISTS taps_creador (
 CREATE INDEX IF NOT EXISTS idx_taps_creador_owner ON taps_creador(owner_id) WHERE borrado_en IS NULL;
 CREATE INDEX IF NOT EXISTS idx_taps_creador_owner_creado ON taps_creador(owner_id, creado);
 CREATE INDEX IF NOT EXISTS idx_taps_creador_revision ON taps_creador(estado) WHERE estado = 'en_revision';
+
+-- «Me gusta» anónimos por Tap: uno por dispositivo (el jugador_id del ranking) y Tap. No guarda IP ni usuario.
+-- El total se cuenta por consulta (la PK empieza por tap_id).
+CREATE TABLE IF NOT EXISTS taps_me_gusta (
+    tap_id VARCHAR(60) NOT NULL,
+    jugador_id UUID NOT NULL,
+    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (tap_id, jugador_id)
+);
