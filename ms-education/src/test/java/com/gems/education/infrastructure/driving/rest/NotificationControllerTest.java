@@ -43,6 +43,16 @@ class NotificationControllerTest extends ControllerTestSupport {
   }
 
   @Test
+  void createdAtCarriesItsOffsetSoBrowsersDoNotShiftIt() {
+    LocalDateTime at = LocalDateTime.of(2026, 10, 29, 22, 36);
+    var n = new Notification(2L, "inst-1", 5L, Notification.ENROLLED, "Inscrito", "msg", 1L, null, at, false);
+
+    var created = NotificationController.NotificationResponse.of(n).createdAt();
+    org.junit.jupiter.api.Assertions.assertEquals(at.atZone(java.time.ZoneId.systemDefault()).toInstant(), created.toInstant());
+    org.junit.jupiter.api.Assertions.assertNotNull(created.getOffset());
+  }
+
+  @Test
   void studentsAskOnlyForTheirOwn() {
     when(notifications.forUser(5L, "inst-1", false)).thenReturn(Flux.just(forStudent()));
 
