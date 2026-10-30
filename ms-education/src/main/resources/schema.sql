@@ -517,6 +517,12 @@ CREATE TABLE IF NOT EXISTS taps_usuario (
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Limpieza de la primera versión social (#35, revertida el 29-oct): se borra solo si la tabla es la de esa versión
+-- (columna usuario_id), para no tocar la de me gusta y comentarios con sesión. El cuerpo va entre comillas simples: el script se corta en cada punto y coma.
+DROP TABLE IF EXISTS taps_like;
+DO 'BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ''taps_comentario'' AND column_name = ''usuario_id'') THEN DROP TABLE IF EXISTS taps_comentario_reporte, taps_comentario; END IF; END';
+ALTER TABLE taps_usuario DROP COLUMN IF EXISTS ultimo_comentario, DROP COLUMN IF EXISTS ventana_comentarios_inicio, DROP COLUMN IF EXISTS ventana_comentarios;
+
 -- usuario_id: con quién compite la partida (null = anónima, suma al dispositivo).
 CREATE TABLE IF NOT EXISTS taps_partida (
     id BIGSERIAL PRIMARY KEY,
@@ -573,35 +579,3 @@ CREATE TABLE IF NOT EXISTS taps_creador (
 CREATE INDEX IF NOT EXISTS idx_taps_creador_owner ON taps_creador(owner_id) WHERE borrado_en IS NULL;
 CREATE INDEX IF NOT EXISTS idx_taps_creador_owner_creado ON taps_creador(owner_id, creado);
 CREATE INDEX IF NOT EXISTS idx_taps_creador_revision ON taps_creador(estado) WHERE estado = 'en_revision';
-
--- Likes y comentarios de Taps (empiezan vacíos). Like: uno por persona y Tap; quien = 'u<usuario>' con sesión o
--- 'j<dispositivo>' sin sesión (la misma clave que el ranking). Comentar y reportar exigen sesión.
-CREATE TABLE IF NOT EXISTS taps_like (
-    tap_id VARCHAR(60) NOT NULL,
-    quien VARCHAR(40) NOT NULL,
-    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (tap_id, quien)
-);
-
--- oculto: lo reportaron varias personas (ya no se lista ni se cuenta). Borrar el propio comentario lo elimina.
-CREATE TABLE IF NOT EXISTS taps_comentario (
-    id BIGSERIAL PRIMARY KEY,
-    tap_id VARCHAR(60) NOT NULL,
-    usuario_id BIGINT NOT NULL,
-    texto VARCHAR(200) NOT NULL,
-    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
-    oculto BOOLEAN NOT NULL DEFAULT false
-);
-CREATE INDEX IF NOT EXISTS idx_taps_comentario_tap ON taps_comentario(tap_id, id) WHERE NOT oculto;
-
-CREATE TABLE IF NOT EXISTS taps_comentario_reporte (
-    comentario_id BIGINT NOT NULL REFERENCES taps_comentario(id) ON DELETE CASCADE,
-    usuario_id BIGINT NOT NULL,
-    creado TIMESTAMPTZ NOT NULL DEFAULT now(),
-    PRIMARY KEY (comentario_id, usuario_id)
-);
-
--- Control de frecuencia de comentarios por usuario (UPDATE condicional atómico, como el de partidas).
-ALTER TABLE taps_usuario ADD COLUMN IF NOT EXISTS ultimo_comentario TIMESTAMPTZ;
-ALTER TABLE taps_usuario ADD COLUMN IF NOT EXISTS ventana_comentarios_inicio TIMESTAMPTZ;
-ALTER TABLE taps_usuario ADD COLUMN IF NOT EXISTS ventana_comentarios INT NOT NULL DEFAULT 0;
