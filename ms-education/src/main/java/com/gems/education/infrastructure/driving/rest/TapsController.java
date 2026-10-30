@@ -26,7 +26,7 @@ import java.util.Optional;
 public class TapsController {
   private final TapsRankingUseCase taps;
   private final JwtReactiveAuthenticationManager jwt;
-  private static final JwtServerAuthenticationConverter BEARER = new JwtServerAuthenticationConverter();
+  private final JwtServerAuthenticationConverter bearer = new JwtServerAuthenticationConverter();
 
   public TapsController(TapsRankingUseCase taps, JwtReactiveAuthenticationManager jwt) {
     this.taps = taps;
@@ -36,7 +36,7 @@ public class TapsController {
   @PostMapping("/api/v1/public/taps/partidas")
   public Mono<ResponseEntity<TapsRankingUseCase.Resultado>> registrar(@RequestBody TapsRankingUseCase.Partida partida,
                                                                       ServerWebExchange exchange) {
-    return usuario(exchange, jwt)
+    return usuario(exchange)
       .flatMap(u -> taps.registrar(partida, u.orElse(null)))
       .map(r -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(r));
   }
@@ -47,14 +47,14 @@ public class TapsController {
                                                                   @RequestParam(required = false) String jugadorId,
                                                                   @RequestParam(required = false) Integer limite,
                                                                   ServerWebExchange exchange) {
-    return usuario(exchange, jwt)
+    return usuario(exchange)
       .flatMap(u -> taps.ranking(periodo, tema, jugadorId, limite, u.orElse(null)))
       .map(r -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(r));
   }
 
   /** El usuario del Bearer, si llega uno válido; vacío si no hay sesión o el token no sirve. */
-  static Mono<Optional<Long>> usuario(ServerWebExchange exchange, JwtReactiveAuthenticationManager jwt) {
-    return BEARER.convert(exchange)
+  private Mono<Optional<Long>> usuario(ServerWebExchange exchange) {
+    return bearer.convert(exchange)
       .flatMap(jwt::authenticate)
       .map(auth -> auth.getPrincipal())
       .filter(AuthenticatedUser.class::isInstance)
