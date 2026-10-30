@@ -281,6 +281,95 @@ class TapsCreadorControllerTest extends ControllerTestSupport {
       .bodyValue("{\"decision\":\"aprobar\"}").exchange().expectStatus().isNotFound();
   }
 
+  // ── Importar el borrador de /crear (A4) ───────────────────────────────────
+
+  private static final String BORRADOR_ID = "mh3k2a9f-0abc123";
+  private static final String ADJUNTO = "{\"v\":1,\"borradorId\":\"" + BORRADOR_ID + "\",\"b\":\"senador\","
+    + "\"l\":{\"hairStyle\":\"corto\",\"skin\":\"#f1c27d\"},\"i\":\"pergamino\",\"w\":\"foro-roma\"}";
+  private static final String IMPORTAR = "{\"borradorId\":\"" + BORRADOR_ID + "\",\"adjunto\":" + ADJUNTO + "}";
+
+  @Test
+  void importarSinSesionOComoEstudianteEs403YNoTocaLaBase() {
+    WebTestClient anonimo = WebTestClient.bindToController(controller)
+      .controllerAdvice(new GlobalExceptionHandler(), new SecurityExceptionAdvice()).build();
+    anonimo.post().uri("/api/v1/taps/importar-borrador").contentType(MediaType.APPLICATION_JSON).bodyValue(IMPORTAR).exchange()
+      .expectStatus().isForbidden();
+    como(STUDENT).post().uri("/api/v1/taps/importar-borrador").contentType(MediaType.APPLICATION_JSON).bodyValue(IMPORTAR).exchange()
+      .expectStatus().isForbidden();
+    verifyNoInteractions(gateway);
+  }
+
+  @Test
+  void creadorDocenteAdminYSuperadminImportanYNaceMiPrimerTapPrivado() {
+    when(gateway.buscarPorOrigen(anyLong(), anyString())).thenReturn(Mono.empty());
+    when(gateway.crearImportado(any(), eq(BORRADOR_ID))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+    for (AuthenticatedUser quien : new AuthenticatedUser[] {CREATOR, INSTRUCTOR, ADMIN, SUPER_ADMIN}) {
+      como(quien).post().uri("/api/v1/taps/importar-borrador").contentType(MediaType.APPLICATION_JSON).bodyValue(IMPORTAR).exchange()
+        .expectStatus().isCreated()
+        .expectHeader().valueEquals(HttpHeaders.ETAG, "\"0\"")
+        .expectHeader().cacheControl(org.springframework.http.CacheControl.noStore())
+        .expectBody()
+        .jsonPath("$.id").value(org.hamcrest.Matchers.matchesRegex("^u-[23456789bcdfghjkmnpqrstvwxz]{10}$"))
+        .jsonPath("$.importado").isEqualTo(true)
+        .jsonPath("$.tap.titulo").isEqualTo("Mi primer Tap")
+        .jsonPath("$.tap.estado").isEqualTo("borrador")
+        .jsonPath("$.tap.visibilidad").isEqualTo("private")
+        .jsonPath("$.tap.borrador.scene.host").isEqualTo("senador")
+        .jsonPath("$.tap.borrador.scene.world").isEqualTo("foro-roma")
+        .jsonPath("$.tap.borrador.questions.length()").isEqualTo(5)
+        .jsonPath("$.tap.ownerId").doesNotExist();
+      // El origen se busca siempre con el usuario autenticado, nunca con un id del cuerpo.
+      verify(gateway).buscarPorOrigen(quien.userId(), BORRADOR_ID);
+    }
+  }
+
+  @Test
+  void importarDosVecesDevuelve200ConElMismoTapYNoCreaOtro() {
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.just(fila(8L, 2)));
+    como(CREATOR).post().uri("/api/v1/taps/importar-borrador").contentType(MediaType.APPLICATION_JSON).bodyValue(IMPORTAR).exchange()
+      .expectStatus().isOk()
+      .expectBody()
+      .jsonPath("$.id").isEqualTo(ID)
+      .jsonPath("$.importado").isEqualTo(false);
+    verify(gateway, never()).crearImportado(any(), anyString());
+    verify(gateway, never()).crear(any());
+  }
+
+  @Test
+  void elBorradorDeOtroUsuarioNoSeVeAlImportar() {
+    // La creadora ya importó ese borrador; el docente, con el mismo borradorId, no lo recibe: la consulta lleva su id.
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.just(fila(8L, 2)));
+    when(gateway.buscarPorOrigen(3L, BORRADOR_ID)).thenReturn(Mono.empty());
+    when(gateway.crearImportado(any(), eq(BORRADOR_ID))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+    como(INSTRUCTOR).post().uri("/api/v1/taps/importar-borrador").contentType(MediaType.APPLICATION_JSON).bodyValue(IMPORTAR).exchange()
+      .expectStatus().isCreated()
+      .expectBody()
+      .jsonPath("$.id").value(org.hamcrest.Matchers.not(ID))
+      .jsonPath("$.importado").isEqualTo(true);
+  }
+
+  @Test
+  void unAdjuntoInvalidoOAjenoAlIdEs404Uniforme() {
+    String fueraDeCatalogo = IMPORTAR.replace("foro-roma", "marte");
+    como(CREATOR).post().uri("/api/v1/taps/importar-borrador").contentType(MediaType.APPLICATION_JSON).bodyValue(fueraDeCatalogo).exchange()
+      .expectStatus().isNotFound();
+    String idDistinto = "{\"borradorId\":\"zzzzzzzz-9999999\",\"adjunto\":" + ADJUNTO + "}";
+    como(CREATOR).post().uri("/api/v1/taps/importar-borrador").contentType(MediaType.APPLICATION_JSON).bodyValue(idDistinto).exchange()
+      .expectStatus().isNotFound();
+    como(CREATOR).post().uri("/api/v1/taps/importar-borrador").contentType(MediaType.APPLICATION_JSON).bodyValue("{\"borradorId\":\"x\"}").exchange()
+      .expectStatus().isNotFound();
+    verifyNoInteractions(gateway);
+  }
+
+  @Test
+  void importarRespetaLaCuotaDeTapsVivos() {
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.empty());
+    when(gateway.contarVivos(8L)).thenReturn(Mono.just((long) TapsCreadorUseCase.MAX_VIVOS));
+    como(CREATOR).post().uri("/api/v1/taps/importar-borrador").contentType(MediaType.APPLICATION_JSON).bodyValue(IMPORTAR).exchange()
+      .expectStatus().isEqualTo(429);
+    verify(gateway, never()).crearImportado(any(), anyString());
+  }
+
   @Test
   void ifMatchSeLeeConOSinComillasYDebil() {
     org.junit.jupiter.api.Assertions.assertNull(TapsCreadorController.revisionDe(null));

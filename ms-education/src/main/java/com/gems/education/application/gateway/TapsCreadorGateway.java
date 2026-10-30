@@ -46,6 +46,18 @@ public interface TapsCreadorGateway {
   /** Taps creados por el dueño desde {@code desde}, borrados incluidos (borrar no devuelve cuota). */
   Mono<Long> contarCreadosDesde(Long ownerId, Instant desde);
 
+  // ── Importar el borrador de /crear (A4) ───────────────────────────────────
+
+  /**
+   * Inserta un Tap que nace del borrador {@code origenBorrador} del dueño. Vacío si el id ya existía o si ese dueño ya
+   * tiene un Tap vivo con el mismo origen (índice único parcial): el caso de uso distingue los dos casos consultando
+   * {@link #buscarPorOrigen}.
+   */
+  Mono<Tap> crearImportado(Tap tap, String origenBorrador);
+
+  /** El Tap vivo de ese dueño que nació del borrador {@code origenBorrador}, o vacío. Siempre lleva el dueño. */
+  Mono<Tap> buscarPorOrigen(Long ownerId, String origenBorrador);
+
   // ── Estados (A3) ──────────────────────────────────────────────────────────
 
   /**

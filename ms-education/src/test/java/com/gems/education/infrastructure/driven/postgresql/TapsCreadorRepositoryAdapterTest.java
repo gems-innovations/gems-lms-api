@@ -215,6 +215,28 @@ class TapsCreadorRepositoryAdapterTest {
   }
 
   @Test
+  void importarElMismoBorradorDosVecesNoDuplicaYElOrigenEsPorDueno() {
+    Tap primero = adapter.crearImportado(nuevo("u-bcdfghjkmn", 8L, null, T0), "mh3k2a9f-0abc123").block();
+    assertNotNull(primero);
+    // Mismo dueño y mismo origen con otro id: el índice único parcial lo frena y no hay fila nueva.
+    assertNull(adapter.crearImportado(nuevo("u-pqrstvwxz2", 8L, null, T0), "mh3k2a9f-0abc123").block());
+    assertEquals(1L, adapter.contarVivos(8L).block());
+    assertEquals("u-bcdfghjkmn", adapter.buscarPorOrigen(8L, "mh3k2a9f-0abc123").block().id());
+    // Otro dueño con el mismo borradorId no ve el ajeno y sí puede tener el suyo.
+    assertNull(adapter.buscarPorOrigen(9L, "mh3k2a9f-0abc123").block());
+    assertNotNull(adapter.crearImportado(nuevo("u-pqrstvwxz2", 9L, "inst-1", T0), "mh3k2a9f-0abc123").block());
+    // Un id repetido tampoco inserta nada (misma señal: vacío).
+    assertNull(adapter.crearImportado(nuevo("u-bcdfghjkmn", 10L, null, T0), "otro-1234567").block());
+    // Tras borrar el importado, el origen queda libre y se puede importar otra vez.
+    assertTrue(adapter.borrar("u-bcdfghjkmn", 8L, T0.plusSeconds(1)).block());
+    assertNull(adapter.buscarPorOrigen(8L, "mh3k2a9f-0abc123").block());
+    assertNotNull(adapter.crearImportado(nuevo("u-23456789bc", 8L, null, T0.plusSeconds(2)), "mh3k2a9f-0abc123").block());
+    // Los Taps normales no llevan origen y no chocan entre sí.
+    assertNotNull(adapter.crear(nuevo("u-cdfghjkmnp", 8L, null, T0)).block());
+    assertNotNull(adapter.crear(nuevo("u-dfghjkmnpq", 8L, null, T0)).block());
+  }
+
+  @Test
   void borrarEsLogicoYNoDevuelveCuotaDiaria() {
     adapter.crear(nuevo("u-bcdfghjkmn", 8L, null, T0)).block();
     adapter.crear(nuevo("u-pqrstvwxz2", 8L, null, T0.minus(Duration.ofDays(2)))).block();

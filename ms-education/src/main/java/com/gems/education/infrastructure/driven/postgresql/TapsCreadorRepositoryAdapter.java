@@ -92,6 +92,28 @@ public class TapsCreadorRepositoryAdapter implements TapsCreadorGateway {
       .bind("owner", ownerId).bind("desde", desde).map(row -> row.get("n", Long.class)).one();
   }
 
+  // ── Importar el borrador de /crear (A4) ───────────────────────────────────
+
+  @Override
+  public Mono<Tap> crearImportado(Tap tap, String origenBorrador) {
+    // ON CONFLICT sin destino: tanto un id repetido como el índice único (owner_id, origen_borrador) devuelven vacío.
+    DatabaseClient.GenericExecuteSpec spec = db.sql("INSERT INTO taps_creador (id, owner_id, institution_id, titulo, "
+        + "visibilidad, estado, version, revision, borrador, origen_borrador, creado, actualizado) "
+        + "VALUES (:id, :owner, :inst, :titulo, :vis, :estado, 0, 0, :borrador, :origen, :creado, :creado) "
+        + "ON CONFLICT DO NOTHING RETURNING " + COLUMNAS)
+      .bind("id", tap.id()).bind("owner", tap.ownerId()).bind("titulo", tap.titulo()).bind("vis", tap.visibilidad())
+      .bind("estado", tap.estado()).bind("borrador", tap.borrador()).bind("origen", origenBorrador).bind("creado", tap.creado());
+    spec = tap.institutionId() == null ? spec.bindNull("inst", String.class) : spec.bind("inst", tap.institutionId());
+    return spec.map(TapsCreadorRepositoryAdapter::toTap).one();
+  }
+
+  @Override
+  public Mono<Tap> buscarPorOrigen(Long ownerId, String origenBorrador) {
+    return db.sql("SELECT " + COLUMNAS + " FROM taps_creador WHERE owner_id = :owner AND origen_borrador = :origen" + VIVO)
+      .bind("owner", ownerId).bind("origen", origenBorrador)
+      .map(TapsCreadorRepositoryAdapter::toTap).one();
+  }
+
   // ── Estados (A3) ──────────────────────────────────────────────────────────
 
   @Override

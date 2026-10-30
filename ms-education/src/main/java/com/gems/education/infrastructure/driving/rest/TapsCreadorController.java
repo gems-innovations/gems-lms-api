@@ -59,6 +59,12 @@ public class TapsCreadorController {
 
   public record RevisionRequest(String decision, String motivo) {}
 
+  /** {@code adjunto}: el borrador de /crear tal como viajó en la solicitud ({@code {v,borradorId,b,l,i,w}}), objeto o texto JSON. */
+  public record ImportarRequest(String borradorId, JsonNode adjunto) {}
+
+  /** {@code importado}: true si el Tap se creó ahora; false si ese borrador ya se había importado (se devuelve el mismo). */
+  public record ImportarResponse(String id, boolean importado, TapResponse tap) {}
+
   @GetMapping
   public Mono<ResponseEntity<List<TapResponse>>> mios(@RequestParam(required = false) String estado,
                                                      @RequestParam(required = false) String revision) {
@@ -81,6 +87,20 @@ public class TapsCreadorController {
     return creador()
       .flatMap(u -> taps.crear(u, contenido))
       .map(t -> conEtag(ResponseEntity.status(HttpStatus.CREATED), t, false));
+  }
+
+  /**
+   * Importa a la cuenta el personaje diseñado en /crear (PR-10 §6). El cuerpo trae el adjunto; el servidor lo valida como
+   * cuando viajó en la solicitud y crea «Mi primer Tap» privado. 201 si se creó, 200 si ya existía (idempotente por
+   * borrador y dueño), 404 si el adjunto no es válido. Nunca lee solicitudes de institución.
+   */
+  @PostMapping("/importar-borrador")
+  public Mono<ResponseEntity<ImportarResponse>> importar(@RequestBody ImportarRequest cuerpo) {
+    return creador()
+      .flatMap(u -> taps.importarBorrador(u, cuerpo.borradorId(), cuerpo.adjunto()))
+      .map(r -> ResponseEntity.status(r.importado() ? HttpStatus.CREATED : HttpStatus.OK)
+        .eTag("\"" + r.tap().revision() + "\"").cacheControl(CacheControl.noStore())
+        .body(new ImportarResponse(r.tap().id(), r.importado(), toResponse(r.tap(), false))));
   }
 
   @GetMapping("/{id}")

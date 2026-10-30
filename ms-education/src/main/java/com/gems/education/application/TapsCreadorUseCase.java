@@ -1,6 +1,7 @@
 package com.gems.education.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gems.education.application.exceptions.TapsCreadorConflictoException;
 import com.gems.education.application.exceptions.TapsCreadorNotFoundException;
 import com.gems.education.application.exceptions.TapsEstadoException;
@@ -43,6 +44,7 @@ public class TapsCreadorUseCase {
   static final int INTENTOS_ID = 5;
   private static final Pattern CONTROLES = Pattern.compile("[\\p{Cntrl}\\p{Cf}\\p{Co}\\p{Cn}]");
   private static final Pattern ESPACIOS = Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private final TapsCreadorGateway taps;
   private final TapsPayloadValidador validador;
@@ -133,6 +135,68 @@ public class TapsCreadorUseCase {
     if (!TapsIds.esDeUsuario(id)) return Mono.error(new TapsCreadorNotFoundException());
     return taps.borrar(id, creador.userId(), reloj.instant())
       .flatMap(hecho -> hecho ? Mono.empty() : Mono.error(new TapsCreadorNotFoundException()));
+  }
+
+  // ── Importar el borrador de /crear (A4) ───────────────────────────────────
+
+  /** Resultado de importar: el Tap del creador e {@code importado} = true si se creó ahora, false si ya existía. */
+  public record Importado(Tap tap, boolean importado) {}
+
+  /**
+   * Trae a la cuenta del creador el personaje que diseñó en /crear antes de tener cuenta. El adjunto viene del cliente
+   * (su {@code localStorage}) y se valida con {@link InstitutionRequestDraft#normalize} exactamente igual que cuando viajó
+   * en la solicitud de institución: nunca se lee {@code institution_requests} (ms-education no conoce el correo del
+   * usuario, así que no hay forma segura de ligar una solicitud al que pregunta, y leer por {@code borradorId} dejaría
+   * leer borradores ajenos). Un adjunto inválido o un {@code borradorId} que no coincide con el del adjunto responden 404,
+   * sin más detalle.
+   *
+   * <p>Idempotente por (dueño, borradorId): si ya existe un Tap vivo con ese origen se devuelve ese y nada se crea
+   * (tampoco consume cuota). Las cuotas de {@link #crear} se aplican igual, y el contenido pasa por el validador.
+   */
+  public Mono<Importado> importarBorrador(AuthenticatedUser creador, String borradorId, JsonNode adjunto) {
+    JsonNode canonico;
+    try {
+      canonico = MAPPER.readTree(InstitutionRequestDraft.normalize(InstitutionRequestDraft.asText(adjunto))
+        .orElseThrow(TapsCreadorNotFoundException::new));
+    } catch (TapsCreadorNotFoundException e) {
+      return Mono.error(e);
+    } catch (Exception e) {
+      return Mono.error(new TapsCreadorNotFoundException());
+    }
+    String origen = canonico.get("borradorId").textValue();
+    if (borradorId != null && !borradorId.equals(origen)) return Mono.error(new TapsCreadorNotFoundException());
+    TapsPayloadValidador.Tap valido;
+    try {
+      valido = validador.validar(TapsPrimerTap.desdeAdjunto(canonico));
+    } catch (IllegalArgumentException e) {
+      return Mono.error(new TapsCreadorNotFoundException());
+    }
+    return taps.buscarPorOrigen(creador.userId(), origen)
+      .map(existente -> new Importado(existente, false))
+      .switchIfEmpty(Mono.defer(() -> {
+        Instant ahora = reloj.instant();
+        return taps.contarVivos(creador.userId())
+          .flatMap(vivos -> vivos >= MAX_VIVOS
+            ? Mono.error(new TapsLimiteException("Ya tienes " + MAX_VIVOS + " Taps; borra alguno para importar otro"))
+            : taps.contarCreadosDesde(creador.userId(), ahora.minus(Duration.ofDays(1))))
+          .flatMap(hoy -> hoy >= MAX_CREADOS_POR_DIA
+            ? Mono.error(new TapsLimiteException("Hoy ya creaste " + MAX_CREADOS_POR_DIA + " Taps; sigue mañana"))
+            : insertarImportado(creador, origen, valido, ahora, INTENTOS_ID));
+      }));
+  }
+
+  private Mono<Importado> insertarImportado(AuthenticatedUser creador, String origen, TapsPayloadValidador.Tap valido,
+                                            Instant ahora, int intentos) {
+    Tap nuevo = new Tap(TapsIds.nuevo(), creador.userId(), creador.institutionId(), valido.titulo(), "private",
+      "borrador", 0, 0, valido.json(), null, null, ahora, ahora, null);
+    return taps.crearImportado(nuevo, origen)
+      .map(t -> new Importado(t, true))
+      // Vacío: o chocó el id (se reintenta) o alguien importó el mismo borrador a la vez (se devuelve ese).
+      .switchIfEmpty(Mono.defer(() -> taps.buscarPorOrigen(creador.userId(), origen)
+        .map(existente -> new Importado(existente, false))
+        .switchIfEmpty(Mono.defer(() -> intentos > 1
+          ? insertarImportado(creador, origen, valido, ahora, intentos - 1)
+          : Mono.error(new IllegalStateException("No se pudo asignar un id al Tap"))))));
   }
 
   // ── Publicar y revisar (A3) ───────────────────────────────────────────────

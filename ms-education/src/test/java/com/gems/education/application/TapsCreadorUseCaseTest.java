@@ -168,4 +168,123 @@ class TapsCreadorUseCaseTest {
     StepVerifier.create(caso.borrar(CREADORA, ID)).verifyComplete();
     StepVerifier.create(caso.borrar(DOCENTE, ID)).expectError(TapsCreadorNotFoundException.class).verify();
   }
+
+  // ── Importar el borrador de /crear (A4) ───────────────────────────────────
+
+  private static final String BORRADOR_ID = "mh3k2a9f-0abc123";
+
+  private static ObjectNode adjunto(String base, String item, String mundo) {
+    ObjectNode a = com.fasterxml.jackson.databind.json.JsonMapper.builder().build().createObjectNode();
+    a.put("v", 1).put("borradorId", BORRADOR_ID).put("b", base);
+    a.set("l", a.objectNode().put("hairStyle", "corto").put("skin", "#f1c27d"));
+    if (item == null) a.putNull("i"); else a.put("i", item);
+    a.put("w", mundo);
+    return a;
+  }
+
+  @Test
+  void importarCreaMiPrimerTapPrivadoConLaEscenaDelAdjunto() {
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.empty());
+    when(gateway.crearImportado(any(), eq(BORRADOR_ID))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, adjunto("senador", "pergamino", "foro-roma")))
+      .assertNext(r -> {
+        assertTrue(r.importado());
+        Tap t = r.tap();
+        assertTrue(TapsIds.esDeUsuario(t.id()));
+        assertEquals(8L, t.ownerId());
+        assertEquals("private", t.visibilidad());
+        assertEquals("borrador", t.estado());
+        assertEquals(TapsPrimerTap.TITULO, t.titulo());
+        assertTrue(t.borrador().contains("\"scene\":{\"world\":\"foro-roma\",\"host\":\"senador\",\"item\":\"pergamino\"}"), t.borrador());
+        assertTrue(t.borrador().contains("\"topic\":\"creador\""));
+        // Vuelve a pasar por el validador sin cambios: es contenido canónico.
+        assertEquals(t.borrador(), validador.validar(t.borrador()).json());
+      }).verifyComplete();
+    verify(gateway, never()).crear(any());
+  }
+
+  @Test
+  void importarConSorpresaUsaElAnfitrionPorDefectoYSinObjeto() {
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.empty());
+    when(gateway.crearImportado(any(), eq(BORRADOR_ID))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+    StepVerifier.create(caso.importarBorrador(CREADORA, null, adjunto("sorpresa", null, "biblioteca")))
+      .assertNext(r -> assertTrue(r.tap().borrador().contains("\"scene\":{\"world\":\"biblioteca\",\"host\":\"grabador\"}"), r.tap().borrador()))
+      .verifyComplete();
+  }
+
+  @Test
+  void importarEsIdempotenteDevuelveElExistenteSinCrearNiGastarCuota() {
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.just(fila(8L, 4)));
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, adjunto("senador", null, "foro-roma")))
+      .assertNext(r -> {
+        assertFalse(r.importado());
+        assertEquals(ID, r.tap().id());
+      }).verifyComplete();
+    verify(gateway, never()).crearImportado(any(), anyString());
+    verify(gateway, never()).contarVivos(anyLong());
+  }
+
+  @Test
+  void importarSoloBuscaConElDuenoAutenticado() {
+    when(gateway.buscarPorOrigen(anyLong(), anyString())).thenReturn(Mono.empty());
+    when(gateway.crearImportado(any(), anyString())).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+    StepVerifier.create(caso.importarBorrador(DOCENTE, BORRADOR_ID, adjunto("senador", null, "foro-roma")))
+      .assertNext(r -> {
+        assertEquals(3L, r.tap().ownerId());
+        assertEquals("inst-1", r.tap().institutionId());
+      }).verifyComplete();
+    verify(gateway).buscarPorOrigen(3L, BORRADOR_ID);
+    verify(gateway, never()).buscarPorOrigen(eq(8L), anyString());
+  }
+
+  @Test
+  void siDosPeticionesImportanALaVezLaSegundaDevuelveLaPrimera() {
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.empty()).thenReturn(Mono.just(fila(8L, 0)));
+    when(gateway.crearImportado(any(), eq(BORRADOR_ID))).thenReturn(Mono.empty());
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, adjunto("senador", null, "foro-roma")))
+      .assertNext(r -> assertFalse(r.importado())).verifyComplete();
+    verify(gateway, times(1)).crearImportado(any(), anyString());
+  }
+
+  @Test
+  void siElIdChocaAlImportarReintentaConOtro() {
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.empty());
+    doReturn(Mono.empty()).doAnswer(inv -> Mono.just(inv.getArgument(0))).when(gateway).crearImportado(any(), eq(BORRADOR_ID));
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, adjunto("senador", null, "foro-roma")))
+      .assertNext(r -> assertTrue(r.importado())).verifyComplete();
+    verify(gateway, times(2)).crearImportado(any(), eq(BORRADOR_ID));
+  }
+
+  @Test
+  void importarRespetaLasCuotasDeCrear() {
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.empty());
+    when(gateway.contarVivos(8L)).thenReturn(Mono.just((long) TapsCreadorUseCase.MAX_VIVOS));
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, adjunto("senador", null, "foro-roma")))
+      .expectError(TapsLimiteException.class).verify();
+    verify(gateway, never()).crearImportado(any(), anyString());
+  }
+
+  @Test
+  void unAdjuntoInvalidoOUnIdQueNoCoincideEs404SinTocarLaBase() {
+    ObjectNode fueraDeCatalogo = adjunto("senador", null, "marte");
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, fueraDeCatalogo)).expectError(TapsCreadorNotFoundException.class).verify();
+    ObjectNode conClaveExtra = adjunto("senador", null, "foro-roma");
+    conClaveExtra.put("ownerId", 3);
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, conClaveExtra)).expectError(TapsCreadorNotFoundException.class).verify();
+    StepVerifier.create(caso.importarBorrador(CREADORA, "otro-id1234567", adjunto("senador", null, "foro-roma")))
+      .expectError(TapsCreadorNotFoundException.class).verify();
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, null)).expectError(TapsCreadorNotFoundException.class).verify();
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, com.fasterxml.jackson.databind.node.TextNode.valueOf("{\"v\":1")))
+      .expectError(TapsCreadorNotFoundException.class).verify();
+    verifyNoInteractions(gateway);
+  }
+
+  @Test
+  void elAdjuntoTambienPuedeVenirComoTextoJson() {
+    when(gateway.buscarPorOrigen(8L, BORRADOR_ID)).thenReturn(Mono.empty());
+    when(gateway.crearImportado(any(), eq(BORRADOR_ID))).thenAnswer(inv -> Mono.just(inv.getArgument(0)));
+    var texto = com.fasterxml.jackson.databind.node.TextNode.valueOf(adjunto("escriba", "libro", "aula").toString());
+    StepVerifier.create(caso.importarBorrador(CREADORA, BORRADOR_ID, texto))
+      .assertNext(r -> assertTrue(r.tap().borrador().contains("\"host\":\"escriba\",\"item\":\"libro\""))).verifyComplete();
+  }
 }
