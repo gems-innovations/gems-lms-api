@@ -298,6 +298,29 @@ public class ApplicationConfig {
     return new TapsEstadisticasUseCase(tapsEstadisticasGateway, tapsRegistrados, java.time.Clock.system(TapsRankingUseCase.ZONA));
   }
 
+  /** Distingue cuentas registradas de invitados (por el correo en ms-auth) para me gusta y comentarios de Taps. */
+  @Bean
+  public com.gems.education.application.TapsCuentas tapsCuentas(com.gems.education.application.gateway.UserDirectory userDirectory) {
+    return new com.gems.education.application.TapsCuentas(userDirectory, java.time.Clock.systemUTC());
+  }
+
+  /** Comentarios de Taps (solo con sesión), con el filtro de texto de los Taps de creador. */
+  @Bean
+  public com.gems.education.application.TapsComentariosUseCase tapsComentariosUseCase(
+      com.gems.education.application.gateway.TapsSocialesGateway tapsSocialesGateway, TapsRegistrados tapsRegistrados,
+      com.gems.education.application.gateway.UserDirectory userDirectory) {
+    return new com.gems.education.application.TapsComentariosUseCase(tapsSocialesGateway, tapsRegistrados,
+      com.gems.education.application.TapsPayloadValidador.delClasspath(), userDirectory, java.time.Clock.systemUTC());
+  }
+
+  /** Cifras sociales y «me gusta» (con sesión) de las tarjetas de Taps (misma lista blanca que las estadísticas). */
+  @Bean
+  public com.gems.education.application.TapsSocialesUseCase tapsSocialesUseCase(
+      com.gems.education.application.gateway.TapsSocialesGateway tapsSocialesGateway, TapsRegistrados tapsRegistrados) {
+    return new com.gems.education.application.TapsSocialesUseCase(tapsSocialesGateway, tapsRegistrados,
+      java.time.Clock.system(TapsRankingUseCase.ZONA));
+  }
+
   /** Borradores de Taps del creador autenticado (PR-10 A2): propiedad estricta, cuotas y validación del contenido. */
   @Bean
   public com.gems.education.application.TapsCreadorUseCase tapsCreadorUseCase(

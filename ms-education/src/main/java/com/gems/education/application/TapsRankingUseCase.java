@@ -57,7 +57,7 @@ public class TapsRankingUseCase {
   static final int LIMITE_POR_DEFECTO = 20;
   static final int LIMITE_MAXIMO = 50;
 
-  private static final Pattern TAP_ID = Pattern.compile("^[a-z0-9-]{1,60}$");
+  static final Pattern TAP_ID = Pattern.compile("^[a-z0-9-]{1,60}$");
   private static final Pattern UUID_TEXTO =
     Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 

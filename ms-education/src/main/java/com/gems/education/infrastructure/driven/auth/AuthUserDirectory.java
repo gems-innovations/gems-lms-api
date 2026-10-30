@@ -30,9 +30,10 @@ public class AuthUserDirectory implements UserDirectory {
         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token).retrieve().bodyToMono(JsonNode.class))
       .map(user -> new UserProfile(user.path("userId").asLong(),
         (user.path("firstName").asText("") + " " + user.path("lastName").asText("")).trim(),
-        user.path("institutionId").asText()))
+        user.path("institutionId").asText(), user.path("firstName").asText(""), user.path("lastName").asText(""),
+        user.path("email").asText("")))
       .timeout(Duration.ofSeconds(5))
       .onErrorMap(e -> !(e instanceof ForbiddenException), e -> new ResponseStatusException(
-        HttpStatus.SERVICE_UNAVAILABLE, "Could not load the certificate holder"));
+        HttpStatus.SERVICE_UNAVAILABLE, "Could not load the user profile"));
   }
 }
