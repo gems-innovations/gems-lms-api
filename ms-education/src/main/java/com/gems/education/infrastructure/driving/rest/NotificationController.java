@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 /** The caller's notifications (their own and, for staff, their institution's staff notifications). */
@@ -22,9 +24,10 @@ public class NotificationController {
   }
 
   @GetMapping
-  public Mono<ResponseEntity<List<Notification>>> mine() {
+  public Mono<ResponseEntity<List<NotificationResponse>>> mine() {
     return CurrentUser.get()
-      .flatMap(caller -> notifications.forUser(caller.userId(), caller.institutionId(), caller.isStaff()).collectList())
+      .flatMap(caller -> notifications.forUser(caller.userId(), caller.institutionId(), caller.isStaff())
+        .map(NotificationResponse::of).collectList())
       .map(ResponseEntity::ok);
   }
 
@@ -43,6 +46,18 @@ public class NotificationController {
     return CurrentUser.get()
       .flatMap(caller -> notifications.markAllRead(caller.userId(), caller.institutionId(), caller.isStaff()))
       .thenReturn(ResponseEntity.noContent().<Void>build());
+  }
+
+  /**
+   * Same fields as {@link Notification}, but {@code createdAt} carries its offset: the stored value is the server's
+   * local time without a zone, and the browser would read it as its own local time (5 h off in Bogotá).
+   */
+  record NotificationResponse(Long id, String institutionId, Long recipientUserId, String type, String title,
+                              String message, Long courseId, Long referenceId, OffsetDateTime createdAt, boolean read) {
+    static NotificationResponse of(Notification n) {
+      return new NotificationResponse(n.id(), n.institutionId(), n.recipientUserId(), n.type(), n.title(), n.message(),
+        n.courseId(), n.referenceId(), n.createdAt().atZone(ZoneId.systemDefault()).toOffsetDateTime(), n.read());
+    }
   }
 
   private static boolean visibleTo(Notification n, AuthenticatedUser caller) {

@@ -517,6 +517,12 @@ CREATE TABLE IF NOT EXISTS taps_usuario (
     creado TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- Limpieza de la primera versión social (#35, revertida el 29-oct): se borra solo si la tabla es la de esa versión
+-- (columna usuario_id), para no tocar la de me gusta y comentarios con sesión. El cuerpo va entre comillas simples: el script se corta en cada punto y coma.
+DROP TABLE IF EXISTS taps_like;
+DO 'BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ''taps_comentario'' AND column_name = ''usuario_id'') THEN DROP TABLE IF EXISTS taps_comentario_reporte, taps_comentario; END IF; END';
+ALTER TABLE taps_usuario DROP COLUMN IF EXISTS ultimo_comentario, DROP COLUMN IF EXISTS ventana_comentarios_inicio, DROP COLUMN IF EXISTS ventana_comentarios;
+
 -- usuario_id: con quién compite la partida (null = anónima, suma al dispositivo).
 CREATE TABLE IF NOT EXISTS taps_partida (
     id BIGSERIAL PRIMARY KEY,
