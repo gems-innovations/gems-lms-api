@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -65,6 +67,13 @@ public final class TapsPayloadValidador {
   /** Nueve o más dígitos seguidos (con separadores sueltos): un rango de años como 1789-1799 no llega. */
   private static final Pattern TELEFONO = Pattern.compile("(?:\\+?\\d[\\s().-]?){9,}");
   private static final Pattern PALABRA = Pattern.compile("[^\\p{L}\\p{N}]+");
+  /** Solo comentarios: nueve dígitos con hasta tres separadores entre cada uno («300 - 123 - 4567»). */
+  private static final Pattern TELEFONO_SUELTO = Pattern.compile("(?:\\+?\\d[\\s().\\-_/]{0,3}){9,}");
+  private static final Pattern DOMINIO_CONTACTO = Pattern.compile("\\b[a-z0-9-]+\\.(me|gg|lat|to|cc|site|online|chat|club)\\b",
+    Pattern.CASE_INSENSITIVE);
+  private static final Pattern USUARIO = Pattern.compile("(?<![\\p{L}\\p{N}])@[\\p{L}\\p{N}_.]{3,}");
+  private static final Set<String> APPS_CONTACTO = Set.of("whatsapp", "wasap", "wsp", "telegram", "insta", "instagram", "snapchat",
+    "discord");
   /** Cualquier espacio Unicode (también el duro, U+00A0) se reduce a uno normal. */
   private static final Pattern ESPACIOS = Pattern.compile("\\s+", Pattern.UNICODE_CHARACTER_CLASS);
 
@@ -265,6 +274,25 @@ public final class TapsPayloadValidador {
     if (CORREO.matcher(s).find()) throw error("No se admiten correos en " + campo);
     if (TELEFONO.matcher(s).find()) throw error("No se admiten teléfonos en " + campo);
     if (tieneBloqueada(s)) throw error("Lenguaje no admitido en " + campo);
+    return s;
+  }
+
+  /**
+   * Un comentario (texto libre entre usuarios, y hay menores): {@link #textoLimpio} y además sin datos de contacto escritos para
+   * saltarse ese filtro: dígitos o letras de ancho completo (NFKC), teléfonos con separadores dobles, «@usuario», dominios
+   * como t.me o discord.gg y nombres de apps de mensajería. Va aparte porque {@link #textoLimpio} también revalida los Taps
+   * ya publicados, y estas reglas no deben rechazarlos.
+   */
+  String comentarioLimpio(String texto, int max, String campo) {
+    String s = textoLimpio(texto == null ? null : TextNode.valueOf(texto), 1, max, campo);
+    String k = Normalizer.normalize(s, Normalizer.Form.NFKC);
+    if (HTML.matcher(k).find() || URL.matcher(k).find() || CORREO.matcher(k).find() || tieneBloqueada(k)) {
+      throw error("No se admite ese texto en " + campo);
+    }
+    if (TELEFONO_SUELTO.matcher(k).find() || DOMINIO_CONTACTO.matcher(k).find() || USUARIO.matcher(k).find()
+      || Arrays.stream(PALABRA.split(simplificar(k))).anyMatch(APPS_CONTACTO::contains)) {
+      throw error("No se admiten datos de contacto en " + campo);
+    }
     return s;
   }
 
