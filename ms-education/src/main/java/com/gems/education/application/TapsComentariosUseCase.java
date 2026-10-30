@@ -1,6 +1,5 @@
 package com.gems.education.application;
 
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.gems.education.application.exceptions.TapsComentarioException;
 import com.gems.education.application.exceptions.TapsLimiteException;
 import com.gems.education.application.gateway.TapsSocialesGateway;
@@ -87,7 +86,7 @@ public class TapsComentariosUseCase {
   public Mono<Vista> comentar(AuthenticatedUser yo, String tapId, String texto) {
     String limpio;
     try {
-      limpio = validador.textoLimpio(texto == null ? null : TextNode.valueOf(texto), 1, MAX_TEXTO, "el comentario");
+      limpio = validador.comentarioLimpio(texto, MAX_TEXTO, "el comentario");
     } catch (IllegalArgumentException e) {
       return Mono.error(TapsComentarioException.invalido(e.getMessage()));
     }

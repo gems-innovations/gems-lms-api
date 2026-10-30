@@ -72,9 +72,20 @@ class TapsComentariosUseCaseTest {
   }
 
   @Test
+  void elFiltroDeContactoNoRechazaComentariosNormales() {
+    for (String bueno : new String[]{"Saqué 4 de 5 en 2 minutos", "La 3 era 1789-1799, ¿no?", "Me gusta.Es muy bueno",
+      "¡Lo jugué con mi hermana! 10/10"}) {
+      StepVerifier.create(caso.comentar(ANA, "mc-gancho", bueno)).expectNextCount(1).verifyComplete();
+    }
+  }
+
+  @Test
   void rechazaConMotivoLosTextosQueNoPasanElFiltro() {
     for (String malo : new String[]{null, "", "   ", "a".repeat(201), "mira www.sitio.com", "escríbeme a ana@correo.com",
-      "llama al 300 123 4567", "<b>hola</b>", "eres un tonto"}) {
+      "llama al 300 123 4567", "<b>hola</b>", "eres un tonto",
+      // Saltos del filtro general que en comentarios no pasan (hay menores).
+      "llama al 300 - 123 - 4567", "３００１２３４５６７", "t.me/juanito",
+      "búscame en insta juanito", "sígueme @juanito_2010", "pasa tu wsp", "entra a mi server discord.gg/abc", "ｗｗｗ.sitio.com"}) {
       StepVerifier.create(caso.comentar(ANA, "mc-gancho", malo))
         .expectErrorSatisfies(e -> {
           assertInstanceOf(TapsComentarioException.class, e);
