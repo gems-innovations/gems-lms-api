@@ -82,6 +82,11 @@ public class TapsSocialesController {
     return cuenta().flatMap(u -> comentarios.reportar(u, id)).thenReturn(ResponseEntity.noContent().<Void>build());
   }
 
+  @GetMapping("/api/v1/taps/comentarios/reportados")
+  public Mono<ResponseEntity<TapsComentariosUseCase.PaginaReportados>> reportados(@RequestParam(required = false) Long antes) {
+    return CurrentUser.get().flatMap(u -> comentarios.reportados(u, antes)).map(TapsSocialesController::privado);
+  }
+
   @PutMapping("/api/v1/taps/comentarios/{id}/estado")
   public Mono<ResponseEntity<Void>> estado(@PathVariable long id, @RequestBody EstadoRequest body) {
     return cuenta().flatMap(u -> comentarios.cambiarEstado(u, id, body == null ? null : body.oculto()))

@@ -95,10 +95,19 @@ class TapsSocialesRepositoryAdapterTest {
     assertTrue(adapter.buscarComentario(b).block().oculto());
     assertEquals(List.of(c, a), adapter.pagina("mc-gancho", Long.MAX_VALUE, 5).map(x -> x.id()).collectList().block());
 
+    // La cola del superadmin: reportados sin revisar (también los ya ocultos), con su cuenta de reportes.
+    adapter.reportar(c, 1L).block();
+    var cola = adapter.reportados(Long.MAX_VALUE, 5).collectList().block();
+    assertEquals(List.of(c, b), cola.stream().map(r -> r.comentario().id()).toList());
+    assertEquals(List.of(1L, 3L), cola.stream().map(r -> r.reportes()).toList());
+    assertTrue(cola.get(1).comentario().oculto());
+    assertEquals(List.of(b), adapter.reportados(c, 5).map(r -> r.comentario().id()).collectList().block());
+
     adapter.cambiarOculto(b, false).block();   // el superadmin restaura: los reportes ya no lo ocultan
     adapter.reportar(b, 4L).block();
     adapter.ocultarSiReportado(b, 3).block();
     assertFalse(adapter.buscarComentario(b).block().oculto());
+    assertEquals(List.of(c), adapter.reportados(Long.MAX_VALUE, 5).map(r -> r.comentario().id()).collectList().block());   // revisado: sale de la cola
 
     adapter.borrarComentario(a).block();
     assertNull(adapter.buscarComentario(a).block());

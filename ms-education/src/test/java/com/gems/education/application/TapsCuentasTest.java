@@ -55,14 +55,26 @@ class TapsCuentasTest {
   }
 
   @Test
-  void laRespuestaSeGuardaUnMinutoYAlReclamarLaCuentaPasa() {
+  void elInvitadoSeGuardaPocosSegundosYAlReclamarLaCuentaPasaEnseguida() {
     when(users.find(5L)).thenReturn(Mono.just(perfil("invitado-abc@invitado.gems.lat")));
     StepVerifier.create(cuentas.registrada(ALUMNO)).expectError(TapsCuentaRequeridaException.class).verify();
     when(users.find(5L)).thenReturn(Mono.just(perfil("ana@correo.com")));   // reclamó la cuenta
     StepVerifier.create(cuentas.registrada(ALUMNO)).expectError(TapsCuentaRequeridaException.class).verify();
     verify(users, times(1)).find(5L);
-    ahora[0] = ahora[0].plusSeconds(61);
+    ahora[0] = ahora[0].plusSeconds(6);
     StepVerifier.create(cuentas.registrada(ALUMNO)).expectNext(ALUMNO).verifyComplete();
+  }
+
+  @Test
+  void laCuentaRegistradaSeGuardaUnMinuto() {
+    when(users.find(5L)).thenReturn(Mono.just(perfil("ana@correo.com")));
+    StepVerifier.create(cuentas.registrada(ALUMNO)).expectNext(ALUMNO).verifyComplete();
+    ahora[0] = ahora[0].plusSeconds(59);
+    StepVerifier.create(cuentas.registrada(ALUMNO)).expectNext(ALUMNO).verifyComplete();
+    verify(users, times(1)).find(5L);
+    ahora[0] = ahora[0].plusSeconds(2);
+    StepVerifier.create(cuentas.registrada(ALUMNO)).expectNext(ALUMNO).verifyComplete();
+    verify(users, times(2)).find(5L);
   }
 
   @Test

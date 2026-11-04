@@ -62,4 +62,10 @@ public interface TapsSocialesGateway {
 
   /** Decisión del superadmin: oculta o restaura y lo marca revisado (los reportes ya no lo ocultan). */
   Mono<Void> cambiarOculto(long id, boolean oculto);
+
+  /** Un comentario reportado que el superadmin aún no revisó, con cuántos reportes tiene. */
+  record Reportado(Comentario comentario, long reportes) {}
+
+  /** Reportados sin revisar (ocultos o no, sin borrar) con id menor que {@code antes}, del más nuevo al más viejo. */
+  Flux<Reportado> reportados(long antes, int limite);
 }
