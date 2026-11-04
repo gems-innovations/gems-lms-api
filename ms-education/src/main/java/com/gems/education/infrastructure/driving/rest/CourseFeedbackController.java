@@ -38,14 +38,14 @@ public class CourseFeedbackController {
 
   // ── Survey ─────────────────────────────────────────────────────────────────
 
-  /** 404 when the course has no survey, or (for students) when it is not published. */
+  /** 204 when the course has no survey, or (for students) when it is not published: an absent survey is not an error. */
   @GetMapping("/survey")
   public Mono<ResponseEntity<SurveyBody>> survey(@PathVariable Long courseId) {
     return access.readableCourse(courseId)
       .then(CurrentUser.get())
       .flatMap(caller -> feedback.survey(courseId).filter(s -> s.published() || caller.isStaff()))
       .map(s -> ResponseEntity.ok(SurveyBody.from(s)))
-      .defaultIfEmpty(ResponseEntity.notFound().build());
+      .defaultIfEmpty(ResponseEntity.noContent().build());
   }
 
   @PutMapping("/survey")
@@ -77,7 +77,7 @@ public class CourseFeedbackController {
     return CurrentUser.get()
       .flatMap(caller -> feedback.responseOf(courseId, caller.userId()))
       .map(r -> ResponseEntity.ok(ResponseBody.from(r)))
-      .defaultIfEmpty(ResponseEntity.notFound().build());
+      .defaultIfEmpty(ResponseEntity.noContent().build());
   }
 
   // ── Reviews ────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ public class CourseFeedbackController {
     return CurrentUser.get()
       .flatMap(caller -> feedback.reviewOf(courseId, caller.userId()))
       .map(ResponseEntity::ok)
-      .defaultIfEmpty(ResponseEntity.notFound().build());
+      .defaultIfEmpty(ResponseEntity.noContent().build());
   }
 
   // ── Bodies ─────────────────────────────────────────────────────────────────
