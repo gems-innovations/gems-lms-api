@@ -42,7 +42,7 @@ class CourseFeedbackControllerTest extends ControllerTestSupport {
   void studentsOnlySeeAPublishedSurvey() {
     when(feedback.survey(1L)).thenReturn(Mono.just(survey(false)));
 
-    as(STUDENT).get().uri("/api/v1/courses/1/survey").exchange().expectStatus().isNotFound();
+    as(STUDENT).get().uri("/api/v1/courses/1/survey").exchange().expectStatus().isNoContent();
     as(INSTRUCTOR).get().uri("/api/v1/courses/1/survey").exchange().expectStatus().isOk()
       .expectBody().jsonPath("$.sections[0].questions[0].type").isEqualTo("scale")
       .jsonPath("$.isPublished").isEqualTo(false);
