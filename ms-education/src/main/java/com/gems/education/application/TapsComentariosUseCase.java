@@ -47,6 +47,10 @@ public class TapsComentariosUseCase {
 
   public record Pagina(List<Vista> comentarios, Long siguiente) {}
 
+  public record VistaReportado(long id, String tapId, String autor, String texto, Instant creado, boolean oculto, long reportes) {}
+
+  public record PaginaReportados(List<VistaReportado> comentarios, Long siguiente) {}
+
   private final TapsSocialesGateway gateway;
   private final TapsRegistrados registrados;
   private final TapsPayloadValidador validador;
@@ -119,6 +123,19 @@ public class TapsComentariosUseCase {
     if (!yo.isSuperAdmin()) return Mono.error(new ForbiddenException("Solo el superadmin modera comentarios"));
     if (oculto == null) return Mono.error(new IllegalArgumentException("Falta oculto"));
     return existente(id).flatMap(c -> gateway.cambiarOculto(id, oculto));
+  }
+
+  /** Para moderar: la cola de reportados sin revisar, con el Tap y si ya se ocultó solo. Solo el SUPER_ADMIN. */
+  public Mono<PaginaReportados> reportados(AuthenticatedUser yo, Long antes) {
+    if (!yo.isSuperAdmin()) return Mono.error(new ForbiddenException("Solo el superadmin modera comentarios"));
+    if (antes != null && antes < 1) return Mono.error(new IllegalArgumentException("antes no válido"));
+    return gateway.reportados(antes == null ? Long.MAX_VALUE : antes, POR_PAGINA + 1).collectList().map(l -> {
+      boolean hayMas = l.size() > POR_PAGINA;
+      List<TapsSocialesGateway.Reportado> pagina = hayMas ? l.subList(0, POR_PAGINA) : l;
+      return new PaginaReportados(pagina.stream().map(r -> new VistaReportado(r.comentario().id(), r.comentario().tapId(),
+        r.comentario().autor(), r.comentario().texto(), r.comentario().creado(), r.comentario().oculto(), r.reportes())).toList(),
+        hayMas ? pagina.getLast().comentario().id() : null);
+    });
   }
 
   private Mono<Comentario> existente(long id) {

@@ -52,6 +52,22 @@ class TapsComentariosUseCaseTest {
   }
 
   @Test
+  void soloElSuperadminVeLosReportadosPaginados() {
+    StepVerifier.create(caso.reportados(ANA, null)).expectError(ForbiddenException.class).verify();
+    StepVerifier.create(caso.reportados(ADMIN, 0L)).expectError(IllegalArgumentException.class).verify();
+    when(gateway.reportados(Long.MAX_VALUE, TapsComentariosUseCase.POR_PAGINA + 1)).thenReturn(Flux.fromStream(
+      LongStream.rangeClosed(1, TapsComentariosUseCase.POR_PAGINA + 1).map(i -> 100 - i)
+        .mapToObj(id -> new TapsSocialesGateway.Reportado(new Comentario(id, "mc-gancho", 6L, "Luis G.", "feo", AHORA, id % 2 == 0), 3))));
+    StepVerifier.create(caso.reportados(ADMIN, null)).assertNext(p -> {
+      assertEquals(TapsComentariosUseCase.POR_PAGINA, p.comentarios().size());
+      assertEquals(99, p.comentarios().getFirst().id());
+      assertEquals("mc-gancho", p.comentarios().getFirst().tapId());
+      assertEquals(3, p.comentarios().getFirst().reportes());
+      assertEquals(p.comentarios().getLast().id(), p.siguiente());
+    }).verifyComplete();
+  }
+
+  @Test
   void elAutorEsNombreEInicialDelApellido() {
     assertEquals("Ana R.", caso.autor("Ana María", "ruiz Gómez"));
     assertEquals("Ana", caso.autor(" Ana ", ""));

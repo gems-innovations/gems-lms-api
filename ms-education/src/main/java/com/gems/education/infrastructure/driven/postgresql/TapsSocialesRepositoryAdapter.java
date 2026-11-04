@@ -117,6 +117,16 @@ public class TapsSocialesRepositoryAdapter implements TapsSocialesGateway {
     return db.sql("UPDATE taps_comentario SET oculto = :o, revisado = true WHERE id = :id").bind("o", oculto).bind("id", id).then();
   }
 
+  @Override
+  public Flux<Reportado> reportados(long antes, int limite) {
+    return db.sql("SELECT c.id, c.tap_id, c.user_id, c.autor, c.texto, c.creado, c.oculto, COUNT(r.user_id) AS reportes "
+        + "FROM taps_comentario c JOIN taps_comentario_reporte r ON r.comentario_id = c.id "
+        + "WHERE c.borrado_en IS NULL AND NOT c.revisado AND c.id < :antes "
+        + "GROUP BY c.id ORDER BY c.id DESC LIMIT :n")
+      .bind("antes", antes).bind("n", limite)
+      .map(row -> new Reportado(comentario(row), row.get("reportes", Long.class))).all();
+  }
+
   private Mono<Map<String, Long>> contarPorTap(String sql, Collection<String> tapIds) {
     if (tapIds.isEmpty()) return Mono.just(Map.of());
     return db.sql(sql).bind("ids", tapIds.toArray(String[]::new))

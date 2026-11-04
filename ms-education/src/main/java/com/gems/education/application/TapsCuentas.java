@@ -15,12 +15,14 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>El token no dice si la cuenta es de invitado, así que se mira el correo en ms-auth: los invitados son STUDENT con
  * correo {@value #DOMINIO_INVITADO} (GuestAccessUseCase). Otros roles no se consultan. La respuesta se guarda
- * {@value #VIDA_MS} ms por usuario: quien reclama su cuenta puede esperar hasta un minuto. Si ms-auth falla, se responde
- * su error (503), nunca se deja pasar.
+ * {@value #VIDA_MS} ms por usuario si la cuenta es registrada (no vuelve a ser de invitado) y solo {@value #VIDA_INVITADO_MS}
+ * ms si es de invitado: quien reclama su cuenta no se queda un minuto con el 403. Si ms-auth falla, se responde su error
+ * (503), nunca se deja pasar.
  */
 public class TapsCuentas {
   static final String DOMINIO_INVITADO = "@invitado.gems.lat";
   static final long VIDA_MS = 60_000;
+  static final long VIDA_INVITADO_MS = 5_000;
   static final int MAX_CACHE = 50_000;
 
   private record Entrada(long vence, boolean invitado) {}
@@ -49,7 +51,7 @@ public class TapsCuentas {
         .doOnNext(inv -> {
           if (cache.size() >= MAX_CACHE) cache.values().removeIf(x -> x.vence() <= ahora);
           if (cache.size() >= MAX_CACHE) cache.clear();
-          cache.put(u.userId(), new Entrada(ahora + VIDA_MS, inv));
+          cache.put(u.userId(), new Entrada(ahora + (inv ? VIDA_INVITADO_MS : VIDA_MS), inv));
         });
     return invitado.flatMap(inv -> inv ? Mono.error(new TapsCuentaRequeridaException()) : Mono.just(u));
   }
