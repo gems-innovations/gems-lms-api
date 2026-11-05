@@ -125,6 +125,22 @@ public class TapsPayloadValidadorTest {
   }
 
   @Test
+  void elLookPropioSoloAdmitePiezasDelCatalogoColoresYGafas() throws Exception {
+    ObjectNode t = tapValido();
+    ((ObjectNode) t.get("scene")).putObject("look").put("hairStyle", "rizos").put("coat", "#336699").put("glasses", true);
+    JsonNode guardado = new ObjectMapper().readTree(validador.validar(t).json());
+    assertEquals("rizos", guardado.at("/scene/look/hairStyle").asText());
+    assertEquals("#336699", guardado.at("/scene/look/coat").asText());
+    assertTrue(guardado.at("/scene/look/glasses").asBoolean());
+    for (String raro : new String[] { "{\"hat\":\"sombrerito\"}", "{\"coat\":\"rojo\"}", "{\"alas\":true}", "{\"glasses\":\"si\"}",
+      "{\"coat\":\"<b>\"}", "[\"rizos\"]", "\"rizos\"" }) {
+      ObjectNode r = tapValido();
+      ((ObjectNode) r.get("scene")).set("look", new ObjectMapper().readTree(raro));
+      rechaza(r, "look " + raro);
+    }
+  }
+
+  @Test
   void respetaLosLimitesDelBanco() {
     ObjectNode t = tapValido();
     t.put("title", "x".repeat(61));

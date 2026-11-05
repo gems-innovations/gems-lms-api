@@ -29,7 +29,7 @@ import java.util.regex.Pattern;
  * {@code taps/bloqueados.txt}). Devuelve el JSON canónico que se guarda, con solo lo que la API conoce: la web lo
  * interpola como datos (Angular escapa), nunca como HTML.
  *
- * <p>Forma: {@code {v:1, theme:'epoca', title, kicker, scene:{world,host,item?,shot?}, questions[5], results[3..5],
+ * <p>Forma: {@code {v:1, theme:'epoca', title, kicker, scene:{world,host,item?,shot?,look?}, questions[5], results[3..5],
  * topic?:'creador', estilo?}} ({@code estilo}: catálogo {@link TapsCatalogoEstilo}); pregunta {@code {q, options, answer, why, tipo?:'clasica'|'duo'|'vf'}}; resultado
  * {@code {min, title, line}}. Los límites de texto copian los del banco ({@code generar-taps.mjs LIMITES}).
  */
@@ -60,7 +60,7 @@ public final class TapsPayloadValidador {
   private static final Set<String> CLAVES_CAPA_STICKER = Set.of("tipo", "id", "x", "y", "escala", "giro", "color");
   private static final Pattern HEX = Pattern.compile("#[0-9a-fA-F]{6}");
   private static final String BLANCO = "#ffffff";
-  private static final Set<String> CLAVES_ESCENA = Set.of("world", "host", "item", "shot");
+  private static final Set<String> CLAVES_ESCENA = Set.of("world", "host", "item", "shot", "look");
   /** {@code id} se admite (y se ignora) para que el JSON canónico guardado pase otra vez por el validador al publicar. */
   private static final Set<String> CLAVES_PREGUNTA = Set.of("id", "q", "options", "answer", "why", "tipo");
   private static final Set<String> CLAVES_RESULTADO = Set.of("min", "title", "line");
@@ -194,6 +194,32 @@ public final class TapsPayloadValidador {
       String s = texto(shot);
       if (s == null || !TapsCatalogoEpoca.ENCUADRES.contains(s)) throw error("Encuadre fuera del catálogo");
       out.put("shot", s);
+    }
+    JsonNode look = scene.get("look");
+    if (look != null && !look.isNull()) out.set("look", look(look));
+    return out;
+  }
+
+  /** Look propio del personaje: piezas de rig.js CATALOGO, colores #rrggbb y glasses booleano; nada más. */
+  private ObjectNode look(JsonNode look) {
+    if (!look.isObject()) throw error("El look del personaje no es válido");
+    ObjectNode out = MAPPER.createObjectNode();
+    for (var e : look.properties()) {
+      String k = e.getKey();
+      JsonNode v = e.getValue();
+      if (TapsCatalogoEpoca.LOOK_PIEZAS.containsKey(k)) {
+        String s = texto(v);
+        if (s == null || !TapsCatalogoEpoca.LOOK_PIEZAS.get(k).contains(s)) throw error("Pieza del personaje fuera del catálogo");
+        out.put(k, s);
+      } else if (TapsCatalogoEpoca.LOOK_COLORES.contains(k)) {
+        String s = texto(v);
+        if (s == null || !HEX.matcher(s).matches()) throw error("Color del personaje no válido");
+        out.put(k, s);
+      } else if ("glasses".equals(k) && v.isBoolean()) {
+        out.put(k, v.booleanValue());
+      } else {
+        throw error("El look del personaje no es válido");
+      }
     }
     return out;
   }
