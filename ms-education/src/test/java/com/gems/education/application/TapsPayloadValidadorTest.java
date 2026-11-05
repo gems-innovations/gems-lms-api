@@ -301,6 +301,143 @@ public class TapsPayloadValidadorTest {
     assertThrows(IllegalArgumentException.class, () -> validador.validar((String) null));
   }
 
+  /** Un estilo con todo: degradado, marco, paleta, letra, música y dos capas (texto y sticker). */
+  static ObjectNode estiloCompleto() throws Exception {
+    return (ObjectNode) JSON.readTree("""
+      {"fondo":{"tipo":"degradado","de":"#FF0000","a":"#0000ff","angulo":90.4,"fuerza":0.5},
+       "marco":"neon","paleta":"oceano","letra":"pixel","musica":"wonder-loop",
+       "capas":[{"tipo":"texto","texto":"  Hola  Roma ","x":10,"y":20,"escala":1.5,"giro":-10,"color":"#ABCDEF"},
+                {"tipo":"sticker","id":"estrella"}]}""");
+  }
+
+  private ObjectNode conEstilo(JsonNode estilo) {
+    ObjectNode t = tapValido();
+    t.set("estilo", estilo);
+    return t;
+  }
+
+  @Test
+  void unEstiloCompletoSaleCanonicoYSeRevalidaIgual() throws Exception {
+    TapsPayloadValidador.Tap out = validador.validar(conEstilo(estiloCompleto()));
+    JsonNode n = JSON.readTree(out.json());
+    assertEquals(java.util.List.of("v", "theme", "title", "kicker", "scene", "questions", "results", "topic", "estilo"),
+      n.propertyStream().map(java.util.Map.Entry::getKey).toList(), "estilo va después de topic");
+    JsonNode e = n.get("estilo");
+    assertEquals(JSON.readTree("""
+      {"fondo":{"tipo":"degradado","de":"#ff0000","a":"#0000ff","angulo":90,"fuerza":0.5},
+       "marco":"neon","paleta":"oceano","letra":"pixel",
+       "capas":[{"tipo":"texto","texto":"Hola Roma","x":10.0,"y":20.0,"escala":1.5,"giro":-10,"color":"#abcdef"},
+                {"tipo":"sticker","id":"estrella","x":50.0,"y":50.0,"escala":1.0,"giro":0,"color":"#ffffff"}],
+       "musica":"wonder-loop"}"""), e);
+    assertEquals(out.json(), validador.validar(out.json()).json(), "el canónico guardado se revalida idéntico");
+  }
+
+  @Test
+  void fondosColorYPatronConValoresPorDefecto() throws Exception {
+    JsonNode e = JSON.readTree(validador.validar(conEstilo(JSON.readTree(
+      "{\"fondo\":{\"tipo\":\"patron\",\"id\":\"rayas\"}}"))).json()).get("estilo");
+    assertEquals(JSON.readTree("{\"fondo\":{\"tipo\":\"patron\",\"id\":\"rayas\",\"color\":\"#ffffff\",\"fuerza\":0.35}}"), e);
+    e = JSON.readTree(validador.validar(conEstilo(JSON.readTree(
+      "{\"fondo\":{\"tipo\":\"color\",\"color\":\"#123456\",\"fuerza\":0.1}}"))).json()).get("estilo");
+    assertEquals(0.1, e.get("fondo").get("fuerza").doubleValue());
+    rechaza(conEstilo(JSON.readTree("{\"fondo\":{\"tipo\":\"color\"}}")), "color sin color");
+    rechaza(conEstilo(JSON.readTree("{\"fondo\":{\"tipo\":\"degradado\",\"de\":\"#000000\"}}")), "degradado sin a");
+  }
+
+  @Test
+  void sinEstiloOEstiloVacioNoCambiaLaSalida() throws Exception {
+    String base = validador.validar(tapValido()).json();
+    assertFalse(JSON.readTree(base).has("estilo"));
+    assertEquals(base, validador.validar(conEstilo(JSON.createObjectNode())).json());
+    assertEquals(base, validador.validar(conEstilo(JSON.nullNode())).json());
+    assertEquals(base, validador.validar(conEstilo(JSON.readTree("{\"capas\":[]}"))).json());
+  }
+
+  @Test
+  void elEstiloRechazaLoQueNoEstaEnElCatalogo() throws Exception {
+    for (String malo : new String[] {
+      "{\"marco\":\"fuego\"}", "{\"paleta\":\"__proto__\"}", "{\"letra\":\"comic\"}", "{\"musica\":\"https://x.y/a.mp3\"}",
+      "{\"marco\":1}", "{\"__proto__\":{}}", "{\"fondo\":{\"tipo\":\"imagen\",\"url\":\"x\"}}",
+      "{\"fondo\":{\"tipo\":\"patron\",\"id\":\"constructor\"}}", "{\"capas\":[{\"tipo\":\"sticker\",\"id\":\"calavera\"}]}",
+      "{\"capas\":[{\"tipo\":\"video\"}]}", "{\"capas\":[\"x\"]}", "{\"capas\":{}}", "\"neon\"", "[]"}) {
+      rechaza(conEstilo(JSON.readTree(malo)), malo);
+    }
+  }
+
+  @Test
+  void elEstiloRechazaColoresQueNoSonHex() throws Exception {
+    for (String color : new String[] {"url(x)", "#fff", "red", "#12345g", "#1234567", "javascript:alert(1)"}) {
+      rechaza(conEstilo(JSON.createObjectNode().set("fondo",
+        JSON.createObjectNode().put("tipo", "color").put("color", color))), "fondo " + color);
+      rechaza(conEstilo(JSON.createObjectNode().set("capas", JSON.createArrayNode().add(
+        JSON.createObjectNode().put("tipo", "sticker").put("id", "rayo").put("color", color)))), "capa " + color);
+    }
+  }
+
+  @Test
+  void elEstiloRechazaClavesDesconocidasEnCadaNivel() throws Exception {
+    for (String malo : new String[] {"{\"marco\":\"neon\",\"css\":\"x\"}",
+      "{\"fondo\":{\"tipo\":\"color\",\"color\":\"#000000\",\"id\":\"puntos\"}}",
+      "{\"capas\":[{\"tipo\":\"sticker\",\"id\":\"rayo\",\"texto\":\"hola\"}]}",
+      "{\"capas\":[{\"tipo\":\"texto\",\"texto\":\"hola\",\"href\":\"x\"}]}"}) {
+      rechaza(conEstilo(JSON.readTree(malo)), malo);
+    }
+  }
+
+  @Test
+  void numerosDelEstiloFueraDeRangoONoNumericos() throws Exception {
+    for (String malo : new String[] {"{\"fondo\":{\"tipo\":\"color\",\"color\":\"#000000\",\"fuerza\":0.8}}",
+      "{\"fondo\":{\"tipo\":\"color\",\"color\":\"#000000\",\"fuerza\":0.05}}",
+      "{\"fondo\":{\"tipo\":\"degradado\",\"de\":\"#000000\",\"a\":\"#ffffff\",\"angulo\":361}}",
+      "{\"capas\":[{\"tipo\":\"sticker\",\"id\":\"rayo\",\"x\":101}]}", "{\"capas\":[{\"tipo\":\"sticker\",\"id\":\"rayo\",\"y\":-1}]}",
+      "{\"capas\":[{\"tipo\":\"sticker\",\"id\":\"rayo\",\"escala\":3}]}", "{\"capas\":[{\"tipo\":\"sticker\",\"id\":\"rayo\",\"giro\":46}]}",
+      "{\"capas\":[{\"tipo\":\"sticker\",\"id\":\"rayo\",\"x\":\"10\"}]}"}) {
+      rechaza(conEstilo(JSON.readTree(malo)), malo);
+    }
+    pasa(conEstilo(JSON.readTree("{\"capas\":[{\"tipo\":\"sticker\",\"id\":\"rayo\",\"x\":0,\"y\":100,\"escala\":2.5,\"giro\":-45}]}")));
+  }
+
+  @Test
+  void masDeSeisCapasSeRechaza() {
+    ArrayNode capas = JSON.createArrayNode();
+    for (int i = 0; i < TapsCatalogoEstilo.MAX_CAPAS; i++) capas.add(JSON.createObjectNode().put("tipo", "sticker").put("id", "rayo"));
+    pasa(conEstilo(JSON.createObjectNode().set("capas", capas)));
+    capas.add(JSON.createObjectNode().put("tipo", "sticker").put("id", "rayo"));
+    rechaza(conEstilo(JSON.createObjectNode().set("capas", capas)), "7 capas");
+  }
+
+  @Test
+  void elTextoDeCapaPasaPorElMismoFiltro() {
+    TapsPayloadValidador v = new TapsPayloadValidador(java.util.Set.of("tonto"));
+    for (String malo : new String[] {"mira www.algo.com", "ana@correo.com", "<b>x</b>", "qué tonto", "x".repeat(41), "  "}) {
+      ObjectNode t = conEstilo(JSON.createObjectNode().set("capas", JSON.createArrayNode().add(
+        JSON.createObjectNode().put("tipo", "texto").put("texto", malo))));
+      IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> v.validar(t), malo);
+      assertTrue(e.getMessage().contains("texto 1"), e.getMessage());
+      assertFalse(e.getMessage().contains("algo.com"));
+    }
+  }
+
+  @Test
+  void laProfundidadDelEstiloCabeEnElLimite() throws Exception {
+    // root → estilo → capas → capa: 4 niveles, justo el máximo.
+    ObjectNode t = conEstilo(estiloCompleto());
+    assertEquals(TapsPayloadValidador.MAX_PROFUNDIDAD, TapsPayloadValidador.profundidad(t));
+    pasa(t);
+    ((ObjectNode) t.get("estilo").get("capas").get(0)).set("x", JSON.createArrayNode().add(1));
+    rechaza(t, "un nivel más");
+  }
+
+  @Test
+  void elCatalogoDeEstiloEsElDeLaWeb() {
+    assertEquals(6, TapsCatalogoEstilo.MARCOS.size());
+    assertEquals(6, TapsCatalogoEstilo.PALETAS.size());
+    assertEquals(2, TapsCatalogoEstilo.LETRAS.size());
+    assertEquals(4, TapsCatalogoEstilo.PATRONES.size());
+    assertEquals(9, TapsCatalogoEstilo.MUSICAS.size());
+    assertEquals(16, TapsCatalogoEstilo.STICKERS.size());
+  }
+
   @Test
   void elCatalogoEsElDelTemaEpoca() {
     assertEquals(8, TapsCatalogoEpoca.MUNDOS.size());
